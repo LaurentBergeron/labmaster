@@ -1,0 +1,69 @@
+"""
+Lab-Master launcher.
+Type 'run launch.ipy' in a Ipython console.
+Be aware that this command will close instrument drivers and reset the Ipython environnement.
+"""
+
+from __future__ import division # <--- TRYING TO MAKE THIS WORK. IT DOESNT FOR SOME REASON.
+
+import os, glob
+# clean existing .pyc files (don't worry they will come back!)
+for filename in glob.glob("*.pyc")+glob.glob("exp/*.pyc")+glob.glob("mod/*.pyc"):
+    os.remove(filename)
+
+os.system("attrib +H *.pyc /S")  # ---> hide .pyc files in directory
+# os.system("attrib -H *.pyc /S")  # ---> to view .pyc again
+
+
+# Safe start calls the close_all method of every Lab instance in Ipython's namespace.
+from mod.main import clean_start
+_INTERACTIVE_START_ = 0
+clean_start(globals())
+
+### Launch
+# Reset Ipython environnement
+%reset -f
+%reload_ext autoreload
+%autoreload 2
+
+# Import Lab-Master
+from mod.main import *
+from mod.main import __version__
+from mod.instruments import *
+from mod.classes import Lab, Params
+
+
+# Hail the great Lab-Master
+print "\n*** Welcome to the Lab-Master v."+__version__+" "*(13-len(__version__))+"***"
+print "*** In case of emergency, try help_please(). ***\n" 
+
+plt.ion() # interactive matplotlib ON
+plt.close("all") # close matplotlib figures (good for performance)
+
+# Disable annoying matplotlib warning for something deprecated.
+import warnings
+import matplotlib.cbook
+warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+
+_INTERACTIVE_START_ = 0
+
+# Make some Ipython magic
+from IPython.core.magic import register_line_magic
+@register_line_magic
+def irun(line):
+    get_ipython().run_line_magic('run', ' -i ' + line)
+del irun
+
+# Initialize instruments
+lab = Lab()
+lab.add_instrument("awg")
+lab.add_instrument("pb")
+lab.add_instrument("usb_counter")
+# lab.add_instrument("laser")
+# lab.add_instrument("lockin")
+# lab.add_instrument("sig_gen")
+# lab.add_instrument("sig_gen_srs")
+# lab.add_instrument("wavemeter")
+
+print ""
+print lab

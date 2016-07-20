@@ -1,0 +1,65 @@
+laser_scan.py;2016_07_18;ID;ND;sensitivity;comment
+pressure = 22.5 mm Hg
+;;0011; Red Open, Green Open; 1e-7;
+;;0012; Red 0.3, Green 3.0; 1e-7;
+laser_scan.py;2016_07_18;ID;ND;sensitivity;comment
+;;0013; Red 0.3, Green 3.0; 1e-7;
+lockin time constant = 30 msrf_scan.py;2016_07_18;ID;current;ND;sensitivity;comment
+;;0014; 0.1463A; Red Open, Green 3.0; 1e-7;lets go!
+nmr.py;2016_07_19;ID;ND;sensitivity;comment
+;;0000; Red Open, Green 3; 1e-7;
+;;0000; Red Open, Green 3; 1e-7;
+;;0000; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0002; Red Open, Green 3; 1e-7;
+;;0002; Red Open, Green 3; 1e-7;
+;;0002; Red Open, Green 3; 1e-7;
+;;0003; Red Open, Green 3; 1e-7;
+;;0004; Red Open, Green 3; 1e-7;
+;;0005; Red Open, Green 3; 1e-7;
+;;0006; Red Open, Green 3; 1e-7;
+;;0007; Red Open, Green 3; 1e-7;
+;;0008; Red Open, Green 3; 1e-7;
+;;0009; Red Open, Green 3; 1e-7;
+;;0010; Red Open, Green 3; 1e-7;
+;;0011; Red Open, Green 3; 1e-7;
+;;0012; Red Open, Green 3; 1e-7;
+;;0012; Red Open, Green 3; 1e-7;
+;;0012; Red Open, Green 3; 1e-7;
+;;0013; Red Open, Green 3; 1e-7;
+;;0014; Red Open, Green 3; 1e-7;
+;;0015; Red Open, Green 3; 1e-7;
+;;0015; Red Open, Green 3; 1e-7;
+;;0015; Red Open, Green 3; 1e-7;
+;;0016; Red Open, Green 3; 1e-7;
+;;0017; Red Open, Green 3; 1e-7;
+;;0018; Red Open, Green 3; 1e-7;
+;;0019; Red Open, Green 3; 1e-7;
+;;0020; Red Open, Green 3; 1e-7;
+;;0020; Red Open, Green 3; 1e-7;
+;;0021; Red Open, Green 3; 1e-7;
+nmr.py;2016_07_20;ID;ND;sensitivity;comment
+;;0000; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0002; Red Open, Green 3; 1e-7;
+;;0003; Red Open, Green 3; 1e-7;
+;;0004; Red Open, Green 3; 1e-7;
+;;0005; Red Open, Green 3; 1e-7;
+;;0006; Red Open, Green 3; 1e-7;
+;;0007; Red Open, Green 3; 1e-7;
+;;0008; Red Open, Green 3; 1e-7;
+;;0009; Red Open, Green 3; 1e-7;
+;;0010; Red Open, Green 3; 1e-7;
+;;0011; Red Open, Green 3; 1e-7;
+;;0012; Red Open, Green 3; 1e-7;
+;;0013; Red Open, Green 3; 1e-7;
+;;0014; Red Open, Green 3; 1e-7;
+;;0015; Red Open, Green 3; 1e-7;
+;;0016; Red Open, Green 3; 1e-7;
+;;0017; Red Open, Green 3; 1e-7;
