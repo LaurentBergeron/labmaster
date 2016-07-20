@@ -39,7 +39,7 @@ def sequence(lab, params):
     lab.free_evolution_time = 0
     lab.awg.string_sequence(1, start)
     for _ in np.arange(params.loops.v):
-        lab.awg.string_sequence(1, bclvl2)
+        lab.awg.string_sequence(1, HAHN)
     lab.awg.string_sequence(1, end)
     params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
   

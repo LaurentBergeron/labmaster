@@ -247,12 +247,14 @@ class Awg(Instrument):
         time_start = time.time()
         for channel in self.channels_to_load:
             channel = str(channel)
+            time_clearing_stuff = time.time()
             status = self.abort_generation(channel)
             self.check_error(status)
             self.AgM8190.SequenceTableReset(self.session, channel)
             self.check_error(status)
             status = self.AgM8190.WaveformClearAll(self.session, channel)
             self.check_error(status)
+            print "abort_gen duration", time.time()-time_clearing_stuff
             C_blocks=[]
             self.preprocess(channel, C_blocks)
             if C_blocks==[]:
@@ -260,31 +262,42 @@ class Awg(Instrument):
                 continue
             
             
+            segment_ID_idle = vt.ViInt32(0)
             segment_ID = vt.ViInt32(0)
             data = (vt.ViInt32 * 6)()
             
+            waveform_int16_idle = (vt.ViInt16*self.tick)() # initialized with zeros
+            # Define and download the "idle" segment
+            status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16_idle), waveform_int16_idle, ct.byref(segment_ID_idle))
+            self.check_error(status)
 
             for i, (wfm_command, args) in enumerate(C_blocks):
-
+                time_one_block = time.time()
                 if wfm_command=="block":
-                    waveform_int16, a, _ = args
+                    waveform_int16, _, _ = args
                     seg_loops = 1
+                    time_wfmCreateChannel = time.time()
+                    # Define and download the segment
+                    status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16), waveform_int16, ct.byref(segment_ID))
+                    self.check_error(status)
+                    print "Wfm Create Channel duration:", time.time()-time_wfmCreateChannel
+                    time_select_segments = time.time()
+                    # Select the segments
+                    status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID)
+                    self.check_error(status)
+                    print "Wfm selec segment duration:", time.time()-time_select_segments
                 elif wfm_command=="idle":
-                    waveform_int16 = (vt.ViInt16*self.tick)() # initialized with zeros
                     delay = args     
-                    seg_loops = int(delay/len(waveform_int16))
+                    seg_loops = int(delay/len(waveform_int16_idle))
                     if seg_loops > 2**32:
                         raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the delay_big() method to get around this issue."
-                
-                # print "before loading waveform", time.time()-time_start
-                # Define and download the segment
-                status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16), waveform_int16, ct.byref(segment_ID))
-                self.check_error(status)
-                # Select the segments
-                status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID)
-                self.check_error(status)
                     
-                # print "after loading waveform, before TableSetData",time.time()-time_start
+                    time_select_segments = time.time()
+                    # Select the segments
+                    status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID_idle)
+                    self.check_error(status)
+                    print "Wfm selec segment duration:", time.time()-time_select_segments
+                
                 data[0] = 0
                 if i == 0:
                     data[0] += self.AgM8190.control["InitMarkerSequence"]
@@ -296,10 +309,11 @@ class Awg(Instrument):
                 data[3] = segment_ID.value  # Segment ID
                 data[4] = 0 # Segment Start Offset (0 = no offset)
                 data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
+                time_SequenceTable = time.time()
                 status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 self.check_error(status)
-                # print "after TableSetData",time.time()-time_start
-                
+                print "SequenceTable duration:", time.time()-time_SequenceTable
+                print "One block duration:", time.time()-time_one_block
                 ########## idle command - max delay is 2**25 sample counts - deprecated ##########                                                                     
                 # data[0] += self.AgM8190.control["CommandFlag"] # Control
                 # data[1] = 1 # Sequence Loop Count (N/A)
@@ -310,7 +324,8 @@ class Awg(Instrument):
                 # status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 # self.check_error(status)
                 ################################################################################## 
-                
+            
+            time_sequencer_and_output_on = time.time()
             # Choose correct sequencer mode
             status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ST_SEQUENCE)
             self.check_error(status)
@@ -318,6 +333,8 @@ class Awg(Instrument):
             # Turn Output On
             status = self.AgM8190.SetAttributeViBoolean(self.session, channel, self.AgM8190.ATTR_OUTPUT_ENABLED, True)
             self.check_error(status)
+            
+            print "sequencer and output on duration", time.time() - time_sequencer_and_output_on 
         print "time to load awg:", time.time()-time_start
         return
         
@@ -338,8 +355,8 @@ class Awg(Instrument):
         """ 
         import time
         show_clipping_warning = True
-        preprocess_time_start = time.time() - time_start
-        print "preprocess start", preprocess_time_start
+        short_size = (2**16-1)
+        preprocess_time_start = time.time()
         pulse_times, pulse_lengths, pulse_freqs, pulse_phases, pulse_amps, pulse_shapes, marker_times = self.unzip_instructions(channel)
 
         # If there's no instructions for this channel, what's the point?
@@ -419,7 +436,6 @@ class Awg(Instrument):
             if trigger_latency > 0:
                 raise nfu.LabMasterError, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
 
-        print "time before complicated stuff", time.time()-time_start
         for b, block in enumerate(blocks):
             # Find block min and max for padding
             block_start = int(np.min([item[0] for item in block]))
@@ -448,12 +464,8 @@ class Awg(Instrument):
                 C_arrPhase[p] = ct.c_double(item[3])
                 C_arrAmp[p] = ct.c_double(item[4])
                 C_arrShape[p] = ct.c_int(item[5])
-            print "yo", time.time()-time_start
             self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16, ct.c_double(awg_amp))
-            print "lo", time.time()-time_start
             # Clip block amplitude if to high.
-            print np.max(C_arrOut_int16)
-            short_size = (2**16-1)
             if np.max(C_arrOut_int16) > short_size:
                 print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
                 if not self.skip_warning:
@@ -488,8 +500,7 @@ class Awg(Instrument):
                 if (padded_block_end < end_of_experiment):
                     result.append( ["idle", end_of_experiment-padded_block_end] )
 
-        print "end of preprocess", time.time()-time_start
-        print "preprocess duration", time.time()-time_start - preprocess_time_start
+        print "preprocess duration", time.time() - preprocess_time_start
         return 
         
     def print_loaded_sequence(self, channel, divider=None, ax=None):
@@ -502,7 +513,7 @@ class Awg(Instrument):
         C_blocks = []
         self.preprocess("1", C_blocks)
 
-        prefix, c = nfu.time_auto_label(self.lab)
+        prefix, c = "", 1#nfu.time_auto_label(self.lab)
 
         if ax==None:
             fig = plt.figure()

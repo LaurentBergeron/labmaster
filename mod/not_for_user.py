@@ -97,7 +97,7 @@ def run_experiment(lab, params, experiment, data, fig, show_plot):
     # Update data array.
     data[params.get_data_indices()] = experiment.get_data(lab, params)
     # Update fig.
-    if show_plot:
+    if show_plot and fig != None:
         experiment.update_plot(fig, params, data)
         plotting.plt.pause(1e-6)
     return 
