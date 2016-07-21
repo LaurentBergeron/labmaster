@@ -254,14 +254,14 @@ class Awg(Instrument):
         time_start = time.time()
         for channel in self.channels_to_load:
             channel = str(channel)
-            time_clearing_stuff = time.time()
+            # time_clearing_stuff = time.time()
             status = self.abort_generation(channel)
             self.check_error(status)
             self.AgM8190.SequenceTableReset(self.session, channel)
             self.check_error(status)
             status = self.AgM8190.WaveformClearAll(self.session, channel)
             self.check_error(status)
-            print "abort_gen duration", time.time()-time_clearing_stuff
+            # print "abort_gen duration", time.time()-time_clearing_stuff
             C_blocks=[]
             self.preprocess(channel, C_blocks)
             if C_blocks==[]:
@@ -279,15 +279,14 @@ class Awg(Instrument):
             self.check_error(status)
         
             for i, (wfm_command, args) in enumerate(C_blocks):
-                time_one_block = time.time()
                 if wfm_command=="block":
                     waveform_int16, _, _ = args
                     seg_loops = 1
-                    time_wfmCreateChannel = time.time()
+                    # time_wfmCreateChannel = time.time()
                     # Define and download the segment
                     status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16), waveform_int16, ct.byref(segment_ID))
                     self.check_error(status)
-                    print "Wfm Create Channel duration:", time.time()-time_wfmCreateChannel
+                    # print "Wfm Create Channel duration:", time.time()-time_wfmCreateChannel
                     segment_ID_active = segment_ID.value
                 elif wfm_command=="idle":
                     delay = args     
@@ -296,11 +295,11 @@ class Awg(Instrument):
                         raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the delay_big() method to get around this issue."
                     segment_ID_active = segment_ID_idle.value
                     
-                time_select_segments = time.time()
+                # time_select_segments = time.time()
                 # Select the segments
                 status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID_active)
                 self.check_error(status)
-                print "Wfm select segment duration:", time.time()-time_select_segments
+                # print "Wfm select segment duration:", time.time()-time_select_segments
                 
                 data[0] = 0
                 if i == 0:
@@ -313,11 +312,10 @@ class Awg(Instrument):
                 data[3] = segment_ID_active  # Segment ID
                 data[4] = 0 # Segment Start Offset (0 = no offset)
                 data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
-                time_SequenceTable = time.time()
+                # time_SequenceTable = time.time()
                 status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 self.check_error(status)
-                print "SequenceTable duration:", time.time()-time_SequenceTable
-                print "One block duration:", time.time()-time_one_block
+                # print "SequenceTable duration:", time.time()-time_SequenceTable
                 ########## idle command - max delay is 2**25 sample counts - deprecated ##########                                                                     
                 # data[0] += self.AgM8190.control["CommandFlag"] # Control
                 # data[1] = 1 # Sequence Loop Count (N/A)
@@ -329,7 +327,6 @@ class Awg(Instrument):
                 # self.check_error(status)
                 ################################################################################## 
             
-            time_sequencer_and_output_on = time.time()
             # Choose correct sequencer mode
             status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ST_SEQUENCE)
             self.check_error(status)
@@ -337,8 +334,7 @@ class Awg(Instrument):
             # Turn Output On
             status = self.AgM8190.SetAttributeViBoolean(self.session, channel, self.AgM8190.ATTR_OUTPUT_ENABLED, True)
             self.check_error(status)
-            
-            print "sequencer and output on duration", time.time() - time_sequencer_and_output_on 
+        
         print "time to load awg:", time.time()-time_start
         return
         

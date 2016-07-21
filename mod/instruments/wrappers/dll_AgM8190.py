@@ -20,17 +20,14 @@ header = CppHeaderParser.CppHeader("mod/instruments/extern/AgM8190.h")
         
 def clean_args(argtype, *args):  
     l = list(*args)
-    parent = inspect.stack()[1][3]
     if hasattr(argtype, "__len__"):
         args_size = len(argtype)
     else: # for some reason when there is only one argtype, it has no __len__ attribute.
         args_size = 1
 
     if not (args_size == len(l)):
-        raise IndexError, "Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(l))+")."
+        raise IndexError, "Wrong number of arguments ("+str(args_size)+", not "+str(len(l))+")."
     
-    # for i, input in enumerate(l):
-        # if not isinstance(input, argtype)
 
     return tuple(l)
 
@@ -1976,4 +1973,6 @@ dll.AgM8190_WaveformSetName.argtype = (
                                        ViInt32,
                                        ViConstString
                                        )
+
+
 

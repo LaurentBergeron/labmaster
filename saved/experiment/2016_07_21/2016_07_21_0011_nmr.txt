@@ -1,3 +1,29 @@
+Time launched: 2016-Jul-21 11:04'10''
+Time ended:    2016-Jul-21 11:04'19''
+
+Experiment aborted.
+
+
+### intruments connected:
+   awg
+   pb
+   usb_counter
+
+
+### Scheduled run 
+Constants:
+tau = 20 ms
+phase_start = X
+bin_length = 150 ms
+
+1st sweep:
+loops from 1 to 99 in 99 steps.
+
+2nd sweep:
+phase_cycle from  to - in 2 steps.
+
+
+### Experiment: exp.exp_nmr.py
 """ 
 Hahn echo experiment.
 """
