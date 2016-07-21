@@ -270,7 +270,7 @@ class Awg(Instrument):
             # Define and download the "idle" segment
             status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16_idle), waveform_int16_idle, ct.byref(segment_ID_idle))
             self.check_error(status)
-
+        
             for i, (wfm_command, args) in enumerate(C_blocks):
                 time_one_block = time.time()
                 if wfm_command=="block":
@@ -281,22 +281,19 @@ class Awg(Instrument):
                     status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16), waveform_int16, ct.byref(segment_ID))
                     self.check_error(status)
                     print "Wfm Create Channel duration:", time.time()-time_wfmCreateChannel
-                    time_select_segments = time.time()
-                    # Select the segments
-                    status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID)
-                    self.check_error(status)
-                    print "Wfm selec segment duration:", time.time()-time_select_segments
+                    segment_ID_active = segment_ID.value
                 elif wfm_command=="idle":
                     delay = args     
                     seg_loops = int(delay/len(waveform_int16_idle))
                     if seg_loops > 2**32:
                         raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the delay_big() method to get around this issue."
+                    segment_ID_active = segment_ID_idle.value
                     
-                    time_select_segments = time.time()
-                    # Select the segments
-                    status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID_idle)
-                    self.check_error(status)
-                    print "Wfm selec segment duration:", time.time()-time_select_segments
+                time_select_segments = time.time()
+                # Select the segments
+                status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID_active)
+                self.check_error(status)
+                print "Wfm select segment duration:", time.time()-time_select_segments
                 
                 data[0] = 0
                 if i == 0:
@@ -306,7 +303,7 @@ class Awg(Instrument):
                 data[0] += self.AgM8190.control["MarkerEnable"] # Control
                 data[1] = 1 # Sequence Loop Count
                 data[2] = seg_loops # Segment Loop Count
-                data[3] = segment_ID.value  # Segment ID
+                data[3] = segment_ID_active  # Segment ID
                 data[4] = 0 # Segment Start Offset (0 = no offset)
                 data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
                 time_SequenceTable = time.time()

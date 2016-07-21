@@ -1,3 +1,29 @@
+Time launched: 2016-Jul-20 16:55'18''
+Time ended:    2016-Jul-20 16:55'21''
+
+Experiment aborted.
+
+
+### intruments connected:
+   awg
+   pb
+   usb_counter
+
+
+### Scheduled run 
+Constants:
+tau = 20 ms
+phase_start = X
+bin_length = 150 ms
+
+1st sweep:
+loops from 1 to 99 in 99 steps.
+
+2nd sweep:
+phase_cycle from  to - in 2 steps.
+
+
+### Experiment: exp.exp_nmr.py
 """ 
 Hahn echo experiment.
 """
@@ -32,13 +58,14 @@ def sequence(lab, params):
     lab.awg.default_delay["1"] = params.tau.v
     start = params.phase_cycle.v+params.phase_start.v+"/2,"
     end = params.phase_start.v+"/2,"
-        
+    
     _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
     
     lab.free_evolution_time = 0
     lab.awg.string_sequence(1, start)
-    lab.awg.string_sequence(1, HAHN, loops=params.loops.v)
+    for _ in np.arange(params.loops.v):
+        lab.awg.string_sequence(1, HAHN)
     lab.awg.string_sequence(1, end)
     params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
   
