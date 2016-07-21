@@ -109,6 +109,13 @@ class Awg(Instrument):
             self.AgM8190.GetError(self.session, ct.byref(self.error_code), 255, self.error_message)
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
+        
+    def delay(self, loops=None):
+        """
+        Overwrites the Instrument class delay to support looping.
+        """
+        
+        return
     
     def delay_big(self, channel, duration): #, rewind=None):
         """ didnt figure how rewind would behave here, TODO."""

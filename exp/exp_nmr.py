@@ -35,7 +35,7 @@ def sequence(lab, params):
         
     _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
-    
+    lab.delay(100)
     lab.free_evolution_time = 0
     lab.awg.string_sequence(1, start)
     lab.awg.string_sequence(1, HAHN, loops=params.loops.v)
