@@ -209,11 +209,11 @@ class Pulse_blaster_usb(Instrument):
             self.opcode(opcode_str, ref)
         if time_on==None:
             self.instructions.append([self.lab.time_cursor, slave, 1, ref])
-            self.lab.update_instructions_timing(0., rewind)
+            self.lab.update_time_cursor(0., rewind)
         else:
             self.instructions.append([self.lab.time_cursor, slave, 1, ref])
             self.instructions.append([self.lab.time_cursor+time_on, slave, 0, ""])
-            self.lab.update_instructions_timing(time_on, rewind)
+            self.lab.update_time_cursor(time_on, rewind)
         return
         
     def turn_off(self, slave, time_off=None, opcode_str="", ref="", rewind=None):
@@ -222,11 +222,11 @@ class Pulse_blaster_usb(Instrument):
             self.opcode(opcode_str, ref)
         if time_off==None:
             self.instructions.append([self.lab.time_cursor, slave, 0, ref])
-            self.lab.update_instructions_timing(0., rewind)
+            self.lab.update_time_cursor(0., rewind)
         else:
             self.instructions.append([self.lab.time_cursor, slave, 0, ref])
             self.instructions.append([self.lab.time_cursor+time_off, slave, 1, ""])
-            self.lab.update_instructions_timing(time_off, rewind)
+            self.lab.update_time_cursor(time_off, rewind)
         return
         
     def start(self):

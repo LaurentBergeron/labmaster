@@ -32,16 +32,24 @@ def sequence(lab, params):
     lab.awg.default_delay["1"] = params.tau.v
     start = params.phase_cycle.v+params.phase_start.v+"/2,"
     end = params.phase_start.v+"/2,"
-          
+  
+
+    
     _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
     lab.free_evolution_time = 0
     lab.awg.string_sequence(1, start)
-    for _ in range(20):
-        lab.awg.string_sequence(1, bclvl2, loops=params.loops.v)
+    print lab.awg.instructions
+    raw_input()
+    lab.awg.string_sequence(1, HAHN, num_loops=2)
+    print lab.awg.instructions
+    raw_input()
+    
     lab.awg.string_sequence(1, end)
+    print lab.awg.instructions
+    raw_input()
     params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
-  
+    
     lab.pb.turn_on("scope_trig", time_on=10*ms, rewind="start") 
     _shared_.readout(lab, params)
     return 

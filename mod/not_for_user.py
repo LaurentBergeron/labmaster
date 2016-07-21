@@ -4,6 +4,11 @@ Functions you might possibly want to change: save_experiment, save_data, run_exp
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
+
+class LabMasterError(Exception):
+    """ Error of this type will be raised if Lab-Master detects something wrong. """
+    pass
+
 # Base modules
 import sys
 import os 
@@ -15,14 +20,9 @@ import inspect
 import datetime
 import types
 import linecache
-
 # Homemade modules
 import plotting
 
-class LabMasterError(Exception):
-    """ Error of this type will be raised if Lab-Master detects something wrong. """
-    pass
-    
     
 def sweep(lab, params, experiment, data, fig, current_sweep_ID, show_plot):
     """ 

@@ -170,7 +170,7 @@ class Lab(Drawer):
             failed += self.close(name)
         return failed
     
-    def delay(self, length, rewind=None):
+    def delay(self, length):
         """ 
         Add a delay to an instructions for memory loading.
         
@@ -178,7 +178,7 @@ class Lab(Drawer):
         - length: Duration of delay.
         """
         self.free_evolution_time += length
-        self.update_instructions_timing(length, rewind)
+        self.update_time_cursor(length, None)
         return
         
     def get_memory_instruments(self):
@@ -188,7 +188,6 @@ class Lab(Drawer):
     def get_ping_pong_instruments(self):
         """ Return connected instruments which have ping pong (double-buffering) memory capacity. """
         return [instr for instr in self.get_memory_instruments() if instr.is_ping_pong]
-    
 
         
     def print_connected(self, as_string=False):
@@ -240,7 +239,7 @@ class Lab(Drawer):
         self.delay(-length)
         return
 
-    def update_instructions_timing(self, instruction_duration, rewind):
+    def update_time_cursor(self, instruction_duration, rewind):
         """
         Add current instruction duration to self.time_cursor. 
         It has to be called after each time an instruction is appended.
