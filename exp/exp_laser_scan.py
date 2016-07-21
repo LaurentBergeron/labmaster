@@ -19,8 +19,8 @@ def get_data(lab, params):
     return lab.lockin.measure()
 
 
-def create_plot(params, data):
-    fig = plotting.createfig_XY("Current", "lockin", 1, "--o")
+def create_plot(fig, params, data):
+    plotting.createfig_XY(fig, "Current", "lockin", 1, "--o")
     return fig
 
 def update_plot(fig, params, data):

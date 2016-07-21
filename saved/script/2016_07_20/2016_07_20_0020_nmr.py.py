@@ -32,9 +32,10 @@ try:
     params.time_axis.sweep_ID = 0
     params.time_axis.value = np.zeros(params.tau.size()*params.loops.size())
     
+    data_ref = np.zeros(0)
     fig_ref = plt.figure()
     
-    scan(lab, params, experiment, fig=fig_ref, quiet=True)
+    scan(lab, params, experiment, data=data_ref, fig=fig_ref, quiet=True)
 
 except:
     error_manager()

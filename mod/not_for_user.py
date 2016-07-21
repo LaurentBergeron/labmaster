@@ -209,7 +209,10 @@ def size_of_get_data_return(experiment):
 
 
 def zeros(params, experiment):
-    """ Initializes data to zeros. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. """
+    """ 
+    Initializes data to zeros. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
+    dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
+    """
     dimension = params.get_dimension()
     array_shape = [len(params.get_current_sweeps(i)[0].value)  for i in range(1,dimension+1) ]
     get_data_size =  size_of_get_data_return(experiment)
@@ -284,14 +287,15 @@ def get_notebook_line_format(delimiter="\t"):
 def get_script_filename():
     return sys.argv[0]
     
-def filename_format(date, ID):
-    if date=="today":
-        date = today()
-    return date+"/"+date+"_"+ID+"_"+get_script_filename()
+def filename_format(date, ID, script_name=True):
+    return date+"_"+ID+"_"+script_name*get_script_filename()[:-3]
     
 def today():
     return datetime.date.today().strftime("%Y_%m_%d")
 
+def lastID():
+    return pad_ID(int(detect_experiment_ID())-1)
+    
 def print_loaded_sequence_auto_label(lab):
     index=int(np.floor(np.log10(lab.total_duration - lab.end_buffer)/3))
     if 0 <= (index+3) < 3:

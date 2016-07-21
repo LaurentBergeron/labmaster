@@ -1,3 +1,29 @@
+Time launched: 2016-Jul-20 17:56'38''
+Time ended:    2016-Jul-20 17:57'14''
+
+Experiment aborted.
+
+
+### intruments connected:
+   awg
+   pb
+   usb_counter
+
+
+### Scheduled run 
+Constants:
+tau = 20 ms
+phase_start = X
+bin_length = 150 ms
+
+1st sweep:
+loops from 1 to 99 in 99 steps.
+
+2nd sweep:
+phase_cycle from  to - in 2 steps.
+
+
+### Experiment: exp.exp_nmr.py
 """ 
 Hahn echo experiment.
 """
@@ -64,19 +90,19 @@ def get_data(lab, params):
     
 
     
-def create_plot(fig, params, data):
+def create_plot(params, data):
     ### 2D with phase cycling
     if data.ndim == 3 and params.phase_cycle.size()==2: 
         pass
     ### 1D with phase cycling
     elif data.ndim == 2 and params.phase_cycle.size()==2: 
-        plotting.createfig_XY(fig, "Free evolution time (s)", "countB - countA", 3, "--o")
+        fig = plotting.createfig_XY("Free evolution time (s)", "countB - countA", 3, "--o")
     ### no phase cycling
     else: 
-        plotting.createfig_XY(fig, "Free evolution time (s)", "countB - countA", 1, "--o")
+        fig = plotting.createfig_XY("Free evolution time (s)", "countB - countA", 1, "--o")
         
     # fig.axes[0].plot([], 'k--')
-    return
+    return fig
     
 def update_plot(fig, params, data):
     ### 2D with phase cycling

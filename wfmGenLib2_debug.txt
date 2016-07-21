@@ -1,6 +1,6 @@
 countFreq: 1 
-blockStart: 165648000 
-wfmStart[0]: 165648240
+blockStart: 129632640 
+wfmStart[0]: 129632760
 wfmLength[0]: 15478
 arrPeriod[0]: 1.799980e+001
 arrPhase[0]: 0.000000e+000

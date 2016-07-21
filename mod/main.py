@@ -10,12 +10,14 @@ __version__ = "1.2"
 # Base modules
 import sys
 import os 
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.constants as cst
 import time 
 import timeit
 import datetime
+import importlib
 import types # for better type handling
 import pickle # for saving and loading any instance from python into a .pickle file
 import inspect # retrieve information on python objects
@@ -24,7 +26,7 @@ from pydoc import help # help function for user
     
 # Homemade modules
 import not_for_user as nfu
-from not_for_user import LabMasterError, today
+from not_for_user import LabMasterError, today, lastID
 import classes
 import plotting
 from instruments import *
@@ -81,7 +83,7 @@ def notebook(*args):
         
         
     
-def scan(lab, params, experiment, quiet=False, show_plot=True, no_plot=False):
+def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     """
     The holy grail of Lab-Master.
     Scan parameters value attribute in the order imposed by their sweep_ID.
@@ -97,7 +99,7 @@ def scan(lab, params, experiment, quiet=False, show_plot=True, no_plot=False):
     """
     
     # Check if inputs are conform to a bunch of restrictions
-    check_params(params, no_plot)
+    check_params(params)
     check_experiment(experiment)
     check_lab(lab)
     
@@ -114,10 +116,8 @@ def scan(lab, params, experiment, quiet=False, show_plot=True, no_plot=False):
     # Create folders for today if they don't exist
     nfu.create_todays_folder()
     # Create a figure object.
-    if not no_plot:
-        fig = experiment.create_plot(params, data)
-    else:
-        fig = None
+    if fig != None:
+        experiment.create_plot(fig, params, data)
     # ID is the number indicated after the date in file names.
     ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
     print "ID:",ID,"\n"
@@ -145,13 +145,13 @@ def scan(lab, params, experiment, quiet=False, show_plot=True, no_plot=False):
         save_data(data, ID)
         # Save fig as pdf in saved/fig/ folder
         save_fig(fig, ID)
+        # Update the figure for the first time if show_plot is False
+        if not show_plot and fig!= None:
+            experiment.update_plot(fig, params, data)
+        print "\nsaved as",ID,"\n"
     # Save the rest about experiment in saved/experiment/ folder.         
     save_experiment(lab, params, experiment, ID, "Scan successful.")
-    # Update the figure for the first time if show_plot is False
-    if not show_plot:
-        experiment.plot(fig, params, data)
-    print "\nsaved as",ID,"\n"
-    return
+    return 
 
 
 
@@ -217,7 +217,7 @@ def check_lab(lab):
             raise LabMasterError, instrument.name+" needs a abort() method."
     return
 
-def check_params(params, no_plot):
+def check_params(params):
     """
     Checks if every parameter is conform to the rules.
     
@@ -266,8 +266,6 @@ def check_params(params, no_plot):
     
     
     # Plotting warnings
-    if not no_plot:
-        pass
 
     return
 
@@ -336,6 +334,7 @@ def error_manager(as_string=False, all=False):
         print message+ "%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
     return
     
+    
 def help_please():
     """
     Some advice on how to get advice.
@@ -345,7 +344,19 @@ def help_please():
     print "Lab-Master users manual is located under doc/_Lab-Master_users-manual_"
     print "For a more detailed doc of the source code, you will find HTML help under doc/_Lab-Master_html_"
     return
+
+def last_data():
+    return load_data(today(), lastID())
     
+def last_datatxt():
+    return load_datatxt(today(), lastID())
+    
+def last_params(output=None):
+    return load_params(today(), lastID(), output=output)
+    
+def last_plot(experiment):
+    load_plot(experiment, today(), lastID())
+    return    
     
 def load_data(date, ID):
     """
@@ -362,9 +373,14 @@ def load_data(date, ID):
     Output
     - the loaded numpy array.
     """
-    return np.load("saved/data/"+nfu.filename_format(date, ID)+".npy")
+    file_format = nfu.filename_format(date, ID, script_name=False)
+    try:
+        matching_file = [filename for filename in glob.glob("saved/data/"+date+"/*") if file_format in filename][0]
+    except IndexError:
+        raise LabMasterError, "Date or ID does not match any existing file."
+    return np.load(matching_file)
     
-def load_data_txt(date, ID):
+def load_datatxt(date, ID):
     """
     Load data from a .txt file in saved/data_txt/ folder. 
     
@@ -379,8 +395,21 @@ def load_data_txt(date, ID):
     Output
     - the loaded numpy array.
     """
-    return np.loadtxt("saved/data_txt/"+nfu.filename_format(date, ID)+".txt")
+    file_format = nfu.filename_format(date, ID, script_name=False)
+    try:
+        matching_file = [filename for filename in glob.glob("saved/datatxt/"+date+"/*") if file_format in filename][0]
+    except IndexError:
+        try:
+            size_of_data = load_data(date, ID).size
+        except:
+            size_of_data = 0
+        if size_of_data > 2:
+            raise LabMasterError, "No datatxt was collected for this experiment, dimension of data > 2."
+        else:
+            raise LabMasterError, "Date or ID does not match any existing file."
+    return np.load(matching_file)
 
+    
 def load_params(date, ID, output=None):
     """
     Load params from a .pickle file in saved/params/ folder.
@@ -398,8 +427,12 @@ def load_params(date, ID, output=None):
     Output
     - Either a Params instance or the specified Parameter instance, depending on output value.
     """
-    filename = "saved/params/"+nfu.filename_format(date, ID)+".pickle"
-    with open(filename, "rb") as f:
+    file_format = nfu.filename_format(date, ID, script_name=False)
+    try:
+        matching_file = [filename for filename in glob.glob("saved/params/"+date+"/*") if file_format in filename][0]
+    except IndexError:
+        raise LabMasterError, "Date or ID does not match any existing file."
+    with open(matching_file, "rb") as f:
         params = pickle.load(f)
     if output==None:
         return params
@@ -408,6 +441,15 @@ def load_params(date, ID, output=None):
             return params.__dict__[output]
         except KeyError:
             raise nfu.LabMasterError, "Requested output not found in params attributes."
+    return
+    
+
+def load_plot(experiment, date, ID):
+    fig = plt.figure()
+    params = load_params(date, ID)
+    data = load_data(date, ID)
+    experiment.create_plot(fig, params, data)
+    experiment.update_plot(fig, params, data)
     return
     
 
@@ -468,8 +510,8 @@ def save_data(data, ID):
     - ID: Number indicated after the date in file name.
     
     """
-    filename = "saved/data/"+nfu.filename_format("today", ID) # for the .npy file
-    filenametxt = "saved/data_txt/"+nfu.filename_format("today", ID)+".txt" # for the .txt file
+    filename = "saved/data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
+    filenametxt = "saved/data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
     if isinstance(data, np.ndarray):
         np.save(filename, data) # always save a .npy file
         if data.ndim < 3:
@@ -505,7 +547,7 @@ def save_experiment(lab, params, experiment, ID, error_string):
     - error_string: Error message to save.
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
-    filename = "saved/experiment/"+nfu.filename_format("today", ID)+".txt"
+    filename = "saved/experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
     with open(filename, "a") as f:    
         if error_string == "first_time":
             f.write("Time launched: "+datetime.datetime.now().strftime("%Y-%b-%d %H:%M'%S''")+"\n")
@@ -526,7 +568,7 @@ def save_params(params, ID):
     - params: Params instance.
     - ID: Number indicated after the date in file name.
     """
-    filename = "saved/params/"+nfu.filename_format("today", ID)+".pickle"
+    filename = "saved/params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
     with open(filename, "wb") as f:
         pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
     return
@@ -542,7 +584,7 @@ def save_script():
     """
     nfu.create_todays_folder()
     ID = nfu.detect_experiment_ID()
-    new_filename = "saved/script/"+nfu.filename_format("today", ID)+".py"
+    new_filename = "saved/script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
     shutil.copy(nfu.get_script_filename(), new_filename)     
     return
 
@@ -556,7 +598,7 @@ def save_fig(fig, ID, ext="pdf"):
     - ext: Extension of the file to save. Supported formats: emf, eps, pdf, png, ps, raw, rgba, svg, svgz.
     """
     if fig != None:
-        fig.savefig("saved/fig/"+nfu.filename_format("today", ID)+"."+ext)
+        fig.savefig("saved/fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
     return 
     
 

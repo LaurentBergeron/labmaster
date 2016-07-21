@@ -35,9 +35,9 @@ def get_data(lab, params):
     B = lab.usb_counter.read(1)
     return B-A
     
-def create_plot(params, data):
-    fig = plotting.createfig_XY("$\pi$", "data", 1, "--o")
-    return fig
+def create_plot(fig, params, data):
+    plotting.createfig_XY("$\pi$", "data", 1, "--o")
+    return 
     
 def update_plot(fig, params, data):
     plotting.updatefig_XY(fig, params.pi_len.value, data, line_index=0)

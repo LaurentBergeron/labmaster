@@ -15,9 +15,9 @@ def get_data(lab, params):
     return lab.lockin.measure()
 
     
-def create_plot(params, data):
-    fig = plotting.createfig_XY("RF frequency", "lock-in", 1, "--o")
-    return fig
+def create_plot(fig, params, data):
+    plotting.createfig_XY(fig, "RF frequency", "lock-in", 1, "--o")
+    return
     
 def update_plot(fig, params, data):
     plotting.updatefig_XY(fig, params.freq.value, data)

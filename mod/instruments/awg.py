@@ -807,9 +807,10 @@ class Awg(Instrument):
         self.check_error(status)
         return
         
-    def string_sequence(self, channel, string, BB1=False):
+    def string_sequence(self, channel, string, loops=1, BB1=False):
         """ uses default delay, length, amplitude, freq and shape. not space/enter/tab sensitive"""
         clean_string = string.replace(" ", "").replace("\n", "").replace("\t", "")
+           
         for token in clean_string.split(","):
             try:
                 if ("t" in token) or ("tau" in token):
