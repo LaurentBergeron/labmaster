@@ -15,6 +15,7 @@ try:
     params.freq.value = np.arange(1.608*GHz, 1.613*GHz, 3*kHz)
     
     scan(lab, params, experiment, show_plot = True)
-    
 except:
     error_manager()
+finally:
+    lab.awg.use_memory = True

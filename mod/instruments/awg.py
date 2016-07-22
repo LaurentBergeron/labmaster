@@ -580,9 +580,6 @@ class Awg(Instrument):
             except ValueError: # sometimes one point will be lost to the [::divider] operation. 
                 t = np.linspace(block_start/sample_rate, block_end/sample_rate, linspace_size+1)
                 ax.plot(c*t, numpy_wfm ,'o', mew=0)
-        
-
-
 
         plt.show()
         
