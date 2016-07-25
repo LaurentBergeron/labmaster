@@ -18,18 +18,15 @@ from visa_types import *
 dll = WinDLL("mod/instruments/extern/AgM8190")
 header = CppHeaderParser.CppHeader("mod/instruments/extern/AgM8190.h")
         
-def clean_args(argtype, *args):  
-    l = list(*args)
-    if hasattr(argtype, "__len__"):
+def check_args(argtype, *args):  
+    try:
         args_size = len(argtype)
-    else: 
+    except TypeError: 
         args_size = 1
-
-    if not (args_size == len(l)):
-        raise IndexError, "Wrong number of arguments ("+str(args_size)+", not "+str(len(l))+")."
-    
-
-    return tuple(l)
+    if args_size != len(args):
+        parent = inspect.stack()[1][3]
+        raise IndexError, "Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(args))+")."
+    return 
 
 ARRAY = POINTER
 
@@ -81,7 +78,7 @@ def AbortGeneration(*args):
     """
 	If the function generator is in the Output Generation State, this function moves the function generator to the Configuration State. If the function generator is already in the Configuration State, the function does nothing and returns Success. Function AgM8190_ActionSequenceAppend Defines the next step of an action sequence.
     """
-    args = clean_args(dll.AgM8190_AbortGeneration.argtype, args)
+    args = check_args(dll.AgM8190_AbortGeneration.argtype, args)
     return dll.AgM8190_AbortGeneration(*args)
 dll.AgM8190_AbortGeneration.restype = ViStatus
 dll.AgM8190_AbortGeneration.argtype = (
@@ -92,7 +89,7 @@ def ActionSequenceAppend(*args):
     """
 	Defines the next step of an action sequence.
     """
-    args = clean_args(dll.AgM8190_ActionSequenceAppend.argtype, args)
+    args = check_args(dll.AgM8190_ActionSequenceAppend.argtype, args)
     return dll.AgM8190_ActionSequenceAppend(*args)
 dll.AgM8190_ActionSequenceAppend.restype = ViStatus
 dll.AgM8190_ActionSequenceAppend.argtype = (
@@ -108,7 +105,7 @@ def ActionSequenceCreate(*args):
     """
 	Creates a new empty action sequence and returns a sequence ID.
     """
-    args = clean_args(dll.AgM8190_ActionSequenceCreate.argtype, args)
+    args = check_args(dll.AgM8190_ActionSequenceCreate.argtype, args)
     return dll.AgM8190_ActionSequenceCreate(*args)
 dll.AgM8190_ActionSequenceCreate.restype = ViStatus
 dll.AgM8190_ActionSequenceCreate.argtype = (
@@ -121,7 +118,7 @@ def ActionSequenceDelete(*args):
     """
 	Deletes an action sequence.
     """
-    args = clean_args(dll.AgM8190_ActionSequenceDelete.argtype, args)
+    args = check_args(dll.AgM8190_ActionSequenceDelete.argtype, args)
     return dll.AgM8190_ActionSequenceDelete(*args)
 dll.AgM8190_ActionSequenceDelete.restype = ViStatus
 dll.AgM8190_ActionSequenceDelete.argtype = (
@@ -134,7 +131,7 @@ def ActionSequenceDeleteAll(*args):
     """
 	Deletes the complete action table.
     """
-    args = clean_args(dll.AgM8190_ActionSequenceDeleteAll.argtype, args)
+    args = check_args(dll.AgM8190_ActionSequenceDeleteAll.argtype, args)
     return dll.AgM8190_ActionSequenceDeleteAll(*args)
 dll.AgM8190_ActionSequenceDeleteAll.restype = ViStatus
 dll.AgM8190_ActionSequenceDeleteAll.argtype = (
@@ -143,7 +140,7 @@ dll.AgM8190_ActionSequenceDeleteAll.argtype = (
                                                )
 
 def AmplitudeTableGetData(*args):
-    args = clean_args(dll.AgM8190_AmplitudeTableGetData.argtype, args)
+    args = check_args(dll.AgM8190_AmplitudeTableGetData.argtype, args)
     """
 	Reads amplitude table entries starting at the index specified.
     """
@@ -163,7 +160,7 @@ def AmplitudeTableReset(*args):
     """
 	Resets all amplitude table entries to default values.
     """
-    args = clean_args(dll.AgM8190_AmplitudeTableReset.argtype, args)
+    args = check_args(dll.AgM8190_AmplitudeTableReset.argtype, args)
     return dll.AgM8190_AmplitudeTableReset(*args)
 dll.AgM8190_AmplitudeTableReset.restype = ViStatus
 dll.AgM8190_AmplitudeTableReset.argtype = (
@@ -189,7 +186,7 @@ def ArbitraryClearMemory(*args):
     """
 	Removes all previously created arbitrary waveforms and sequences from the function generator's memory and invalidates all waveform and sequence handles.
     """
-    args = clean_args(dll.AgM8190_ArbitraryClearMemory.argtype, args)
+    args = check_args(dll.AgM8190_ArbitraryClearMemory.argtype, args)
     return dll.AgM8190_ArbitraryClearMemory(*args)
 dll.AgM8190_ArbitraryClearMemory.restype = ViStatus
 dll.AgM8190_ArbitraryClearMemory.argtype = (
@@ -200,7 +197,7 @@ def ArbitraryConfigureAC(*args):
     """
 	Configures the attributes of the arbitrary waveform the function generator produces for the AC output path.
     """
-    args = clean_args(dll.AgM8190_ArbitraryConfigureAC.argtype, args)
+    args = check_args(dll.AgM8190_ArbitraryConfigureAC.argtype, args)
     return dll.AgM8190_ArbitraryConfigureAC(*args)
 dll.AgM8190_ArbitraryConfigureAC.restype = ViStatus
 dll.AgM8190_ArbitraryConfigureAC.argtype = (
@@ -214,7 +211,7 @@ def ArbitraryConfigureDAC(*args):
     """
 	Configures the attributes of the arbitrary waveform the function generator produces for the DAC output path.
     """
-    args = clean_args(dll.AgM8190_ArbitraryConfigureDAC.argtype, args)
+    args = check_args(dll.AgM8190_ArbitraryConfigureDAC.argtype, args)
     return dll.AgM8190_ArbitraryConfigureDAC(*args)
 dll.AgM8190_ArbitraryConfigureDAC.restype = ViStatus
 dll.AgM8190_ArbitraryConfigureDAC.argtype = (
@@ -229,7 +226,7 @@ def ArbitraryConfigureDC(*args):
     """
 	Configures the attributes of the arbitrary waveform the function generator produces for the DC output path.
     """
-    args = clean_args(dll.AgM8190_ArbitraryConfigureDC.argtype, args)
+    args = check_args(dll.AgM8190_ArbitraryConfigureDC.argtype, args)
     return dll.AgM8190_ArbitraryConfigureDC(*args)
 dll.AgM8190_ArbitraryConfigureDC.restype = ViStatus
 dll.AgM8190_ArbitraryConfigureDC.argtype = (
@@ -244,7 +241,7 @@ def ChannelAbortGeneration(*args):
     """
 	If the function generator is in the Output Generation State, this function moves the function generator to the Configuration State. If the function generator is already in the Configuration State, the function does nothing and returns Success.
     """
-    args = clean_args(dll.AgM8190_ChannelAbortGeneration.argtype, args)
+    args = check_args(dll.AgM8190_ChannelAbortGeneration.argtype, args)
     return dll.AgM8190_ChannelAbortGeneration(*args)
 dll.AgM8190_ChannelAbortGeneration.restype = ViStatus
 dll.AgM8190_ChannelAbortGeneration.argtype = (
@@ -256,7 +253,7 @@ def ChannelInitiateGeneration(*args):
     """
 	If the function generator is in the Configuration State, this function moves the function generator to the Output Generation State. If the function generator is already in the Output Generation State, this function does nothing and returns Success.
     """
-    args = clean_args(dll.AgM8190_ChannelInitiateGeneration.argtype, args)
+    args = check_args(dll.AgM8190_ChannelInitiateGeneration.argtype, args)
     return dll.AgM8190_ChannelInitiateGeneration(*args)
 dll.AgM8190_ChannelInitiateGeneration.restype = ViStatus
 dll.AgM8190_ChannelInitiateGeneration.argtype = (
@@ -268,7 +265,7 @@ def ClearArbMemory(*args):
     """
 	Removes all previously created arbitrary waveforms and sequences from the function generator's memory and invalidates all waveform and sequence handles.
     """
-    args = clean_args(dll.AgM8190_ClearArbMemory.argtype, args)
+    args = check_args(dll.AgM8190_ClearArbMemory.argtype, args)
     return dll.AgM8190_ClearArbMemory(*args)
 dll.AgM8190_ClearArbMemory.restype = ViStatus
 dll.AgM8190_ClearArbMemory.argtype = (
@@ -279,7 +276,7 @@ def ClearArbSequence(*args):
     """
 	Removes a previously created arbitrary sequence from the function generator's memory and invalidates the sequence's handle.
     """
-    args = clean_args(dll.AgM8190_ClearArbSequence.argtype, args)
+    args = check_args(dll.AgM8190_ClearArbSequence.argtype, args)
     return dll.AgM8190_ClearArbSequence(*args)
 dll.AgM8190_ClearArbSequence.restype = ViStatus
 dll.AgM8190_ClearArbSequence.argtype = (
@@ -291,7 +288,7 @@ def ClearArbWaveform(*args):
     """
 	Removes a previously created arbitrary waveform from the function generator's memory and invalidates the waveform's handle.
     """
-    args = clean_args(dll.AgM8190_ClearArbWaveform.argtype, args)
+    args = check_args(dll.AgM8190_ClearArbWaveform.argtype, args)
     return dll.AgM8190_ClearArbWaveform(*args)
 dll.AgM8190_ClearArbWaveform.restype = ViStatus
 dll.AgM8190_ClearArbWaveform.argtype = (
@@ -303,7 +300,7 @@ def ClearError(*args):
     """
 	This function clears the error code and error description for the current execution thread and for the IVI session. If the user specifies a valid IVI session for the Vi parameter, this function clears the error information for the session. If the user passes VI_NULL for the Vi parameter, this function clears the error information for the current execution thread. If the Vi parameter is an invalid session, the function does nothing and returns an error.
     """
-    args = clean_args(dll.AgM8190_ClearError.argtype, args)
+    args = check_args(dll.AgM8190_ClearError.argtype, args)
     return dll.AgM8190_ClearError(*args)
 dll.AgM8190_ClearError.restype = ViStatus
 dll.AgM8190_ClearError.argtype = (
@@ -314,7 +311,7 @@ def ClearInterchangeWarnings(*args):
     """
 	Not Supported - Clears the list of interchangeability warnings that the IVI specific driver maintains.
     """
-    args = clean_args(dll.AgM8190_ClearInterchangeWarnings.argtype, args)
+    args = check_args(dll.AgM8190_ClearInterchangeWarnings.argtype, args)
     return dll.AgM8190_ClearInterchangeWarnings(*args)
 dll.AgM8190_ClearInterchangeWarnings.restype = ViStatus
 dll.AgM8190_ClearInterchangeWarnings.argtype = (
@@ -325,7 +322,7 @@ def close(*args):
     """
 	Closes the I/O session to the instrument. Driver methods and properties that access the instrument are not accessible after Close is called.
     """
-    args = clean_args(dll.AgM8190_close.argtype, args)
+    args = check_args(dll.AgM8190_close.argtype, args)
     return dll.AgM8190_close(*args)
 dll.AgM8190_close.restype = ViStatus
 dll.AgM8190_close.argtype = (
@@ -336,7 +333,7 @@ def ConfigureArbSequence(*args):
     """
 	Configures the attributes of the function generator that affect arbitrary sequence generation.
     """
-    args = clean_args(dll.AgM8190_ConfigureArbSequence.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureArbSequence.argtype, args)
     return dll.AgM8190_ConfigureArbSequence(*args)
 dll.AgM8190_ConfigureArbSequence.restype = ViStatus
 dll.AgM8190_ConfigureArbSequence.argtype = (
@@ -351,7 +348,7 @@ def ConfigureArbWaveform(*args):
     """
 	Configures the attributes of the function generator that affect arbitrary waveform generation.
     """
-    args = clean_args(dll.AgM8190_ConfigureArbWaveform.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureArbWaveform.argtype, args)
     return dll.AgM8190_ConfigureArbWaveform(*args)
 dll.AgM8190_ConfigureArbWaveform.restype = ViStatus
 dll.AgM8190_ConfigureArbWaveform.argtype = (
@@ -366,7 +363,7 @@ def ConfigureInternalTriggerRate(*args):
     """
 	Configures the function generator's internal trigger rate.
     """
-    args = clean_args(dll.AgM8190_ConfigureInternalTriggerRate.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureInternalTriggerRate.argtype, args)
     return dll.AgM8190_ConfigureInternalTriggerRate(*args)
 dll.AgM8190_ConfigureInternalTriggerRate.restype = ViStatus
 dll.AgM8190_ConfigureInternalTriggerRate.argtype = (
@@ -378,7 +375,7 @@ def ConfigureOutputEnabled(*args):
     """
 	Configures whether the signal the function generator produces appears at a channel's output connector.
     """
-    args = clean_args(dll.AgM8190_ConfigureOutputEnabled.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureOutputEnabled.argtype, args)
     return dll.AgM8190_ConfigureOutputEnabled(*args)
 dll.AgM8190_ConfigureOutputEnabled.restype = ViStatus
 dll.AgM8190_ConfigureOutputEnabled.argtype = (
@@ -391,7 +388,7 @@ def ConfigureOutputMode(*args):
     """
 	Configures the output mode of the function generator. The output mode determines how the function generator produces waveforms.
     """
-    args = clean_args(dll.AgM8190_ConfigureOutputMode.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureOutputMode.argtype, args)
     return dll.AgM8190_ConfigureOutputMode(*args)
 dll.AgM8190_ConfigureOutputMode.restype = ViStatus
 dll.AgM8190_ConfigureOutputMode.argtype = (
@@ -403,7 +400,7 @@ def ConfigureRefClockSource(*args):
     """
 	Sets the source of the function generator's reference clock. The function generator uses the reference clock to derive frequencies and sample rates when generating output.
     """
-    args = clean_args(dll.AgM8190_ConfigureRefClockSource.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureRefClockSource.argtype, args)
     return dll.AgM8190_ConfigureRefClockSource(*args)
 dll.AgM8190_ConfigureRefClockSource.restype = ViStatus
 dll.AgM8190_ConfigureRefClockSource.argtype = (
@@ -415,7 +412,7 @@ def ConfigureSampleRate(*args):
     """
 	Configures the function generator's sample rate.
 	"""
-    args = clean_args(dll.AgM8190_ConfigureSampleRate.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureSampleRate.argtype, args)
     return dll.AgM8190_ConfigureSampleRate(*args)
 dll.AgM8190_ConfigureSampleRate.restype = ViStatus
 dll.AgM8190_ConfigureSampleRate.argtype = (
@@ -427,7 +424,7 @@ def ConfigureTriggerSource(*args):
     """
 	Configures the function generator's trigger source attribute.
 	"""
-    args = clean_args(dll.AgM8190_ConfigureTriggerSource.argtype, args)
+    args = check_args(dll.AgM8190_ConfigureTriggerSource.argtype, args)
     return dll.AgM8190_ConfigureTriggerSource(*args)
 dll.AgM8190_ConfigureTriggerSource.restype = ViStatus
 dll.AgM8190_ConfigureTriggerSource.argtype = (
@@ -440,7 +437,7 @@ def CreateArbSequence(*args):
     """
 	Creates an arbitrary waveform sequence from an array of waveform handles and a corresponding array of loop counts, and returns a handle that identifies the sequence. The handle is used by the Configure, and Clear methods.
 	"""
-    args = clean_args(dll.AgM8190_CreateArbSequence.argtype, args)
+    args = check_args(dll.AgM8190_CreateArbSequence.argtype, args)
     return dll.AgM8190_CreateArbSequence(*args)
 dll.AgM8190_CreateArbSequence.restype = ViStatus
 dll.AgM8190_CreateArbSequence.argtype = (
@@ -455,7 +452,7 @@ def CreateArbWaveform(*args):
     """
 	Creates an arbitrary waveform and returns a handle to it. The handle is used by the Configure, Clear, and ArbitrarySequence.Create methods.
 	"""
-    args = clean_args(dll.AgM8190_CreateArbWaveform.argtype, args)
+    args = check_args(dll.AgM8190_CreateArbWaveform.argtype, args)
     return dll.AgM8190_CreateArbWaveform(*args)
 dll.AgM8190_CreateArbWaveform.restype = ViStatus
 dll.AgM8190_CreateArbWaveform.argtype = (
@@ -469,7 +466,7 @@ def CreateChannelIQWaveformWithInit(*args):
     """
 	Defines the size of a waveform memory segment and initializes all sample values in the segment.
 	"""
-    args = clean_args(dll.AgM8190_CreateChannelIQWaveformWithInit.argtype, args)
+    args = check_args(dll.AgM8190_CreateChannelIQWaveformWithInit.argtype, args)
     return dll.AgM8190_CreateChannelIQWaveformWithInit(*args)
 dll.AgM8190_CreateChannelIQWaveformWithInit.restype = ViStatus
 dll.AgM8190_CreateChannelIQWaveformWithInit.argtype = (
@@ -485,7 +482,7 @@ def DigitalUpConversionGetCarrierFrequency(*args):
     """
 	Returns the carrier frequency used for interpolated modes.
 	"""
-    args = clean_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequency.argtype, args)
+    args = check_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequency.argtype, args)
     return dll.AgM8190_DigitalUpConversionGetCarrierFrequency(*args)
 dll.AgM8190_DigitalUpConversionGetCarrierFrequency.restype = ViStatus
 dll.AgM8190_DigitalUpConversionGetCarrierFrequency.argtype = (
@@ -499,7 +496,7 @@ def DigitalUpConversionGetCarrierFrequencyMax(*args):
     """
 	Returns the maximum value of the carrier frequency used for interpolated modes.
 	"""
-    args = clean_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMax.argtype, args)
+    args = check_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMax.argtype, args)
     return dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMax(*args)
 dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMax.restype = ViStatus
 dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMax.argtype = (
@@ -513,7 +510,7 @@ def DigitalUpConversionGetCarrierFrequencyMin(*args):
     """
 	Returns the minimum value of the carrier frequency used for interpolated modes.
 	"""
-    args = clean_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMin.argtype, args)
+    args = check_args(dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMin.argtype, args)
     return dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMin(*args)
 dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMin.restype = ViStatus
 dll.AgM8190_DigitalUpConversionGetCarrierFrequencyMin.argtype = (
@@ -527,7 +524,7 @@ def DigitalUpConversionSetCarrierFrequency(*args):
     """
 	Sets the carrier frequency used for interpolated modes.
 	"""
-    args = clean_args(dll.AgM8190_DigitalUpConversionSetCarrierFrequency.argtype, args)
+    args = check_args(dll.AgM8190_DigitalUpConversionSetCarrierFrequency.argtype, args)
     return dll.AgM8190_DigitalUpConversionSetCarrierFrequency(*args)
 dll.AgM8190_DigitalUpConversionSetCarrierFrequency.restype = ViStatus
 dll.AgM8190_DigitalUpConversionSetCarrierFrequency.argtype = (
@@ -541,7 +538,7 @@ def Disable(*args):
     """
 	Quickly places the instrument in a state where it has no, or minimal, effect on the external system to which it is connected. This state is not necessarily a known state.
 	"""
-    args = clean_args(dll.AgM8190_Disable.argtype, args)
+    args = check_args(dll.AgM8190_Disable.argtype, args)
     return dll.AgM8190_Disable(*args)
 dll.AgM8190_Disable.restype = ViStatus
 dll.AgM8190_Disable.argtype = (
@@ -552,7 +549,7 @@ def error_message(*args):
     """
 	Translates the error return value from an IVI driver function to a user-readable string. The user should pass a buffer with at least 256 bytes for the ErrorMessage parameter.
 	"""
-    args = clean_args(dll.AgM8190_error_message.argtype, args)
+    args = check_args(dll.AgM8190_error_message.argtype, args)
     return dll.AgM8190_error_message(*args)
 dll.AgM8190_error_message.restype = ViStatus
 dll.AgM8190_error_message.argtype = (
@@ -565,7 +562,7 @@ def error_query(*args):
     """
 	Queries the instrument and returns instrument specific error information. This function can be used when QueryInstrumentStatus is True to retrieve error details when the driver detects an instrument error.
 	"""
-    args = clean_args(dll.AgM8190_error_query.argtype, args)
+    args = check_args(dll.AgM8190_error_query.argtype, args)
     return dll.AgM8190_error_query(*args)
 dll.AgM8190_error_query.restype = ViStatus
 dll.AgM8190_error_query.argtype = (
@@ -578,7 +575,7 @@ def FrequencyTableGetData(*args):
     """
 	Reads frequency table entries starting at the index specified.
 	"""
-    args = clean_args(dll.AgM8190_FrequencyTableGetData.argtype, args)
+    args = check_args(dll.AgM8190_FrequencyTableGetData.argtype, args)
     return dll.AgM8190_FrequencyTableGetData(*args)
 dll.AgM8190_FrequencyTableGetData.restype = ViStatus
 dll.AgM8190_FrequencyTableGetData.argtype = (
@@ -595,7 +592,7 @@ def FrequencyTableReset(*args):
     """
 	Resets all frequency table entries to default values.
 	"""
-    args = clean_args(dll.AgM8190_FrequencyTableReset.argtype, args)
+    args = check_args(dll.AgM8190_FrequencyTableReset.argtype, args)
     return dll.AgM8190_FrequencyTableReset(*args)
 dll.AgM8190_FrequencyTableReset.restype = ViStatus
 dll.AgM8190_FrequencyTableReset.argtype = (
@@ -607,7 +604,7 @@ def FrequencyTableSetData(*args):
     """
 	Writes one or multiple frequency table entries starting at the index specified by the TableIndex parameter.
 	"""
-    args = clean_args(dll.AgM8190_FrequencyTableSetData.argtype, args)
+    args = check_args(dll.AgM8190_FrequencyTableSetData.argtype, args)
     return dll.AgM8190_FrequencyTableSetData(*args)
 dll.AgM8190_FrequencyTableSetData.restype = ViStatus
 dll.AgM8190_FrequencyTableSetData.argtype = (
@@ -622,7 +619,7 @@ def GetAttributeViBoolean(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViBoolean.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViBoolean.argtype, args)
     return dll.AgM8190_GetAttributeViBoolean(*args)
 dll.AgM8190_GetAttributeViBoolean.restype = ViStatus
 dll.AgM8190_GetAttributeViBoolean.argtype = (
@@ -636,7 +633,7 @@ def GetAttributeViInt32(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViInt32.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViInt32.argtype, args)
     return dll.AgM8190_GetAttributeViInt32(*args)
 dll.AgM8190_GetAttributeViInt32.restype = ViStatus
 dll.AgM8190_GetAttributeViInt32.argtype = (
@@ -650,7 +647,7 @@ def GetAttributeViInt64(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViInt64.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViInt64.argtype, args)
     return dll.AgM8190_GetAttributeViInt64(*args)
 dll.AgM8190_GetAttributeViInt64.restype = ViStatus
 dll.AgM8190_GetAttributeViInt64.argtype = (
@@ -664,7 +661,7 @@ def GetAttributeViReal64(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViReal64.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViReal64.argtype, args)
     return dll.AgM8190_GetAttributeViReal64(*args)
 dll.AgM8190_GetAttributeViReal64.restype = ViStatus
 dll.AgM8190_GetAttributeViReal64.argtype = (
@@ -678,7 +675,7 @@ def GetAttributeViSession(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViSession.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViSession.argtype, args)
     return dll.AgM8190_GetAttributeViSession(*args)
 dll.AgM8190_GetAttributeViSession.restype = ViStatus
 dll.AgM8190_GetAttributeViSession.argtype = (
@@ -692,7 +689,7 @@ def GetAttributeViString(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_GetAttributeViString.argtype, args)
+    args = check_args(dll.AgM8190_GetAttributeViString.argtype, args)
     return dll.AgM8190_GetAttributeViString(*args)
 dll.AgM8190_GetAttributeViString.restype = ViStatus
 dll.AgM8190_GetAttributeViString.argtype = (
@@ -707,7 +704,7 @@ def GetChannelName(*args):
     """
 	This function returns the physical name defined by the specific driver for the output channel that corresponds to the 1-based index that the user specifies. If the value that the user passes for the ChannelIndex parameter is less than one or greater than the value of the Channel Count, the function returns an empty string in the ChannelName parameter and returns an error.
 	"""
-    args = clean_args(dll.AgM8190_GetChannelName.argtype, args)
+    args = check_args(dll.AgM8190_GetChannelName.argtype, args)
     return dll.AgM8190_GetChannelName(*args)
 dll.AgM8190_GetChannelName.restype = ViStatus
 dll.AgM8190_GetChannelName.argtype = (
@@ -721,7 +718,7 @@ def GetError(*args):
     """
 	This function retrieves and then clears the IVI error information for the session or the current execution thread. If the user specifies a valid IVI session for the Vi parameter, Get Error retrieves and then clears the error information for the session. If the user passes VI_NULL for the Vi parameter, Get Error retrieves and then clears the error information for the current execution thread. If the Vi parameter is an invalid session, the function does nothing and returns an error. Normally, the error information describes the first error that occurred since the user last called the Get Error or Clear Error function.
 	"""
-    args = clean_args(dll.AgM8190_GetError.argtype, args)
+    args = check_args(dll.AgM8190_GetError.argtype, args)
     return dll.AgM8190_GetError(*args)
 dll.AgM8190_GetError.restype = ViStatus
 dll.AgM8190_GetError.argtype = (
@@ -735,7 +732,7 @@ def GetNextCoercionRecord(*args):
     """
 	Not Supported - Returns the oldest record from the coercion record list. Records are only added to the list if RecordCoercions is True.
 	"""
-    args = clean_args(dll.AgM8190_GetNextCoercionRecord.argtype, args)
+    args = check_args(dll.AgM8190_GetNextCoercionRecord.argtype, args)
     return dll.AgM8190_GetNextCoercionRecord(*args)
 dll.AgM8190_GetNextCoercionRecord.restype = ViStatus
 dll.AgM8190_GetNextCoercionRecord.argtype = (
@@ -748,7 +745,7 @@ def GetNextInterchangeWarning(*args):
     """
 	Not Supported - Returns the oldest warning from the interchange warning list. Records are only added to the list if InterchangeCheck is True.
 	"""
-    args = clean_args(dll.AgM8190_GetNextInterchangeWarning.argtype, args)
+    args = check_args(dll.AgM8190_GetNextInterchangeWarning.argtype, args)
     return dll.AgM8190_GetNextInterchangeWarning(*args)
 dll.AgM8190_GetNextInterchangeWarning.restype = ViStatus
 dll.AgM8190_GetNextInterchangeWarning.argtype = (
@@ -761,7 +758,7 @@ def GetReferenceClockSourceSupported(*args):
     """
 	Read Only - This property is used to query, if a reference clock source is available on the current hardware revision.
 	"""
-    args = clean_args(dll.AgM8190_GetReferenceClockSourceSupported.argtype, args)
+    args = check_args(dll.AgM8190_GetReferenceClockSourceSupported.argtype, args)
     return dll.AgM8190_GetReferenceClockSourceSupported(*args)
 dll.AgM8190_GetReferenceClockSourceSupported.restype = ViStatus
 dll.AgM8190_GetReferenceClockSourceSupported.argtype = (
@@ -774,7 +771,7 @@ def GetStatusAmplitudeClipped(*args):
     """
 	Read Only - This property reads the amplitude clipped status per channel. "True" means that the amplitude for the selected channel has been clipped to the highest possible DAC value.
 	"""
-    args = clean_args(dll.AgM8190_GetStatusAmplitudeClipped.argtype, args)
+    args = check_args(dll.AgM8190_GetStatusAmplitudeClipped.argtype, args)
     return dll.AgM8190_GetStatusAmplitudeClipped(*args)
 dll.AgM8190_GetStatusAmplitudeClipped.restype = ViStatus
 dll.AgM8190_GetStatusAmplitudeClipped.argtype = (
@@ -787,7 +784,7 @@ def ImportIQToFile(*args):
     """
 	This method is intended to be used by the Soft Front Panel only.
 	"""
-    args = clean_args(dll.AgM8190_ImportIQToFile.argtype, args)
+    args = check_args(dll.AgM8190_ImportIQToFile.argtype, args)
     return dll.AgM8190_ImportIQToFile(*args)
 dll.AgM8190_ImportIQToFile.restype = ViStatus
 dll.AgM8190_ImportIQToFile.argtype = (
@@ -801,7 +798,7 @@ def init(*args):
     """
 	Opens the I/O session to the instrument. Driver methods and properties that access the instrument are only accessible after Initialize is called. Initialize optionally performs a Reset and queries the instrument to validate the instrument model.
 	"""
-    args = clean_args(dll.AgM8190_init.argtype, args)
+    args = check_args(dll.AgM8190_init.argtype, args)
     return dll.AgM8190_init(*args)
 dll.AgM8190_init.restype = ViStatus
 dll.AgM8190_init.argtype = (
@@ -815,7 +812,7 @@ def InitiateGeneration(*args):
     """
 	If the function generator is in the Configuration State, this function moves the function generator to the Output Generation State. If the function generator is already in the Output Generation State, this function does nothing and returns Success.
 	"""
-    args = clean_args(dll.AgM8190_InitiateGeneration.argtype, args)
+    args = check_args(dll.AgM8190_InitiateGeneration.argtype, args)
     return dll.AgM8190_InitiateGeneration(*args)
 dll.AgM8190_InitiateGeneration.restype = ViStatus
 dll.AgM8190_InitiateGeneration.argtype = (
@@ -826,7 +823,7 @@ def InitWithOptions(*args):
     """
 	Opens the I/O session to the instrument. Driver methods and properties that access the instrument are only accessible after Initialize is called. Initialize optionally performs a Reset and queries the instrument to validate the instrument model.
 	"""
-    args = clean_args(dll.AgM8190_InitWithOptions.argtype, args)
+    args = check_args(dll.AgM8190_InitWithOptions.argtype, args)
     return dll.AgM8190_InitWithOptions(*args)
 dll.AgM8190_InitWithOptions.restype = ViStatus
 dll.AgM8190_InitWithOptions.argtype = (
@@ -841,7 +838,7 @@ def InvalidateAllAttributes(*args):
     """
 	Not Supported - Invalidates all of the driver's cached values.
 	"""
-    args = clean_args(dll.AgM8190_InvalidateAllAttributes.argtype, args)
+    args = check_args(dll.AgM8190_InvalidateAllAttributes.argtype, args)
     return dll.AgM8190_InvalidateAllAttributes(*args)
 dll.AgM8190_InvalidateAllAttributes.restype = ViStatus
 dll.AgM8190_InvalidateAllAttributes.argtype = (
@@ -852,7 +849,7 @@ def LockSession(*args):
     """
 	Obtains a multithread lock on the driver after waiting until all other execution threads have released their locks on the instrument session.
 	"""
-    args = clean_args(dll.AgM8190_LockSession.argtype, args)
+    args = check_args(dll.AgM8190_LockSession.argtype, args)
     return dll.AgM8190_LockSession(*args)
 dll.AgM8190_LockSession.restype = ViStatus
 dll.AgM8190_LockSession.argtype = (
@@ -864,7 +861,7 @@ def MarkerConfigure(*args):
     """
 	Configures the marker amplitude and offset for the specified marker type (Sample/Sync) on the selected channel.
 	"""
-    args = clean_args(dll.AgM8190_MarkerConfigure.argtype, args)
+    args = check_args(dll.AgM8190_MarkerConfigure.argtype, args)
     return dll.AgM8190_MarkerConfigure(*args)
 dll.AgM8190_MarkerConfigure.restype = ViStatus
 dll.AgM8190_MarkerConfigure.argtype = (
@@ -879,7 +876,7 @@ def MemoryCopy(*args):
     """
 	Copies an existing file to a new file or an existing directory to a new directory.
 	"""
-    args = clean_args(dll.AgM8190_MemoryCopy.argtype, args)
+    args = check_args(dll.AgM8190_MemoryCopy.argtype, args)
     return dll.AgM8190_MemoryCopy(*args)
 dll.AgM8190_MemoryCopy.restype = ViStatus
 dll.AgM8190_MemoryCopy.argtype = (
@@ -894,7 +891,7 @@ def MemoryCreateFolder(*args):
     """
 	Creates a new directory.
 	"""
-    args = clean_args(dll.AgM8190_MemoryCreateFolder.argtype, args)
+    args = check_args(dll.AgM8190_MemoryCreateFolder.argtype, args)
     return dll.AgM8190_MemoryCreateFolder(*args)
 dll.AgM8190_MemoryCreateFolder.restype = ViStatus
 dll.AgM8190_MemoryCreateFolder.argtype = (
@@ -906,7 +903,7 @@ def MemoryDelete(*args):
     """
 	Removes a file from the specified directory.
 	"""
-    args = clean_args(dll.AgM8190_MemoryDelete.argtype, args)
+    args = check_args(dll.AgM8190_MemoryDelete.argtype, args)
     return dll.AgM8190_MemoryDelete(*args)
 dll.AgM8190_MemoryDelete.restype = ViStatus
 dll.AgM8190_MemoryDelete.argtype = (
@@ -919,7 +916,7 @@ def MemoryDeleteFolder(*args):
     """
 	Removes a directory. All files and directories under the specified directory are also removed.
 	"""
-    args = clean_args(dll.AgM8190_MemoryDeleteFolder.argtype, args)
+    args = check_args(dll.AgM8190_MemoryDeleteFolder.argtype, args)
     return dll.AgM8190_MemoryDeleteFolder(*args)
 dll.AgM8190_MemoryDeleteFolder.restype = ViStatus
 dll.AgM8190_MemoryDeleteFolder.argtype = (
@@ -931,7 +928,7 @@ def MemoryLoadData(*args):
     """
 	Loads data from the specified file.
 	"""
-    args = clean_args(dll.AgM8190_MemoryLoadData.argtype, args)
+    args = check_args(dll.AgM8190_MemoryLoadData.argtype, args)
     return dll.AgM8190_MemoryLoadData(*args)
 dll.AgM8190_MemoryLoadData.restype = ViStatus
 dll.AgM8190_MemoryLoadData.argtype = (
@@ -946,7 +943,7 @@ def MemoryMove(*args):
     """
 	Moves an existing file to a new file or an existing directory to a new directory.
 	"""
-    args = clean_args(dll.AgM8190_MemoryMove.argtype, args)
+    args = check_args(dll.AgM8190_MemoryMove.argtype, args)
     return dll.AgM8190_MemoryMove(*args)
 dll.AgM8190_MemoryMove.restype = ViStatus
 dll.AgM8190_MemoryMove.argtype = (
@@ -961,7 +958,7 @@ def MemoryQueryCatalog(*args):
     """
 	Queries disk usage information (drive capacity, free space available) and obtain a list of files and directories in a specified directory.
 	"""
-    args = clean_args(dll.AgM8190_MemoryQueryCatalog.argtype, args)
+    args = check_args(dll.AgM8190_MemoryQueryCatalog.argtype, args)
     return dll.AgM8190_MemoryQueryCatalog(*args)
 dll.AgM8190_MemoryQueryCatalog.restype = ViStatus
 dll.AgM8190_MemoryQueryCatalog.argtype = (
@@ -976,7 +973,7 @@ def MemoryStoreData(*args):
     """
 	Stores data into the specified file.
 	"""
-    args = clean_args(dll.AgM8190_MemoryStoreData.argtype, args)
+    args = check_args(dll.AgM8190_MemoryStoreData.argtype, args)
     return dll.AgM8190_MemoryStoreData(*args)
 dll.AgM8190_MemoryStoreData.restype = ViStatus
 dll.AgM8190_MemoryStoreData.argtype = (
@@ -990,7 +987,7 @@ def OutputConfigureDelay(*args):
     """
 	Configures the delay and different offset attributes.
 	"""
-    args = clean_args(dll.AgM8190_OutputConfigureDelay.argtype, args)
+    args = check_args(dll.AgM8190_OutputConfigureDelay.argtype, args)
     return dll.AgM8190_OutputConfigureDelay(*args)
 dll.AgM8190_OutputConfigureDelay.restype = ViStatus
 dll.AgM8190_OutputConfigureDelay.argtype = (
@@ -1005,7 +1002,7 @@ def QueryArbSeqCapabilities(*args):
     """
 	Returns the attributes of the function generator that are related to creating arbitrary sequences. These attributes are the maximum number of sequences, minimum sequence length, maximum sequence length, and maximum loop count.
 	"""
-    args = clean_args(dll.AgM8190_QueryArbSeqCapabilities.argtype, args)
+    args = check_args(dll.AgM8190_QueryArbSeqCapabilities.argtype, args)
     return dll.AgM8190_QueryArbSeqCapabilities(*args)
 dll.AgM8190_QueryArbSeqCapabilities.restype = ViStatus
 dll.AgM8190_QueryArbSeqCapabilities.argtype = (
@@ -1020,7 +1017,7 @@ def QueryArbWfmCapabilities(*args):
     """
 	Returns the attributes of the function generator that are related to creating arbitrary waveforms. These attributes are the maximum number of waveforms, waveform quantum, minimum waveform size, and maximum waveform size.
 	"""
-    args = clean_args(dll.AgM8190_QueryArbWfmCapabilities.argtype, args)
+    args = check_args(dll.AgM8190_QueryArbWfmCapabilities.argtype, args)
     return dll.AgM8190_QueryArbWfmCapabilities(*args)
 dll.AgM8190_QueryArbWfmCapabilities.restype = ViStatus
 dll.AgM8190_QueryArbWfmCapabilities.argtype = (
@@ -1035,7 +1032,7 @@ def reset(*args):
     """
 	Places the instrument in a known state and configures instrument options on which the IVI specific driver depends (for example, enabling/disabling headers). For an IEEE 488.2 instrument, Reset sends the command string *RST to the instrument.
 	"""
-    args = clean_args(dll.AgM8190_reset.argtype, args)
+    args = check_args(dll.AgM8190_reset.argtype, args)
     return dll.AgM8190_reset(*args)
 dll.AgM8190_reset.restype = ViStatus
 dll.AgM8190_reset.argtype = (
@@ -1046,7 +1043,7 @@ def ResetInterchangeCheck(*args):
     """
 	Not Supported - Resets the interchangeability checking algorithms of the driver so that methods and properties that executed prior to calling this function have no affect on whether future calls to the driver generate interchangeability warnings.
 	"""
-    args = clean_args(dll.AgM8190_ResetInterchangeCheck.argtype, args)
+    args = check_args(dll.AgM8190_ResetInterchangeCheck.argtype, args)
     return dll.AgM8190_ResetInterchangeCheck(*args)
 dll.AgM8190_ResetInterchangeCheck.restype = ViStatus
 dll.AgM8190_ResetInterchangeCheck.argtype = (
@@ -1057,7 +1054,7 @@ def ResetWithDefaults(*args):
     """
 	Does the equivalent of Reset and then, (1) disables class extension capability groups, (2) sets attributes to initial values defined by class specs, and (3) configures the driver to option string settings used when Initialize was last executed.
 	"""
-    args = clean_args(dll.AgM8190_ResetWithDefaults.argtype, args)
+    args = check_args(dll.AgM8190_ResetWithDefaults.argtype, args)
     return dll.AgM8190_ResetWithDefaults(*args)
 dll.AgM8190_ResetWithDefaults.restype = ViStatus
 dll.AgM8190_ResetWithDefaults.argtype = (
@@ -1068,7 +1065,7 @@ def revision_query(*args):
     """
 	Retrieves revision information from the instrument.
 	"""
-    args = clean_args(dll.AgM8190_revision_query.argtype, args)
+    args = check_args(dll.AgM8190_revision_query.argtype, args)
     return dll.AgM8190_revision_query(*args)
 dll.AgM8190_revision_query.restype = ViStatus
 dll.AgM8190_revision_query.argtype = (
@@ -1081,7 +1078,7 @@ def SampleClockConfigure(*args):
     """
 	Configures the sample clock output and source attributes.
 	"""
-    args = clean_args(dll.AgM8190_SampleClockConfigure.argtype, args)
+    args = check_args(dll.AgM8190_SampleClockConfigure.argtype, args)
     return dll.AgM8190_SampleClockConfigure(*args)
 dll.AgM8190_SampleClockConfigure.restype = ViStatus
 dll.AgM8190_SampleClockConfigure.argtype = (
@@ -1095,7 +1092,7 @@ def SampleClockGetSampleClockSource(*args):
     """
 	Specifies the clock used for the waveform generation. Note that when using an external sample clock, the Arbitrary Sample Rate External attribute must be set to the corresponding frequency of the external sample clock.
 	"""
-    args = clean_args(dll.AgM8190_SampleClockGetSampleClockSource.argtype, args)
+    args = check_args(dll.AgM8190_SampleClockGetSampleClockSource.argtype, args)
     return dll.AgM8190_SampleClockGetSampleClockSource(*args)
 dll.AgM8190_SampleClockGetSampleClockSource.restype = ViStatus
 dll.AgM8190_SampleClockGetSampleClockSource.argtype = (
@@ -1108,7 +1105,7 @@ def SampleClockSetSampleClockSource(*args):
     """
 	Specifies the clock used for the waveform generation. Note that when using an external sample clock, the Arbitrary Sample Rate External attribute must be set to the corresponding frequency of the external sample clock.
 	"""
-    args = clean_args(dll.AgM8190_SampleClockSetSampleClockSource.argtype, args)
+    args = check_args(dll.AgM8190_SampleClockSetSampleClockSource.argtype, args)
     return dll.AgM8190_SampleClockSetSampleClockSource(*args)
 dll.AgM8190_SampleClockSetSampleClockSource.restype = ViStatus
 dll.AgM8190_SampleClockSetSampleClockSource.argtype = (
@@ -1121,7 +1118,7 @@ def self_test(*args):
     """
 	Performs an instrument self test, waits for the instrument to complete the test, and queries the instrument for the results. If the instrument passes the test, TestResult is zero and TestMessage is 'Self test passed'.
 	"""
-    args = clean_args(dll.AgM8190_self_test.argtype, args)
+    args = check_args(dll.AgM8190_self_test.argtype, args)
     return dll.AgM8190_self_test(*args)
 dll.AgM8190_self_test.restype = ViStatus
 dll.AgM8190_self_test.argtype = (
@@ -1134,7 +1131,7 @@ def SendSoftwareTrigger(*args):
     """
 	Sends a software trigger, which will cause the function generator to generate output.
 	"""
-    args = clean_args(dll.AgM8190_SendSoftwareTrigger.argtype, args)
+    args = check_args(dll.AgM8190_SendSoftwareTrigger.argtype, args)
     return dll.AgM8190_SendSoftwareTrigger(*args)
 dll.AgM8190_SendSoftwareTrigger.restype = ViStatus
 dll.AgM8190_SendSoftwareTrigger.argtype = (
@@ -1145,7 +1142,7 @@ def SequenceClear(*args):
     """
 	Allows you to delete an arbitrary sequence from the specified channel.
 	"""
-    args = clean_args(dll.AgM8190_SequenceClear.argtype, args)
+    args = check_args(dll.AgM8190_SequenceClear.argtype, args)
     return dll.AgM8190_SequenceClear(*args)
 dll.AgM8190_SequenceClear.restype = ViStatus
 dll.AgM8190_SequenceClear.argtype = (
@@ -1158,7 +1155,7 @@ def SequenceClearAll(*args):
     """
 	Allows you to delete all arbitrary sequences from the specified channel.
 	"""
-    args = clean_args(dll.AgM8190_SequenceClearAll.argtype, args)
+    args = check_args(dll.AgM8190_SequenceClearAll.argtype, args)
     return dll.AgM8190_SequenceClearAll(*args)
 dll.AgM8190_SequenceClearAll.restype = ViStatus
 dll.AgM8190_SequenceClearAll.argtype = (
@@ -1170,7 +1167,7 @@ def SequenceConfigure(*args):
     """
 	Configures the attributes of the function generator that affect arbitrary sequence generation.
 	"""
-    args = clean_args(dll.AgM8190_SequenceConfigure.argtype, args)
+    args = check_args(dll.AgM8190_SequenceConfigure.argtype, args)
     return dll.AgM8190_SequenceConfigure(*args)
 dll.AgM8190_SequenceConfigure.restype = ViStatus
 dll.AgM8190_SequenceConfigure.argtype = (
@@ -1185,7 +1182,7 @@ def SequenceCreate(*args):
     """
 	Creates an arbitrary waveform sequence from an array of waveform handles and a corresponding array of loop counts, and returns a handle that identifies the sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceCreate.argtype, args)
+    args = check_args(dll.AgM8190_SequenceCreate.argtype, args)
     return dll.AgM8190_SequenceCreate(*args)
 dll.AgM8190_SequenceCreate.restype = ViStatus
 dll.AgM8190_SequenceCreate.argtype = (
@@ -1202,7 +1199,7 @@ def SequenceGetAdvancementMode(*args):
     """
 	Specifies the advancement mode between iterations of a sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceGetAdvancementMode.argtype, args)
+    args = check_args(dll.AgM8190_SequenceGetAdvancementMode.argtype, args)
     return dll.AgM8190_SequenceGetAdvancementMode(*args)
 dll.AgM8190_SequenceGetAdvancementMode.restype = ViStatus
 dll.AgM8190_SequenceGetAdvancementMode.argtype = (
@@ -1216,7 +1213,7 @@ def SequenceGetComment(*args):
     """
 	Specifies the comment associated with an arbitrary sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceGetComment.argtype, args)
+    args = check_args(dll.AgM8190_SequenceGetComment.argtype, args)
     return dll.AgM8190_SequenceGetComment(*args)
 dll.AgM8190_SequenceGetComment.restype = ViStatus
 dll.AgM8190_SequenceGetComment.argtype = (
@@ -1231,7 +1228,7 @@ def SequenceGetData(*args):
     """
 	Returns the sequence data for a given sequence-id and step.
 	"""
-    args = clean_args(dll.AgM8190_SequenceGetData.argtype, args)
+    args = check_args(dll.AgM8190_SequenceGetData.argtype, args)
     return dll.AgM8190_SequenceGetData(*args)
 dll.AgM8190_SequenceGetData.restype = ViStatus
 dll.AgM8190_SequenceGetData.argtype = (
@@ -1249,7 +1246,7 @@ def SequenceGetLoopCount(*args):
     """
 	Specifies the number of iterations of a sequence. Valid range: 1 to 4294967295.
 	"""
-    args = clean_args(dll.AgM8190_SequenceGetLoopCount.argtype, args)
+    args = check_args(dll.AgM8190_SequenceGetLoopCount.argtype, args)
     return dll.AgM8190_SequenceGetLoopCount(*args)
 dll.AgM8190_SequenceGetLoopCount.restype = ViStatus
 dll.AgM8190_SequenceGetLoopCount.argtype = (
@@ -1263,7 +1260,7 @@ def SequenceGetName(*args):
     """
 	Specifies the name associated with an arbitrary sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceGetName.argtype, args)
+    args = check_args(dll.AgM8190_SequenceGetName.argtype, args)
     return dll.AgM8190_SequenceGetName(*args)
 dll.AgM8190_SequenceGetName.restype = ViStatus
 dll.AgM8190_SequenceGetName.argtype = (
@@ -1278,7 +1275,7 @@ def SequenceQueryFreeMemory(*args):
     """
 	Returns the number of free sequence entries.
 	"""
-    args = clean_args(dll.AgM8190_SequenceQueryFreeMemory.argtype, args)
+    args = check_args(dll.AgM8190_SequenceQueryFreeMemory.argtype, args)
     return dll.AgM8190_SequenceQueryFreeMemory(*args)
 dll.AgM8190_SequenceQueryFreeMemory.restype = ViStatus
 dll.AgM8190_SequenceQueryFreeMemory.argtype = (
@@ -1293,7 +1290,7 @@ def SequenceSetAdvancementMode(*args):
     """
 	Specifies the advancement mode between iterations of a sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceSetAdvancementMode.argtype, args)
+    args = check_args(dll.AgM8190_SequenceSetAdvancementMode.argtype, args)
     return dll.AgM8190_SequenceSetAdvancementMode(*args)
 dll.AgM8190_SequenceSetAdvancementMode.restype = ViStatus
 dll.AgM8190_SequenceSetAdvancementMode.argtype = (
@@ -1307,7 +1304,7 @@ def SequenceSetComment(*args):
     """
 	Specifies the comment associated with an arbitrary sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceSetComment.argtype, args)
+    args = check_args(dll.AgM8190_SequenceSetComment.argtype, args)
     return dll.AgM8190_SequenceSetComment(*args)
 dll.AgM8190_SequenceSetComment.restype = ViStatus
 dll.AgM8190_SequenceSetComment.argtype = (
@@ -1321,7 +1318,7 @@ def SequenceSetData(*args):
     """
 	Allows you to write one or multiple sequence steps for the specified sequence id (handle).
 	"""
-    args = clean_args(dll.AgM8190_SequenceSetData.argtype, args)
+    args = check_args(dll.AgM8190_SequenceSetData.argtype, args)
     return dll.AgM8190_SequenceSetData(*args)
 dll.AgM8190_SequenceSetData.restype = ViStatus
 dll.AgM8190_SequenceSetData.argtype = (
@@ -1337,7 +1334,7 @@ def SequenceSetLoopCount(*args):
     """
 	Specifies the number of iterations of a sequence. Valid range: 1 to 4294967295.
 	"""
-    args = clean_args(dll.AgM8190_SequenceSetLoopCount.argtype, args)
+    args = check_args(dll.AgM8190_SequenceSetLoopCount.argtype, args)
     return dll.AgM8190_SequenceSetLoopCount(*args)
 dll.AgM8190_SequenceSetLoopCount.restype = ViStatus
 dll.AgM8190_SequenceSetLoopCount.argtype = (
@@ -1351,7 +1348,7 @@ def SequenceSetName(*args):
     """
 	Specifies the name associated with an arbitrary sequence.
 	"""
-    args = clean_args(dll.AgM8190_SequenceSetName.argtype, args)
+    args = check_args(dll.AgM8190_SequenceSetName.argtype, args)
     return dll.AgM8190_SequenceSetName(*args)
 dll.AgM8190_SequenceSetName.restype = ViStatus
 dll.AgM8190_SequenceSetName.argtype = (
@@ -1365,7 +1362,7 @@ def SequenceTableGetData(*args):
     """
 	Read Only - Reads data from the sequencer memory, if all segments are read-write. An error is returned, if at least one write-only segment in the waveform memory exists.
 	"""
-    args = clean_args(dll.AgM8190_SequenceTableGetData.argtype, args)
+    args = check_args(dll.AgM8190_SequenceTableGetData.argtype, args)
     return dll.AgM8190_SequenceTableGetData(*args)
 dll.AgM8190_SequenceTableGetData.restype = ViStatus
 dll.AgM8190_SequenceTableGetData.argtype = (
@@ -1382,7 +1379,7 @@ def SequenceTableReset(*args):
     """
 	Read Only - Reset all sequence table entries to default values.
 	"""
-    args = clean_args(dll.AgM8190_SequenceTableReset.argtype, args)
+    args = check_args(dll.AgM8190_SequenceTableReset.argtype, args)
     return dll.AgM8190_SequenceTableReset(*args)
 dll.AgM8190_SequenceTableReset.restype = ViStatus
 dll.AgM8190_SequenceTableReset.argtype = (
@@ -1394,7 +1391,7 @@ def SequenceTableSetData(*args):
     """
 	Allows you to write directly to the sequencer memory.
 	"""
-    args = clean_args(dll.AgM8190_SequenceTableSetData.argtype, args)
+    args = check_args(dll.AgM8190_SequenceTableSetData.argtype, args)
     return dll.AgM8190_SequenceTableSetData(*args)
 dll.AgM8190_SequenceTableSetData.restype = ViStatus
 dll.AgM8190_SequenceTableSetData.argtype = (
@@ -1409,7 +1406,7 @@ def SetAttributeViBoolean(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViBoolean.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViBoolean.argtype, args)
     return dll.AgM8190_SetAttributeViBoolean(*args)
 dll.AgM8190_SetAttributeViBoolean.restype = ViStatus
 dll.AgM8190_SetAttributeViBoolean.argtype = (
@@ -1423,7 +1420,7 @@ def SetAttributeViInt32(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViInt32.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViInt32.argtype, args)
     return dll.AgM8190_SetAttributeViInt32(*args)
 dll.AgM8190_SetAttributeViInt32.restype = ViStatus
 dll.AgM8190_SetAttributeViInt32.argtype = (
@@ -1437,7 +1434,7 @@ def SetAttributeViInt64(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViInt64.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViInt64.argtype, args)
     return dll.AgM8190_SetAttributeViInt64(*args)
 dll.AgM8190_SetAttributeViInt64.restype = ViStatus
 dll.AgM8190_SetAttributeViInt64.argtype = (
@@ -1451,7 +1448,7 @@ def SetAttributeViReal64(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViReal64.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViReal64.argtype, args)
     return dll.AgM8190_SetAttributeViReal64(*args)
 dll.AgM8190_SetAttributeViReal64.restype = ViStatus
 dll.AgM8190_SetAttributeViReal64.argtype = (
@@ -1465,7 +1462,7 @@ def SetAttributeViSession(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViSession.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViSession.argtype, args)
     return dll.AgM8190_SetAttributeViSession(*args)
 dll.AgM8190_SetAttributeViSession.restype = ViStatus
 dll.AgM8190_SetAttributeViSession.argtype = (
@@ -1479,7 +1476,7 @@ def SetAttributeViString(*args):
     """
 	This routine is used to access low-level settings of the instrument. See the attributeID parameter for a link to all attributes of the instrument.
 	"""
-    args = clean_args(dll.AgM8190_SetAttributeViString.argtype, args)
+    args = check_args(dll.AgM8190_SetAttributeViString.argtype, args)
     return dll.AgM8190_SetAttributeViString(*args)
 dll.AgM8190_SetAttributeViString.restype = ViStatus
 dll.AgM8190_SetAttributeViString.argtype = (
@@ -1493,7 +1490,7 @@ def StatusClear(*args):
     """
 	Clears all event registers and error queue. The enable registers are unaffected.
 	"""
-    args = clean_args(dll.AgM8190_StatusClear.argtype, args)
+    args = check_args(dll.AgM8190_StatusClear.argtype, args)
     return dll.AgM8190_StatusClear(*args)
 dll.AgM8190_StatusClear.restype = ViStatus
 dll.AgM8190_StatusClear.argtype = (
@@ -1504,7 +1501,7 @@ def StatusConfigureServiceRequest(*args):
     """
 	Clears all the enable registers. It then sets the appropriate transition filters and enable registers so when the specified event(s) occur(s) the instrument requests service. All other events are disabled from generating a service request.
 	"""
-    args = clean_args(dll.AgM8190_StatusConfigureServiceRequest.argtype, args)
+    args = check_args(dll.AgM8190_StatusConfigureServiceRequest.argtype, args)
     return dll.AgM8190_StatusConfigureServiceRequest(*args)
 dll.AgM8190_StatusConfigureServiceRequest.restype = ViStatus
 dll.AgM8190_StatusConfigureServiceRequest.argtype = (
@@ -1516,7 +1513,7 @@ def StatusGetFrequencyStable(*args):
     """
 	Read Only - This property returns a boolean value for the selected channel's frequency status. If the frequency status is stable, the attribute value is true, otherwise false.
 	"""
-    args = clean_args(dll.AgM8190_StatusGetFrequencyStable.argtype, args)
+    args = check_args(dll.AgM8190_StatusGetFrequencyStable.argtype, args)
     return dll.AgM8190_StatusGetFrequencyStable(*args)
 dll.AgM8190_StatusGetFrequencyStable.restype = ViStatus
 dll.AgM8190_StatusGetFrequencyStable.argtype = (
@@ -1529,7 +1526,7 @@ def StatusGetGenerating(*args):
     """
 	Read Only - If the function generator is in the Output Generation State, the attribute value is true, otherwise false.
 	"""
-    args = clean_args(dll.AgM8190_StatusGetGenerating.argtype, args)
+    args = check_args(dll.AgM8190_StatusGetGenerating.argtype, args)
     return dll.AgM8190_StatusGetGenerating(*args)
 dll.AgM8190_StatusGetGenerating.restype = ViStatus
 dll.AgM8190_StatusGetGenerating.argtype = (
@@ -1542,7 +1539,7 @@ def StatusGetOutputVoltageOK(*args):
     """
 	Read Only - This property reads the output protection state per channel. "False" means Output has switched off (to protect itself).
 	"""
-    args = clean_args(dll.AgM8190_StatusGetOutputVoltageOK.argtype, args)
+    args = check_args(dll.AgM8190_StatusGetOutputVoltageOK.argtype, args)
     return dll.AgM8190_StatusGetOutputVoltageOK(*args)
 dll.AgM8190_StatusGetOutputVoltageOK.restype = ViStatus
 dll.AgM8190_StatusGetOutputVoltageOK.argtype = (
@@ -1555,7 +1552,7 @@ def StatusGetRegister(*args):
     """
 	Instrument status registers.
 	"""
-    args = clean_args(dll.AgM8190_StatusGetRegister.argtype, args)
+    args = check_args(dll.AgM8190_StatusGetRegister.argtype, args)
     return dll.AgM8190_StatusGetRegister(*args)
 dll.AgM8190_StatusGetRegister.restype = ViStatus
 dll.AgM8190_StatusGetRegister.argtype = (
@@ -1569,7 +1566,7 @@ def StatusSetRegister(*args):
     """
 	Instrument status registers.
 	"""
-    args = clean_args(dll.AgM8190_StatusSetRegister.argtype, args)
+    args = check_args(dll.AgM8190_StatusSetRegister.argtype, args)
     return dll.AgM8190_StatusSetRegister(*args)
 dll.AgM8190_StatusSetRegister.restype = ViStatus
 dll.AgM8190_StatusSetRegister.argtype = (
@@ -1583,7 +1580,7 @@ def SystemIoRead(*args):
     """
 	This function provides direct read access to the underlying instrument I/O interface.
 	"""
-    args = clean_args(dll.AgM8190_SystemIoRead.argtype, args)
+    args = check_args(dll.AgM8190_SystemIoRead.argtype, args)
     return dll.AgM8190_SystemIoRead(*args)
 dll.AgM8190_SystemIoRead.restype = ViStatus
 dll.AgM8190_SystemIoRead.argtype = (
@@ -1597,7 +1594,7 @@ def SystemIoWrite(*args):
     """
 	This function provides direct write access to the underlying instrument I/O interface.
 	"""
-    args = clean_args(dll.AgM8190_SystemIoWrite.argtype, args)
+    args = check_args(dll.AgM8190_SystemIoWrite.argtype, args)
     return dll.AgM8190_SystemIoWrite(*args)
 dll.AgM8190_SystemIoWrite.restype = ViStatus
 dll.AgM8190_SystemIoWrite.argtype = (
@@ -1609,7 +1606,7 @@ def SystemLoadConfiguration(*args):
     """
 	This function configures the function generator to the state stored in current file.
 	"""
-    args = clean_args(dll.AgM8190_SystemLoadConfiguration.argtype, args)
+    args = check_args(dll.AgM8190_SystemLoadConfiguration.argtype, args)
     return dll.AgM8190_SystemLoadConfiguration(*args)
 dll.AgM8190_SystemLoadConfiguration.restype = ViStatus
 dll.AgM8190_SystemLoadConfiguration.argtype = (
@@ -1621,7 +1618,7 @@ def SystemPowerOnSelfTest(*args):
     """
 	Returns the results of the power on self-tests.
 	"""
-    args = clean_args(dll.AgM8190_SystemPowerOnSelfTest.argtype, args)
+    args = check_args(dll.AgM8190_SystemPowerOnSelfTest.argtype, args)
     return dll.AgM8190_SystemPowerOnSelfTest(*args)
 dll.AgM8190_SystemPowerOnSelfTest.restype = ViStatus
 dll.AgM8190_SystemPowerOnSelfTest.argtype = (
@@ -1634,7 +1631,7 @@ def SystemStoreConfiguration(*args):
     """
 	This function saves the current configuration of the function generator to the current file.
 	"""
-    args = clean_args(dll.AgM8190_SystemStoreConfiguration.argtype, args)
+    args = check_args(dll.AgM8190_SystemStoreConfiguration.argtype, args)
     return dll.AgM8190_SystemStoreConfiguration(*args)
 dll.AgM8190_SystemStoreConfiguration.restype = ViStatus
 dll.AgM8190_SystemStoreConfiguration.argtype = (
@@ -1646,7 +1643,7 @@ def SystemWaitForOperationComplete(*args):
     """
 	Does not return until previously started operations complete or more MaxTimeMilliseconds milliseconds of time have expired.
 	"""
-    args = clean_args(dll.AgM8190_SystemWaitForOperationComplete.argtype, args)
+    args = check_args(dll.AgM8190_SystemWaitForOperationComplete.argtype, args)
     return dll.AgM8190_SystemWaitForOperationComplete(*args)
 dll.AgM8190_SystemWaitForOperationComplete.restype = ViStatus
 dll.AgM8190_SystemWaitForOperationComplete.argtype = (
@@ -1658,7 +1655,7 @@ def TriggerConfigureEvent(*args):
     """
 	Configures the event impedance, slope and threshold attributes.
 	"""
-    args = clean_args(dll.AgM8190_TriggerConfigureEvent.argtype, args)
+    args = check_args(dll.AgM8190_TriggerConfigureEvent.argtype, args)
     return dll.AgM8190_TriggerConfigureEvent(*args)
 dll.AgM8190_TriggerConfigureEvent.restype = ViStatus
 dll.AgM8190_TriggerConfigureEvent.argtype = (
@@ -1672,7 +1669,7 @@ def TriggerConfigureMode(*args):
     """
 	Configures the arming mode, the gate mode and the trigger mode for the specified channel.
 	"""
-    args = clean_args(dll.AgM8190_TriggerConfigureMode.argtype, args)
+    args = check_args(dll.AgM8190_TriggerConfigureMode.argtype, args)
     return dll.AgM8190_TriggerConfigureMode(*args)
 dll.AgM8190_TriggerConfigureMode.restype = ViStatus
 dll.AgM8190_TriggerConfigureMode.argtype = (
@@ -1687,7 +1684,7 @@ def TriggerConfigureTrigger(*args):
     """
 	Configures the trigger impedance, slope and threshold attributes.
 	"""
-    args = clean_args(dll.AgM8190_TriggerConfigureTrigger.argtype, args)
+    args = check_args(dll.AgM8190_TriggerConfigureTrigger.argtype, args)
     return dll.AgM8190_TriggerConfigureTrigger(*args)
 dll.AgM8190_TriggerConfigureTrigger.restype = ViStatus
 dll.AgM8190_TriggerConfigureTrigger.argtype = (
@@ -1701,7 +1698,7 @@ def TriggerSendSoftwareEnable(*args):
     """
 	This method sends the enable event to the specified channel of the function generator.
 	"""
-    args = clean_args(dll.AgM8190_TriggerSendSoftwareEnable.argtype, args)
+    args = check_args(dll.AgM8190_TriggerSendSoftwareEnable.argtype, args)
     return dll.AgM8190_TriggerSendSoftwareEnable(*args)
 dll.AgM8190_TriggerSendSoftwareEnable.restype = ViStatus
 dll.AgM8190_TriggerSendSoftwareEnable.argtype = (
@@ -1713,7 +1710,7 @@ def TriggerSendSoftwareEvent(*args):
     """
 	This method sends the advancement event to the specified channel of the function generator.
 	"""
-    args = clean_args(dll.AgM8190_TriggerSendSoftwareEvent.argtype, args)
+    args = check_args(dll.AgM8190_TriggerSendSoftwareEvent.argtype, args)
     return dll.AgM8190_TriggerSendSoftwareEvent(*args)
 dll.AgM8190_TriggerSendSoftwareEvent.restype = ViStatus
 dll.AgM8190_TriggerSendSoftwareEvent.argtype = (
@@ -1725,7 +1722,7 @@ def TriggerSendSoftwareTrigger(*args):
     """
 	This method sends the trigger event to the specified channel of the function generator.
 	"""
-    args = clean_args(dll.AgM8190_TriggerSendSoftwareTrigger.argtype, args)
+    args = check_args(dll.AgM8190_TriggerSendSoftwareTrigger.argtype, args)
     return dll.AgM8190_TriggerSendSoftwareTrigger(*args)
 dll.AgM8190_TriggerSendSoftwareTrigger.restype = ViStatus
 dll.AgM8190_TriggerSendSoftwareTrigger.argtype = (
@@ -1737,7 +1734,7 @@ def UnlockSession(*args):
     """
 	Releases a previously obtained mutlithread lock.
 	"""
-    args = clean_args(dll.AgM8190_UnlockSession.argtype, args)
+    args = check_args(dll.AgM8190_UnlockSession.argtype, args)
     return dll.AgM8190_UnlockSession(*args)
 dll.AgM8190_UnlockSession.restype = ViStatus
 dll.AgM8190_UnlockSession.argtype = (
@@ -1749,7 +1746,7 @@ def WaveformClear(*args):
     """
 	Deletes a segment from the specified channel.
 	"""
-    args = clean_args(dll.AgM8190_WaveformClear.argtype, args)
+    args = check_args(dll.AgM8190_WaveformClear.argtype, args)
     return dll.AgM8190_WaveformClear(*args)
 dll.AgM8190_WaveformClear.restype = ViStatus
 dll.AgM8190_WaveformClear.argtype = (
@@ -1762,7 +1759,7 @@ def WaveformClearAll(*args):
     """
 	Delete all segments from the specified channel.
 	"""
-    args = clean_args(dll.AgM8190_WaveformClearAll.argtype, args)
+    args = check_args(dll.AgM8190_WaveformClearAll.argtype, args)
     return dll.AgM8190_WaveformClearAll(*args)
 dll.AgM8190_WaveformClearAll.restype = ViStatus
 dll.AgM8190_WaveformClearAll.argtype = (
@@ -1774,7 +1771,7 @@ def WaveformConfigure(*args):
     """
 	Configures the attributes of the function generator that affect arbitrary waveform generation.
 	"""
-    args = clean_args(dll.AgM8190_WaveformConfigure.argtype, args)
+    args = check_args(dll.AgM8190_WaveformConfigure.argtype, args)
     return dll.AgM8190_WaveformConfigure(*args)
 dll.AgM8190_WaveformConfigure.restype = ViStatus
 dll.AgM8190_WaveformConfigure.argtype = (
@@ -1789,7 +1786,7 @@ def WaveformCreateChannelWaveform(*args):
     """
 	Creates a channel-specific arbitrary waveform and returns a handle to it. The handle is used by the Configure, Clear, and ArbitrarySequence.Create methods.
 	"""
-    args = clean_args(dll.AgM8190_WaveformCreateChannelWaveform.argtype, args)
+    args = check_args(dll.AgM8190_WaveformCreateChannelWaveform.argtype, args)
     return dll.AgM8190_WaveformCreateChannelWaveform(*args)
 dll.AgM8190_WaveformCreateChannelWaveform.restype = ViStatus
 dll.AgM8190_WaveformCreateChannelWaveform.argtype = (
@@ -1804,7 +1801,7 @@ def WaveformCreateChannelWaveformChunkInt16(*args):
     """
 	Use this method to create an arbitrary waveform by transferring the waveform data in chunks.
 	"""
-    args = clean_args(dll.AgM8190_WaveformCreateChannelWaveformChunkInt16.argtype, args)
+    args = check_args(dll.AgM8190_WaveformCreateChannelWaveformChunkInt16.argtype, args)
     return dll.AgM8190_WaveformCreateChannelWaveformChunkInt16(*args)
 dll.AgM8190_WaveformCreateChannelWaveformChunkInt16.restype = ViStatus
 dll.AgM8190_WaveformCreateChannelWaveformChunkInt16.argtype = (
@@ -1822,7 +1819,7 @@ def WaveformCreateChannelWaveformChunkInt16WithInit(*args):
     """
 	Use this method to create an arbitrary waveform by transferring the waveform data in chunks and to preinitialize the allocated memory.
 	"""
-    args = clean_args(dll.AgM8190_WaveformCreateChannelWaveformChunkInt16WithInit.argtype, args)
+    args = check_args(dll.AgM8190_WaveformCreateChannelWaveformChunkInt16WithInit.argtype, args)
     return dll.AgM8190_WaveformCreateChannelWaveformChunkInt16WithInit(*args)
 dll.AgM8190_WaveformCreateChannelWaveformChunkInt16WithInit.restype = ViStatus
 dll.AgM8190_WaveformCreateChannelWaveformChunkInt16WithInit.argtype = (
@@ -1841,7 +1838,7 @@ def WaveformCreateChannelWaveformInt16(*args):
     """
 	Creates a channel-specific arbitrary waveform and returns a handle to it. The handle is used by the Configure, Clear, and ArbitrarySequence.Create methods.
 	"""
-    args = clean_args(dll.AgM8190_WaveformCreateChannelWaveformInt16.argtype, args)
+    args = check_args(dll.AgM8190_WaveformCreateChannelWaveformInt16.argtype, args)
     return dll.AgM8190_WaveformCreateChannelWaveformInt16(*args)
 dll.AgM8190_WaveformCreateChannelWaveformInt16.restype = ViStatus
 dll.AgM8190_WaveformCreateChannelWaveformInt16.argtype = (
@@ -1856,7 +1853,7 @@ def WaveformCreateChannelWaveformInt16WriteOnly(*args):
     """
 	Creates a channel-specific arbitrary waveform and returns a handle to it. The waveform is write-only and cannot be read back from memory.
 	"""
-    args = clean_args(dll.AgM8190_WaveformCreateChannelWaveformInt16WriteOnly.argtype, args)
+    args = check_args(dll.AgM8190_WaveformCreateChannelWaveformInt16WriteOnly.argtype, args)
     return dll.AgM8190_WaveformCreateChannelWaveformInt16WriteOnly(*args)
 dll.AgM8190_WaveformCreateChannelWaveformInt16WriteOnly.restype = ViStatus
 dll.AgM8190_WaveformCreateChannelWaveformInt16WriteOnly.argtype = (
@@ -1871,7 +1868,7 @@ def WaveformGetComment(*args):
     """
 	Specifies the comment associated with a segment.
 	"""
-    args = clean_args(dll.AgM8190_WaveformGetComment.argtype, args)
+    args = check_args(dll.AgM8190_WaveformGetComment.argtype, args)
     return dll.AgM8190_WaveformGetComment(*args)
 dll.AgM8190_WaveformGetComment.restype = ViStatus
 dll.AgM8190_WaveformGetComment.argtype = (
@@ -1886,7 +1883,7 @@ def WaveformGetName(*args):
     """
 	Specifies the name associated with a segment.
 	"""
-    args = clean_args(dll.AgM8190_WaveformGetName.argtype, args)
+    args = check_args(dll.AgM8190_WaveformGetName.argtype, args)
     return dll.AgM8190_WaveformGetName(*args)
 dll.AgM8190_WaveformGetName.restype = ViStatus
 dll.AgM8190_WaveformGetName.argtype = (
@@ -1901,7 +1898,7 @@ def WaveformImport(*args):
     """
 	Imports segment data from a file. Different file formats are supported.
 	"""
-    args = clean_args(dll.AgM8190_WaveformImport.argtype, args)
+    args = check_args(dll.AgM8190_WaveformImport.argtype, args)
     return dll.AgM8190_WaveformImport(*args)
 dll.AgM8190_WaveformImport.restype = ViStatus
 dll.AgM8190_WaveformImport.argtype = (
@@ -1917,7 +1914,7 @@ def WaveformImportIQ(*args):
     """
 	Imports segment data from a file. Different file formats are supported. An already existing segment can be filled, or a new segment can be created.
 	"""
-    args = clean_args(dll.AgM8190_WaveformImportIQ.argtype, args)
+    args = check_args(dll.AgM8190_WaveformImportIQ.argtype, args)
     return dll.AgM8190_WaveformImportIQ(*args)
 dll.AgM8190_WaveformImportIQ.restype = ViStatus
 dll.AgM8190_WaveformImportIQ.argtype = (
@@ -1935,7 +1932,7 @@ def WaveformQueryFreeMemory(*args):
     """
 	Returns the amount of memory space available for waveform data.
 	"""
-    args = clean_args(dll.AgM8190_WaveformQueryFreeMemory.argtype, args)
+    args = check_args(dll.AgM8190_WaveformQueryFreeMemory.argtype, args)
     return dll.AgM8190_WaveformQueryFreeMemory(*args)
 dll.AgM8190_WaveformQueryFreeMemory.restype = ViStatus
 dll.AgM8190_WaveformQueryFreeMemory.argtype = (
@@ -1950,7 +1947,7 @@ def WaveformSetComment(*args):
     """
 	Specifies the comment associated with a segment.
 	"""
-    args = clean_args(dll.AgM8190_WaveformSetComment.argtype, args)
+    args = check_args(dll.AgM8190_WaveformSetComment.argtype, args)
     return dll.AgM8190_WaveformSetComment(*args)
 dll.AgM8190_WaveformSetComment.restype = ViStatus
 dll.AgM8190_WaveformSetComment.argtype = (
@@ -1964,7 +1961,7 @@ def WaveformSetName(*args):
     """
 	Specifies the name associated with a segment.
 	"""
-    args = clean_args(dll.AgM8190_WaveformSetName.argtype, args)
+    args = check_args(dll.AgM8190_WaveformSetName.argtype, args)
     return dll.AgM8190_WaveformSetName(*args)
 dll.AgM8190_WaveformSetName.restype = ViStatus
 dll.AgM8190_WaveformSetName.argtype = (
@@ -1973,6 +1970,7 @@ dll.AgM8190_WaveformSetName.argtype = (
                                        ViInt32,
                                        ViConstString
                                        )
+
 
 
 
