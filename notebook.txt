@@ -150,3 +150,15 @@ nmr.py;2016_07_21;ID;ND;sensitivity;comment
 ;;0050; Red Open, Green 3; 1e-7;
 ;;0051; Red Open, Green 3; 1e-7;
 ;;0052; Red Open, Green 3; 1e-7;
+nmr.py;2016_07_25;ID;ND;sensitivity;comment
+;;0000; Red Open, Green 3; 1e-7;
+;;0001; Red Open, Green 3; 1e-7;
+;;0002; Red Open, Green 3; 1e-7;
+;;0003; Red Open, Green 3; 1e-7;
+;;0004; Red Open, Green 3; 1e-7;
+;;0005; Red Open, Green 3; 1e-7;
+;;0006; Red Open, Green 3; 1e-7;
+;;0007; Red Open, Green 3; 1e-7;
+;;0008; Red Open, Green 3; 1e-7;
+;;0009; Red Open, Green 3; 1e-7;
+;;0010; Red Open, Green 3; 1e-7;
