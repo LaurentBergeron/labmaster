@@ -9,6 +9,7 @@ __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 import numpy as np
 import timeit
 import types
+import sys
 
 # Homemade modules
 import not_for_user as nfu

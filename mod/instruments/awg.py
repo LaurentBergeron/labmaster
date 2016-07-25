@@ -105,7 +105,7 @@ class Awg(Instrument):
     def check_error(self, status):
         if self.verbose:
             print "awg:", status
-        if status not in (0, None):
+        if not(status==0 or status==None):
             self.AgM8190.GetError(self.session, ct.byref(self.error_code), 255, self.error_message)
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
@@ -255,7 +255,7 @@ class Awg(Instrument):
             C_blocks=[]
             self.preprocess(channel, C_blocks)
             if C_blocks==[]:
-                print "empty instructions for channel"+channel
+                print "no instructions for channel"+channel
                 continue
             
             
