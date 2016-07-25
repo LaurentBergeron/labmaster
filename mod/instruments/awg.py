@@ -121,19 +121,7 @@ class Awg(Instrument):
         self.update_time_cursor(duration)
         return
     
-    def delay_big(self, channel, duration): #, loops=1, rewind=None):
-        """ didnt figure how rewind and loops would behave here, TODO."""
-        sample_rate = self.get_sample_clock_rate()
-        counts = int(duration*sample_rate)
-        seg_loops = counts//self.tick + 1
-        if seg_loops < 2**32:
-            self.delay(duration)
-        else:
-            max_time = (2**32)*self.tick/sample_rate
-            self.delay(max_time - us)
-            self.pulse(str(channel), length=us, amp=0, freq=0, phase=0, shape="square")
-            self.delay_big(duration-max_time)
-        return
+
         
     def force_trigger(self):
         status = self.AgM8190.SendSoftwareTrigger(self.session)
@@ -250,7 +238,7 @@ class Awg(Instrument):
     def initiate_generation(self, channel):
         status = self.AgM8190.ChannelInitiateGeneration(self.session, str(channel))
         self.check_error(status)
-        time.sleep(0.1) # needed to let some time to initiate. 
+        time.sleep(0.1) # needed to let some time to initiate. TODO: test with 10240/sample_rate
         return
         
     def load_memory(self):
@@ -293,7 +281,7 @@ class Awg(Instrument):
                     is_start_of_a_loop, is_end_of_a_loop, sequence_loops = False, False, 1
                     seg_loops = int(delay/len(waveform_int16_idle))
                     if seg_loops > 2**32:
-                        raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the delay_big() method to get around this issue."
+                        raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the long_delay() method."
                     segment_ID_active = segment_ID_idle.value
                     
                 # Select the segments
@@ -314,6 +302,8 @@ class Awg(Instrument):
                 data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
                 status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 self.check_error(status)
+                
+                
                 ########## idle command - max delay is 2**25 sample counts - deprecated ##########                                                                     
                 # data[0] += self.AgM8190.control["CommandFlag"] # Control
                 # data[1] = 1 # Sequence Loop Count (N/A)
@@ -338,6 +328,20 @@ class Awg(Instrument):
         
     def load_memory_ping_pong(self):
         self._current_buffer = (self._current_buffer+1)%2
+        return
+        
+    def long_delay(self, channel, duration): #, loops=1, rewind=None):
+        """ didnt figure how rewind and loops would behave here, TODO."""
+        sample_rate = self.get_sample_clock_rate()
+        counts = int(duration*sample_rate)
+        seg_loops = counts//self.tick + 1
+        if seg_loops < 2**32:
+            self.delay(duration)
+        else:
+            max_time = (2**32)*self.tick/sample_rate
+            self.delay(max_time - us)
+            self.pulse(str(channel), length=us, amp=0, freq=0, phase=0, shape="square")
+            self.long_delay(duration-max_time)
         return
         
     def loops_config(self, loops):

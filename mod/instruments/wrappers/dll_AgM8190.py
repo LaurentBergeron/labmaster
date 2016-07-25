@@ -22,7 +22,7 @@ def clean_args(argtype, *args):
     l = list(*args)
     if hasattr(argtype, "__len__"):
         args_size = len(argtype)
-    else: # for some reason when there is only one argtype, it has no __len__ attribute.
+    else: 
         args_size = 1
 
     if not (args_size == len(l)):
