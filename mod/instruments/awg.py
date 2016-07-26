@@ -31,9 +31,9 @@ class Awg(Instrument):
         self.verbose =False
         self.skip_warning = False
         self.adjust_trig_latency = True # if True, needs a time buffer at the start (2 us should be enough)
-        self.loops_autopadding = True
         self.channels_to_load = [1]
         self.coupled = False # coupled channels
+        self.marker_enable = True
         # default pulse
         self.default_delay = {}
         self.default_length = {}
@@ -259,40 +259,57 @@ class Awg(Instrument):
             
         
             ### For each segment, load the sequence table accordingly. The process will differ if the segment is a "block" or a "delay".
-            for i, (segment_type, segment_info) in enumerate(segments):
+            for i, (segment_type, segment_info, sequence_info) in enumerate(segments):
                 if segment_type=="block":
-                    waveform_int16, is_start_of_a_loop, is_end_of_a_loop, sequence_loops = segment_info
+                    waveform_int16 = segment_info
+                    is_start_of_a_sequence, is_end_of_a_sequence, sequence_loops = sequence_info
                     segment_loops = 1
+                    if is_start_of_a_sequence and is_end_of_a_sequence:
+                        segment_loops = sequence_loops
+                        sequence_loops = 1
+                        is_start_of_a_sequence = False
+                        is_end_of_a_sequence = False
                     ### Load the block waveform in awg memory
                     status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16), waveform_int16, ct.byref(segment_ID))
                     self.check_error(status)
                     segment_ID_active = segment_ID
                 elif segment_type=="delay":
-                    delay, is_start_of_a_loop, is_end_of_a_loop, sequence_loops = segment_info  
+                    delay = segment_info  
+                    is_start_of_a_sequence, is_end_of_a_sequence, sequence_loops = sequence_info
                     segment_loops = int(delay/len(waveform_int16_delay))
+                    if is_start_of_a_sequence and is_end_of_a_sequence:
+                        sequence_loops = 1
+                        is_start_of_a_sequence = False
+                        is_end_of_a_sequence = False
+                        segment_loops *= sequence_loops
                     if segment_loops > 2**32:
-                        raise nfu.LabMasterError, "Maximum number of loops reached (2^32). Use the long_delay() method."
+                        raise nfu.LabMasterError, "Maximum number of segment loops reached (2^32)."
                     ### Load the delay waveform in awg memory (could be outside of loop to reduce loading time, but then you have to deal with linear playtime requirements because of memory jumps.)
                     status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16_delay), waveform_int16_delay, ct.byref(segment_ID_delay))
                     self.check_error(status)
                     segment_ID_active = segment_ID_delay
-
+                
+                print i, is_start_of_a_sequence, is_end_of_a_sequence
                 ### Select the segments TODO: try without this function?
                 status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_WAVEFORM_ACTIVE_SEGMENT, segment_ID_active)
                 self.check_error(status)
-                
                 ### Prepare the data array
                 data[0] = 0 # data = 0 if nothing is special about the segment
-                data[0] += self.AgM8190.control["MarkerEnable"] # Enable marker (always enable markers or you need to change the waveform_int16 data)
-                if i == 0 or is_start_of_a_loop:
+                if self.marker_enable:
+                    data[0] += self.AgM8190.control["MarkerEnable"] # Enable marker
+                if is_start_of_a_sequence:
                     data[0] += self.AgM8190.control["InitMarkerSequence"] # start sequence if it's the start of table or start of a loop
-                if i == len(segments)-1 or is_end_of_a_loop:
+                if is_end_of_a_sequence:
                     data[0] += self.AgM8190.control["EndMarkerSequence"]  # end sequence if it's the end of table or end of a loop
+                if i == len(segments)-1:
+                    data[0] += self.AgM8190.control["EndMarkerScenario"]  # end scenario
+                
                 data[1] = sequence_loops # Sequence Loop Count
                 data[2] = segment_loops # Segment Loop Count
                 data[3] = segment_ID_active.value  # Active segment ID
                 data[4] = 0 # Segment Start Offset (0 = no offset)
                 data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
+                
                 
                 ### Load the sequence table in awg memory.
                 status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
@@ -318,48 +335,113 @@ class Awg(Instrument):
             status = self.AgM8190.SetAttributeViBoolean(self.session, channel, self.AgM8190.ATTR_OUTPUT_ENABLED, True)
             self.check_error(status)
         
+        
         print "time to load awg:", time.time()-time_start
         return
         
     def load_memory_ping_pong(self):
         self._current_buffer = (self._current_buffer+1)%2
         return
+        
+    def loop_start(self, channel, num_loops, autopad=True):
+        ### Add a tiny delay to start loop on a tick.
+        if autopad:
+            sample_rate = self.get_sample_clock_rate()
+            sample_counts = int(self.lab.time_cursor*sample_rate)
+            padded_counts = sample_counts//self.tick*self.tick
+            print sample_counts-padded_counts
+            # self.lab.delay((sample_counts-padded_counts)/sample_rate)
+            
+        ### Insert instruction here
+        self.instructions.append([self.lab.time_cursor, str(channel), "loop_start", num_loops])
+        
+        return
+        
+    def loop_end(self, channel, autopad=True):
+        
+        ### Add a tiny delay to end loop on a tick.
+        if autopad:
+            sample_rate = self.get_sample_clock_rate()
+            sample_counts = int(self.lab.time_cursor*sample_rate)
+            if sample_counts%320 == 0:
+                padded_counts = sample_counts
+            else:
+                padded_counts = sample_counts//self.tick*self.tick + self.tick
+            # self.lab.delay((padded_counts-sample_counts)/sample_rate)
+        ### Insert instruction here
+        self.instructions.append([self.lab.time_cursor, str(channel), "loop_end", None])
+            
+        ### Update time cursor to account for all the loops.
+        for inst in reversed(self.instructions):
+            if inst[2]=="loop_start":
+                time_started = inst[0]
+                num_loops = inst[3]
+                break
+                    
+                    
+        ############################################ TEMPORARY FIX #########################################################
+        # min_length = self.tick/sample_rate
+        # self.pulse(1, length = min_length, amp=0, freq=0)
+        # self.lab.update_time_cursor((self.lab.time_cursor - time_started)*(num_loops - 1) - min_length, None)
+        ####################################################################################################################
+        # self.lab.update_time_cursor((self.lab.time_cursor - time_started) * (num_loops - 1), None)
+        
+        return
     
-    def marker(self, channel, rewind=None):
+    def marker(self, channel):
         self.instructions.append([self.lab.time_cursor, str(channel), "marker", None])
-        self.lab.update_time_cursor(0., rewind)
         return
         
     def preprocess(self, channel, result):
         """ 
         input result must be an empty list. 
-        
         """ 
+        
+        
         import time
         show_clipping_warning = True
-        show_loops_num_warning = True
         short_size = (2**16-1)
         preprocess_time_start = time.time()
-        pulse_times, pulse_lengths, pulse_freqs, pulse_phases, pulse_amps, pulse_shapes, marker_times = self.unzip_instructions(channel)
+        
+        
+        ### Unzip user instructions
+        channel_instructions = [inst for inst in self.instructions if inst[1]==str(channel)]
+        if channel_instructions==[]: 
+            return  #if there's no instructions for this channel, what's the point?
 
-        # If there's no instructions for this channel, what's the point?
-        if (pulse_times+marker_times)==[]:
-            return
+        times   = [inst[0] for inst in channel_instructions if inst[2]=="pulse"]
+        lengths = [inst[3][0] for inst in channel_instructions if inst[2]=="pulse"]
+        freqs   = [inst[3][1] for inst in channel_instructions if inst[2]=="pulse"]
+        phases  = [inst[3][2] for inst in channel_instructions if inst[2]=="pulse"]
+        amps    = [inst[3][3] for inst in channel_instructions if inst[2]=="pulse"]
+        shapes  = [inst[3][4] for inst in channel_instructions if inst[2]=="pulse"]
+        
+        loop_start_times = [inst[0] for inst in channel_instructions if inst[2]=="loop_start"]
+        loop_nums        = [inst[3] for inst in channel_instructions if inst[2]=="loop_start"]
+        
+        loop_end_times = [inst[0] for inst in channel_instructions if inst[2]=="loop_end"]
+            
+        marker_times = [inst[0] for inst in channel_instructions if inst[2]=="marker"]
+        if (marker_times != []) and (not self.marker_enable):
+            raise nfu.LabMasterError, "Activate the marker_enable awg option when using markers."
 
-        # Get useful info from awg
+        ### Get useful info from awg
         sample_rate = self.get_sample_clock_rate()
         awg_amp = self.get_amplitude(channel)
         
-        # add marker specs to pulses specs
-        times = pulse_times + marker_times
-        lengths = pulse_lengths + [128./sample_rate]*len(marker_times) # the pulse generated by a marker is max 128 samples.
-        freqs = pulse_freqs + [0]*len(marker_times) # marker freq doesn't matter
-        phases = pulse_phases + [0]*len(marker_times) # marker phase doesn't matter
-        amps = pulse_amps + [0]*len(marker_times) # marker amplitude will be added to other pulses, needs to be zero.
-        shapes = pulse_shapes + ["square"]*len(marker_times) # marker shape doesn't matter
+        ### Combine marker specs and pulses specs (the trick is to consider each marker as a zero amplitude pulse: preprocess will pad correctly, then after padding markers will be added to the waveform)
+        marker_count = len(marker_times)
         
-        # Sort every list in time ascending order
+        times += marker_times
+        lengths += [128/sample_rate]*marker_count # a marker lasts for 128 samples (number doesn't really matter though because of padding. just needs to be small)
+        freqs += [0]*marker_count # marker freq doesn't matter
+        phases += [0]*marker_count # marker phase doesn't matter
+        amps += [0]*marker_count # marker amplitude will be added to other pulses, needs to be zero.
+        shapes += ["square"]*marker_count # marker shape doesn't matter
+        
+        ### Sort every list in time ascending order
         indices = sorted(range(len(times)),key=times.__getitem__)
+        
         times = [times[i] for i in indices]
         lengths = [lengths[i] for i in indices]
         freqs = [freqs[i] for i in indices]
@@ -367,90 +449,99 @@ class Awg(Instrument):
         amps = [amps[i] for i in indices]
         shapes = [shapes[i] for i in indices]
         
-        # Add a final point to the times list
+        ### Add a final point to the times list
         times += [self.lab.total_duration]
 
-        # Find number of blocks. One block is a set of pulses, either overlapping or separated by less then self.minimum_delay_count (converted to time). 
+        ### Merge pulses into blocks.
+        ### One block is a set of pulses, either overlapping or separated by less then minimum_delay_time. 
         minimum_delay_time = self.minimum_delay_count/sample_rate
         blocks = []
         i = 0  
         while True:
-            block = []
+            current_block = {"wfm_starts":[], "wfm_ends":[], "wfm_lengths":[], "wfm_periods":[], "wfm_phases":[], "wfm_amps":[], "wfm_shapes":[]}
             time_to_beat = times[i]+lengths[i]+minimum_delay_time # if the start of a pulse beats this time, a new block is created.
             while True:
                 wfm_start = int(times[i]*sample_rate) # start of pulse in terms of sample counts.
-                wfm_length = int(lengths[i]*sample_rate)-1 # length of pulse in terms of sample counts.
-                if wfm_start < self.minimum_delay_count: # deal with an delay block smaller than minimum at the start of sequence.
-                    wfm_length += wfm_start
-                    wfm_start = 0
+                wfm_end = int((times[i]+lengths[i])*sample_rate) # length of pulse in terms of sample counts.
                 if freqs[i] > 0:
                     wfm_period = sample_rate/freqs[i] # period of pulse in terms of sample counts.
                 else:
                     wfm_period = -1 # no sine will be factored in wfmGenLib2
                 wfm_phase = phases[i]*np.pi/180. # phase in radians
-                wfm_amp = amps[i] # amps will be changed for int16 format later on.
+                if self.marker_enable:
+                    wfm_amp = int(amps[i]*2047/awg_amp) # amps in int16 format (with MarkerEnable activated)
+                else:
+                    wfm_amp = int(amps[i]*32767/awg_amp) # amps in int16 format (without MarkerEnable activated)
                 wfm_shape = self.wfmGenLib2.shapes_code[shapes[i]] # code for the shape as interpreted by wfmGenLib2
-                block.append([wfm_start, wfm_length, wfm_period, wfm_phase, wfm_amp, wfm_shape])
+                current_block["wfm_starts"].append(wfm_start)
+                current_block["wfm_ends"].append(wfm_end)
+                current_block["wfm_lengths"].append(wfm_end-wfm_start)
+                current_block["wfm_periods"].append(wfm_period)
+                current_block["wfm_phases"].append(wfm_phase)
+                current_block["wfm_amps"].append(wfm_amp)
+                current_block["wfm_shapes"].append(wfm_shape)
                 if times[i+1] > time_to_beat: # if the start of next pulse beats this time, a new block is created.
                     break
-                else:# else, continue the while statement and the next pulse will be appended to current block
+                else: # else, continue the while statement and the next pulse will be appended to current block
                     i+=1
                     if i > len(freqs)-1:
                         break
                     if time_to_beat < (times[i]+lengths[i]+minimum_delay_time): # update time_to_beat if end of current pulse is higher.
                         time_to_beat = times[i]+lengths[i]+minimum_delay_time
-            blocks.append(block)
+            blocks.append(current_block)
             i+=1
             if i > len(freqs)-1:
                 break
                 
         
-        
+        ### Adjust trigger latency if option is activated. This will chop 10240 counts from the start of sequence. The experiment needs a time buffer.
         if self.adjust_trig_latency:
             trigger_latency = 10240 # latency for trigger in terms of sample rate. There is an uncertainty of (+0/+64).
         else:
             trigger_latency = 0
         
-        
-        # Add the first delay block.
-        first_padded_block_start = int(np.min([item[0] for item in blocks[0]]))//self.tick*self.tick - trigger_latency
-        if self.minimum_delay_count < first_padded_block_start:
-            result.append( ["delay", (first_padded_block_start, is_start_of_a_loop, is_end_of_a_loop, num_loops_int)] ) # TODO autolongdelay
+            
+        ### Add the first delay block.
+        first_segment_start = int(np.min(blocks[0]["wfm_starts"]))//self.tick*self.tick - trigger_latency
+        if self.minimum_delay_count < first_segment_start:
+            first_segment_is_a_block = False
+            _, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, 0, first_segment_start)
+            is_start_of_a_sequence = True 
+            result.append( ["delay", first_segment_start, [is_start_of_a_sequence, is_end_of_a_sequence, loops_count]] ) # TODO autolongdelay and loops
         else:
+            first_segment_is_a_block = True
             if trigger_latency > 0:
                 raise nfu.LabMasterError, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
+        
 
         for b, block in enumerate(blocks):
-            # Find block min and max for padding
-            block_start = int(np.min([item[0] for item in block]))
-            block_end = int(np.max([item[0]+item[1] for item in block]))
-            padded_block_start = block_start//self.tick*self.tick
+            ### Find block min and max for padding
+            block_start = int(np.min(block["wfm_starts"]))
+            block_end = int(np.max(block["wfm_ends"]))
+            segment_start = block_start//self.tick*self.tick
             if block_end%self.tick==0:
-                padded_block_end = block_end
+                segment_end = block_end
             else:
-                padded_block_end = block_end//self.tick*self.tick + self.tick
-            # print "padded", padded_block_start, block_start, block_end, padded_block_end
-            # Declare C variables
-            C_countFreq = ct.c_int(len(block))
-            C_blockStart = ct.c_longlong(padded_block_start)
-            C_wfmstart = (ct.c_longlong*len(block))()
-            C_wfmlength = (ct.c_longlong*len(block))()
-            C_arrPeriod = (ct.c_double*len(block))()
-            C_arrPhase = (ct.c_double*len(block))()
-            C_arrAmp = (ct.c_double*len(block))()
-            C_arrShape = (ct.c_int*len(block))()
-            C_arrOut_int16 = (ct.c_short*(padded_block_end-padded_block_start))()
-            # fill C arrays with respective pulse specs.
-            for p, item in enumerate(block):
-                C_wfmstart[p] = ct.c_longlong(item[0])
-                C_wfmlength[p] = ct.c_longlong(item[1])
-                C_arrPeriod[p] = ct.c_double(item[2])
-                C_arrPhase[p] = ct.c_double(item[3])
-                C_arrAmp[p] = ct.c_double(item[4])
-                C_arrShape[p] = ct.c_int(item[5])
-            self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16, ct.c_double(awg_amp))
-            # Clip block amplitude if to high.
-            if np.max(C_arrOut_int16) > short_size:
+                segment_end = block_end//self.tick*self.tick + self.tick
+
+            ### Declare C variables.
+            pulse_count = len(block["wfm_starts"]) 
+            
+            C_countFreq = ct.c_int(pulse_count)
+            C_blockStart = ct.c_longlong(segment_start)
+            C_wfmstart = (ct.c_longlong*pulse_count)(*block["wfm_starts"])
+            C_wfmlength = (ct.c_longlong*pulse_count)(*block["wfm_lengths"])
+            C_arrPeriod = (ct.c_double*pulse_count)(*block["wfm_periods"])
+            C_arrPhase = (ct.c_double*pulse_count)(*block["wfm_phases"])
+            C_arrAmp = (ct.c_short*pulse_count)(*block["wfm_amps"])
+            C_arrShape = (ct.c_int*pulse_count)(*block["wfm_shapes"])
+            C_arrOut_int16 = (ct.c_short*(segment_end-segment_start))()
+
+            ### Compute the sum of pulses.
+            self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16)
+
+            ### Clip block amplitude if to high.
+            if np.max(C_arrOut_int16) > short_size: # TODO: error because C_arrOut_int16 is limited to short. needs to be in C code.
                 if show_clipping_warning:
                     print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
                     if not self.skip_warning:
@@ -465,42 +556,84 @@ class Awg(Instrument):
                         C_arrOut_int16[i] = max(item, -short_size)
             
 
-            # Add markers
-            for mrk_time in marker_times:
-                if padded_block_start <= mrk_time*sample_rate < padded_block_end:
-                    index = int(mrk_time*sample_rate - padded_block_start)
+            ### Add markers
+            for time_ in marker_times:
+                if segment_start <= int(time_*sample_rate) < segment_end:
+                    index = int(time_*sample_rate - segment_start)
                     C_arrOut_int16[index] += 1
           
-            # if len(num_loops_list_no_ones)>1:
-                # print num_loops_list_no_ones
-                # if show_loops_num_warning:
-                    # print nfu.warn_msg()+"Many loops detected for the same block."
-                    # if not self.skip_warning:
-                        # if raw_input("Do you want to continue anyway? [Y/n]") in nfu.positive_answer_Y():
-                            # show_loops_num_warning = False
-                        # else:
-                            # raise KeyboardInterrupt
-                            
-            is_start_of_a_loop = False
-            is_end_of_a_loop = False
-            num_loops_int = 1
             
-            # append result
-            result.append( ["block", (C_arrOut_int16, is_start_of_a_loop, is_end_of_a_loop, num_loops_int)] )
-            
-            # add a delay block if it's not the end.
+            ### Append "block" type segment to results.
+            is_start_of_a_sequence, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, block_start, block_end)
+            if first_segment_is_a_block:
+                is_start_of_a_sequence=True
+            result.append( ["block", C_arrOut_int16, [is_start_of_a_sequence, is_end_of_a_sequence, loops_count]] )
+            if is_start_of_a_sequence and (not first_segment_is_a_block):
+                result[-2][2][1] = True
+                    
+            ### Add a delay block if it's not the end.
             if b < len(blocks) - 1:
-                next_padded_block_start = int(np.min([item[0] for item in blocks[b+1]]))//self.tick*self.tick
-                result.append( ["delay", (next_padded_block_start-padded_block_end, is_start_of_a_loop, is_end_of_a_loop, num_loops_int)] )
-            # add a delay block if it's the end AND there is a delay closing the sequence. # TODO: really useful to do this?
-            elif (b == len(blocks) - 1):
-                end_of_experiment = int((self.lab.total_duration-self.lab.end_buffer)*sample_rate) 
-                if (padded_block_end < end_of_experiment):
-                    result.append( ["delay", (end_of_experiment-padded_block_end, is_start_of_a_loop, is_end_of_a_loop, num_loops_int) )
+                next_block_start = int(np.min(blocks[b+1]["wfm_starts"]))
+                next_segment_start = next_block_start//self.tick*self.tick
+                is_start_of_a_sequence, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, block_end, next_block_start)
+                result.append( ["delay", next_segment_start-segment_end, [is_start_of_a_sequence, is_end_of_a_sequence, loops_count]] )
+                crop_next_delay = 0
+                if is_start_of_a_sequence:
+                    result[-2][2][1] = True
+                    
+            ### Add a delay block if it's the end
+            if b == len(blocks) - 1:
+                end_of_experiment = int((self.lab.total_duration-self.lab.end_buffer)*sample_rate)
+                is_start_of_a_sequence, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, block_end, end_of_experiment)
 
+                result.append( ["delay", end_of_experiment-segment_end, [is_start_of_a_sequence, is_end_of_a_sequence, loops_count]] )
+                if is_start_of_a_sequence:
+                    result[-2][2][1] = True
+
+        ### Add a tiny delay to indicate end of main sequence.
+        result.append( ["delay", self.tick, (False, True, 1)] )
+            
+        # TODO check result and assert that there is as many start loops as end loops
         print "preprocess duration", time.time() - preprocess_time_start
         return 
+    
+    def preprocess_loops(self, loop_start_times, loop_end_times, loop_nums, segment_start, segment_end):
+        is_start_of_a_sequence = False
+        loops_count = 1
+        is_end_of_a_sequence = False
         
+        sample_rate = self.get_sample_clock_rate()
+        ### Find out if a loop starts in this segment
+        count = 0
+        for t, time_ in enumerate(loop_start_times):
+            if segment_start <= int(time_*sample_rate) < segment_end:
+                is_start_of_a_sequence=True
+                loops_count = int(loop_nums[t])
+                count+=1
+        if count>1:
+            print nfu.warn_msg()+"Many loop starts detected in the same segment."
+            if not self.skip_warning:
+                if raw_input("Do you want to continue anyway? [Y/n]") in nfu.positive_answer_Y():
+                    show_loopstart_warning = False
+                else:
+                    raise KeyboardInterrupt
+        
+        ### Find out if a loop ends in this segment
+        count = 0
+        for t, time_ in enumerate(loop_end_times):
+            if segment_start < int(time_*sample_rate) <= segment_end:
+                is_end_of_a_sequence=True
+                count+=1
+        if count>1:
+            print nfu.warn_msg()+"Many loop ends detected in the same segment."
+            if not self.skip_warning:
+                if raw_input("Do you want to continue anyway? [Y/n]") in nfu.positive_answer_Y():
+                    show_loopend_warning = False
+                else:
+                    raise KeyboardInterrupt
+ 
+        return is_start_of_a_sequence, is_end_of_a_sequence, loops_count
+    
     def print_loaded_sequence(self, channel, divider=None, ax=None):
         # TODO: have two plots for both channels
         if self.lab.total_duration == 0:
@@ -523,7 +656,7 @@ class Awg(Instrument):
         for i, (segment_type, segment_info) in enumerate(C_blocks):
             if segment_type=="delay":
                 continue
-            (waveform, block_start, block_end, is_start_of_a_loop, is_end_of_a_loop, num_loops) = segment_info
+            (waveform, block_start, block_end, is_start_of_a_sequence, is_end_of_a_sequence, loops_count) = segment_info
             if divider==None:
                 divider_ = 1
                 while True:
@@ -808,11 +941,12 @@ class Awg(Instrument):
         self.check_error(status)
         return
         
-    def string_sequence(self, channel, string, num_loops=1, BB1=False):
+    def string_sequence(self, channel, string, loops=1, BB1=False):
         """ uses default delay, length, amplitude, freq and shape. not space/enter/tab sensitive"""
-        clean_string_list = (string.replace(" ", "").replace("\n", "").replace("\t", "")).split(",")
-           
-        for tok, token in enumerate(clean_string_list):
+        clean_string = (string.replace(" ", "").replace("\n", "").replace("\t", ""))
+        if loops > 1:
+            self.loop_start(channel, loops)
+        for tok, token in enumerate(clean_string.split(",")):
             
             try:
                 if ("t" in token) or ("tau" in token):
@@ -855,23 +989,11 @@ class Awg(Instrument):
                     raise ValueError
             except ValueError:
                 raise nfu.LabMasterError, "Token '"+str(token)+"' for "+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" was not recognized. \n\n"+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" docstring:\n"+Awg.string_sequence.__doc__+"\n"
+        if loops > 1:
+            self.loop_end(channel)
         return
         
     
-
-    def unzip_instructions(self, channel):
-        instructions_pulse = [inst for inst in self.instructions if inst[1]==str(channel) and inst[2]=="pulse"] # select pulse instructions corresponding to input channel.
-        instructions_pulse.sort()# Sort instructions in time ascending order. sorted() takes first column as default.
-        times = [inst[0] for inst in instructions_pulse]
-        lengths, phases, amps, freqs, shapes = map(lambda x:[x]*len(instructions_pulse), [0]*5) # sorry I was having fun. This is equivalent to [0]*len(instructions_pulse), [0]*len(instructions_pulse), [0]*len(instructions_pulse), [0]*len(instructions_pulse), [0]*len(instructions_pulse)
-        for i, inst in enumerate(instructions_pulse):
-            lengths[i], freqs[i], phases[i], amps[i], shapes[i] = inst[3]
-            
-        instructions_marker = [inst for inst in self.instructions if inst[1]==str(channel) and inst[2]=="marker"] # select marker instructions corresponding to input channel.
-        instructions_marker.sort()
-        marker_times = [inst[0] for inst in instructions_marker]
-        
-        return times, lengths, freqs, phases, amps, shapes, marker_times
 
 class AgM8190Error(nfu.LabMasterError):
     pass       

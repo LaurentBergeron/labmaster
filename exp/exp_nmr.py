@@ -30,21 +30,23 @@ bclvl2 = bcfwd + bclvl1 + bcfwd + bclvl1 + bcrev + bclvl1 + bcrev
 
 def sequence(lab, params):
     lab.awg.default_delay["1"] = params.tau.v
-    start = params.phase_cycle.v+params.phase_start.v+"/2,"
-    end = params.phase_start.v+"/2,"
-  
+    START = params.phase_cycle.v+params.phase_start.v+"/2,"
+    END = params.phase_start.v+"/2,"
+     
     _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
-    raw_input("enter")
     lab.free_evolution_time = 0
-    lab.awg.marker(1)
-    lab.awg.string_sequence(1, start)
-    lab.awg.string_sequence(1, HAHN, num_loops=2)
-    lab.awg.string_sequence(1, end)
+    lab.pb.turn_on("scope_trig", time_on=10*ms, rewind="start") 
+    lab.awg.string_sequence(1, START)
+    saved_time = lab.time_cursor
+    lab.awg.string_sequence(1, HAHN, loops=1)#params.loops.v)
+    one_loop_duration = lab.time_cursor - saved_time
+    lab.awg.string_sequence(1, END)
+    lab.delay(one_loop_duration*(params.loops.v-1))
     params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
     
-    lab.pb.turn_on("scope_trig", time_on=10*ms, rewind="start") 
     _shared_.readout(lab, params)
+    raw_input("seq")
     return 
 
     
@@ -96,7 +98,7 @@ def update_plot(fig, params, data):
     # def fit_exp(xdata, A, decay_tau): ##decaying exponential
         # return A*np.exp(-1.*(xdata)/decay_tau)
     
-    # plotting.update_curve_fit(fig, fit_exp, params.tau.value, data[:,0]-data[:,1], line_index = 3, nargs = 2)
+    # plotting.update_curve_fit(fig, fit_exp, params.time_axis.value, data[:,0]-data[:,1], line_index = 3, nargs = 2)
     return
 
     

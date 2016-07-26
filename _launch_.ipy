@@ -56,14 +56,17 @@ del irun
 
 # Initialize instruments
 lab = Lab()
-lab.add_instrument("awg")
-lab.add_instrument("pb")
-lab.add_instrument("usb_counter")
-# lab.add_instrument("laser")
-# lab.add_instrument("lockin")
-# lab.add_instrument("sig_gen")
-# lab.add_instrument("sig_gen_srs")
-# lab.add_instrument("wavemeter")
+try:
+    lab.add_instrument("awg")
+    lab.add_instrument("pb")
+    lab.add_instrument("usb_counter")
+    # lab.add_instrument("laser")
+    # lab.add_instrument("lockin")
+    # lab.add_instrument("sig_gen")
+    # lab.add_instrument("sig_gen_srs")
+    # lab.add_instrument("wavemeter")
+except:
+    lab.close_all()
 
 print ""
 print lab

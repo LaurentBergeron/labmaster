@@ -14,17 +14,17 @@ shapes_code = { "square": 0,
               }
     
 
-def wfmgen(countFreq, blockStart, wfmStart, wfmLength, arrPeriod, arrPhase, arrAmp, arrShape, arrOut, awg_amp):
-    return dll.wfmgen(countFreq, blockStart, wfmStart, wfmLength, arrPeriod, arrPhase, arrAmp, arrShape, arrOut, awg_amp)
+def wfmgen(countFreq, blockStart, wfmStart, wfmLength, arrPeriod, arrPhase, arrAmp, arrShape, arrOut):
+    return dll.wfmgen(countFreq, blockStart, wfmStart, wfmLength, arrPeriod, arrPhase, arrAmp, arrShape, arrOut)
 dll.wfmgen.restype = None
 dll.wfmgen.argtype = (
                        c_int, # countFreq
-                       c_long, # blockStart
+                       c_longlong, # blockStart
                        POINTER(c_longlong), # wfmStart[]
                        POINTER(c_longlong), # wfmLength[]
                        POINTER(c_double), # arrPeriod[]
                        POINTER(c_double), # arrPhase[]
-                       POINTER(c_double), # arrAmp[]
+                       POINTER(c_short), # arrAmp[]
                        POINTER(c_int), # arrShape[]
-                       POINTER(c_double) # arrOut[]
+                       POINTER(c_short) # arrOut[]
                       )

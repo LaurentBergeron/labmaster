@@ -47,7 +47,7 @@ class Drawer():
             return self.get_dict().itervalues().next()
 
     def import_to(self, namespace):
-        """ Import classes from drawer in the specified namespace. Probably not recommended. """
+        """ Import classes from drawer in the specified namespace. """
         if isinstance(namespace, types.ModuleType):
             namespace = namespace.__dict__   
         namespace.update(self.get_dict())

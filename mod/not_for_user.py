@@ -186,8 +186,7 @@ def detect_experiment_ID():
     
 def pad_ID(ID):
     """ Return the input ID as a string padded with zeros """
-    ID = str(ID)
-    return "0"*(4-len(ID))+ID # pad with zeros
+    return str(ID).zfill(4) # pad with zeros
 
 def size_of_get_data_return(experiment):
     """

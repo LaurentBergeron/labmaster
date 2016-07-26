@@ -101,7 +101,7 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     # Check if inputs are conform to a bunch of restrictions
     check_params(params)
     check_experiment(experiment)
-    check_lab(lab)
+    check_lab(lab)    
     
     if quiet: # No time for questions.
         pass
@@ -602,6 +602,38 @@ def save_fig(fig, ID, ext="pdf"):
     return 
     
 
-    
+def send_email(program, recipient):
+    import smtplib
+    user = 'my.goto.remote.email.2016@gmail.com'
+    pwd = 'useless_password_here'
+    #recipient = 'adeabreu@sfu.ca'
+
+    ltime = time.localtime()
+    fin_time = str(ltime[3]).zfill(2)+':'+str(ltime[4]).zfill(2)+', '+str(ltime[2])+'/'+str(ltime[1])
+
+    msg = program + ' finished at ' + fin_time
+    print msg
+
+    gmail_user = user
+    gmail_pwd = pwd
+    FROM = user
+    TO = recipient if type(recipient) is list else [recipient]
+    SUBJECT = program
+    TEXT = msg
+
+    # Prepare actual message
+    message = """\From: %s\nTo: %s\nSubject: %s\n\n%s
+    """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+        server.login(gmail_user, gmail_pwd)
+        server.sendmail(FROM, TO, message)
+        server.close()
+        print 'successfully sent the mail'
+    except:
+        print "failed to send mail"
+
 
 

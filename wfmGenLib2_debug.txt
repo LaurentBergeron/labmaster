@@ -1,8 +1,0 @@
-countFreq: 1 
-blockStart: 129628800 
-wfmStart[0]: 129628800
-wfmLength[0]: 8999
-arrPeriod[0]: 1.799980e+001
-arrPhase[0]: 0.000000e+000
-arrAmp[0]: 1.000000e+000
-arrShape[0]: 0
