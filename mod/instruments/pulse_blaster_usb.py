@@ -47,7 +47,7 @@ class Pulse_blaster_usb(Instrument):
         
     def add_slave(self, name, channel):
         if not (0 < channel < 25):
-            raise nfu.LabMasterError, "Pulse blaster slave "+self.name+" channel must be between 1 and 24 (included)"
+            raise nfu.LabMasterError, "Pulse blaster slave "+self.name+" channel must be between 1 and 24."
         self.slaves[name] = channel
 
     def all_slaves_off(self):
@@ -112,7 +112,6 @@ class Pulse_blaster_usb(Instrument):
         self.check_error(status)
         status = self.spinapi.pb_stop_programming()
         self.check_error(status)
-        # print "time to load pb:", time.time()-time_start
         return
     
         
@@ -123,6 +122,8 @@ class Pulse_blaster_usb(Instrument):
         times = [x[0]-self.trigger_latency for x in instructions]+[self.lab.total_duration]
         opcode_times = [x[0]-self.trigger_latency for x in opcode_instructions]
         
+        max_duration = (2**32-1)/float(self.ref_freq)
+        ultra_max_duration = (2**52-1)/float(self.ref_freq)
         result = []
         if times[0] > 0:
             self.flags = "0"*24
@@ -132,7 +133,16 @@ class Pulse_blaster_usb(Instrument):
             else:
                 opcode = self.spinapi.Inst.CONTINUE
                 data_field = 0
-            result.append([self.flags, opcode, data_field, times[0]])
+            duration = times[0]
+            if duration > max_duration and opcode==self.spinapi.Inst.CONTINUE:
+                opcode = self.spinapi.Inst.LONG_DELAY
+                data_field = int(duration//max_duration + 1)
+                duration = duration/float(data_field)
+            elif duration > max_duration and opcode!=self.spinapi.Inst.CONTINUE:
+                raise nfu.LabMasterError, "PulseBlasterUSB duration of pulse is too long."
+
+                
+            result.append([self.flags, opcode, data_field, duration])
         i=0
         while i < len(instructions):
             if times[i] in opcode_times:
@@ -148,6 +158,12 @@ class Pulse_blaster_usb(Instrument):
                 new_bit = str(instructions[i][2])
                 self.flags = self.flags[:24-channel] + new_bit + self.flags[25-channel:]
                 if (duration >= 5/float(self.ref_freq)): # minimum pulse length is 5 clock cycles.
+                    if duration > max_duration and opcode==self.spinapi.Inst.CONTINUE:
+                        opcode = self.spinapi.Inst.LONG_DELAY
+                        data_field = int(duration//max_duration + 1)
+                        duration = duration/float(data_field)
+                    elif duration > max_duration and opcode!=self.spinapi.Inst.CONTINUE:
+                        raise nfu.LabMasterError, "PulseBlasterUSB duration of pulse is too long."
                     result.append([self.flags, opcode, data_field, duration])
                     break
                 i+=1

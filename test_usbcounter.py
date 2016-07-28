@@ -1,7 +1,7 @@
 save_script(__file__)
 
 try:
-    import exp.test_usbcounter as experiment
+    import exp.exp_test_usbcounter as experiment
     params.add_parameter("countA", "countB")
     
     lab.pb.add_slave("scope", 2)

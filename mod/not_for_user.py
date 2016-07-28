@@ -85,10 +85,10 @@ def run_experiment(lab, params, experiment, data, fig, show_plot):
     # for param in params.get_times(): # TODO fix this. there is a problem I tell you.
         # print "t", param.time.v
         # param.time.wait()
-    # Save time at which the experiment really starts.
-    lab.time_launched = timeit.default_timer()
     # The starting pistol.
     experiment.launch(lab, params)
+    # Save time at which the experiment really starts.
+    lab.time_launched = timeit.default_timer()
     # Read next sequence and load memory of ping_pong instruments while the previous experiment is running.
     ########################load_future_params(lab, params, experiment)
     # Wait for the end of experiment. 
@@ -260,6 +260,44 @@ def auto_unit(value, unit=""):
             str_fmt = "%s" # with decimals
         else:
             str_fmt = "%i" # without decimals
+        result = str_fmt%(value_)+has_unit*(" "+prefix+unit)
+    except:
+        pass
+    return result
+    
+    
+
+def auto_unit(value, unit="", decimal=None):
+    """ Return value and unit as a compact string with automatic prefix. Ex, (50e9, "Hz") will output "50 GHz". """
+    has_unit = (unit!="") # boolean value
+    if value == 0: # don't want to deal with 0
+        return "0"+has_unit*(" "+unit) 
+    result = str(value)+has_unit*(" "+unit) # if something goes wrong, return this simple format.
+    try:
+        exp = int(np.floor(np.log10(abs(value))/3.))*3 # exponent of value (scientific notation) rounded down to a multiple of 3.
+        index = exp/3+3
+        if 0 <= index < 7:
+            prefix = ["n", "u", "m", "", "k", "M", "G"][index]
+        else:
+            raise IndexError # needs to be done to avoid negative indexes. pico is not giga.
+        if has_unit:
+            # if unit=="s":
+                # if value < 1:
+                    # value_ = value*(10**(-exp)) # update value to account for prefix
+                # else:
+                    # value_ = value
+                    # prefix = ""
+            # else:
+            value_ = value*(10**(-exp)) # update value to account for prefix
+        else:
+            value_ = value
+        if decimal:
+            str_fmt = "%0."+str(decimal)+"f"
+        else:
+            if float("%s"%(value_))%1>0:
+                str_fmt = "%s" # with decimals
+            else:
+                str_fmt = "%i" # without decimals
         result = str_fmt%(value_)+has_unit*(" "+prefix+unit)
     except:
         pass

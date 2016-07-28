@@ -1,0 +1,49 @@
+Time launched:  2016-Jul-27 12:32:02
+Time ended:     2016-Jul-27 12:32:29
+Total duration: 0:00:27
+
+Experiment aborted.
+
+
+### intruments connected:
+   awg
+   laser
+   lockin
+   pb
+   sig_gen
+   usb_counter
+   wavemeter
+
+
+### Scheduled run 
+1st sweep:
+freq from 1.608 GHz to 1.612995 GHz in 1000 steps.
+
+
+### Experiment: exp.exp_rf_scan.py
+from mod.main import *
+
+def sequence(lab, params):
+    return
+
+def launch(lab, params):
+    lab.sig_gen.set_freq(params.freq.v)
+    time.sleep(100*ms)
+    return
+
+
+def get_data(lab, params):  
+    return lab.lockin.measure()
+
+    
+def create_plot(fig, params, data):
+    plotting.createfig_XY(fig, "sig_gen frequency", "lock-in", 1, "--o")
+    return
+    
+def update_plot(fig, params, data):
+    plotting.updatefig_XY(fig, params.freq.value, data)
+    ax = fig.axes[0]
+    return
+    
+    
+    

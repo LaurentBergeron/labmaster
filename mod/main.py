@@ -3,7 +3,7 @@ Contains all the functions callable from Ipython interface when using '%run _lau
 
 Please read HTML for more info.
 """
-__author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>"
+__author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Adam DeAbreu <adeabreu@sfu.ca>, Camille Bowness <cbowness@sfu.ca>"
 __version__ = "1.2"   
 
 
@@ -18,12 +18,13 @@ import time
 import timeit
 import datetime
 import importlib
-import types # for better type handling
-import pickle # for saving and loading any instance from python into a .pickle file
+import types # better type handling
+import pickle # save and load any instance from python into a .pickle file
 import inspect # retrieve information on python objects
 import shutil # high-level system operation
+import smtplib # SMTP protocol client (send_email)
 from pydoc import help # help function for user
-    
+
 # Homemade modules
 import not_for_user as nfu
 from not_for_user import LabMasterError, today, lastID
@@ -77,7 +78,7 @@ def notebook(*args):
         if line_format==nfu.get_notebook_line_format(delimiter=delimiter):
             pass
         else:
-            f.write(line_format+"\n")
+            f.write("\n"+line_format+"\n")
         f.write(delimiter.join(entry)+"\n")
     return
         
@@ -299,7 +300,7 @@ def clean_start(namespace, close_figs=False):
     del key, value
     return
     
-def error_manager(as_string=False, all=False):
+def error_manager(as_string=False, all=True):
     """
     Get last raised error from sys module. 
     If it's a LabMasterError or one of its subclasses, print the error message in a minimalistic way. To get full traceback, run %tb in Ipython.
@@ -324,7 +325,7 @@ def error_manager(as_string=False, all=False):
         message = "Experiment aborted.\n"
     else:
         if all:
-            message = error_type.__name__+": "+str(error_value)
+            message = error_type.__name__+": "+str(error_value)+"\n"
         else:
             raise
     sys.last_type, sys.last_value, sys.last_traceback = sys.exc_info()
@@ -334,7 +335,56 @@ def error_manager(as_string=False, all=False):
         print message+ "%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
     return
     
+def export_data_simple(date, IDs, location, param_output=None, output='txt'):
+    """
+    export data and params to a single file
     
+    Input
+    - date: Date from file name. Has to follow this datetime format: %Y_%m_%d
+            %Y is year in four characters.
+            %m is month in two characters.
+            %d is day in two characters.
+            Good format example: 2016_06_24
+    - IDs: array of numbers indicated after the date in file name.
+    - param_output: Param instance of which value is desired. More complicated manipulations must be hard coded in.
+    - location: Directory in which files will be saved
+    - output: file type of data, either 'npy' or 'txt'
+    """
+    for ID in IDs:
+        data = np.load("saved/data/"+date+"/"+date+"_"+ID+".npy")
+
+        size_array = np.min(np.sum(np.isfinite(data),0))
+
+        to_save = np.empty(shape=(size_array, data.shape[1]+1))
+
+        for i in range(data.shape[1]):
+            to_save[:,i] = data[:size_array,i]
+
+        filename = "saved/params/"+date+"/"+date+"_"+ID+".pickle"
+
+        ###parameter manipulation to something you want
+        with open(filename, "rb") as f:
+            params = pickle.load(f)
+        if param_output is None:
+            to_save_params = np.ones(to_save.shape[0])
+        else:
+            to_save_params = params.__dict__[param_output].value
+        ###Examples:
+        ###iterating tau:
+        ###to_save_params = params.tau.value*taus_per_sequence*loops
+        ###iterating loops:
+        ###to_save_params = params.loops.value*params.tau.value*taus_per_sequence
+        ###to_save_params = params.tau.value*12
+
+        to_save[:,-1] = to_save_params[:size_array]
+
+        if output == 'npy':
+            np.save(location+'/'+date+"_"+ID+"_full_data.npy",to_save)
+        elif output == 'txt':
+            np.savetxt(location+'/'+date+"_"+ID+"_full_data.txt", to_save)
+
+    return
+
 def help_please():
     """
     Some advice on how to get advice.
@@ -354,9 +404,8 @@ def last_datatxt():
 def last_params(output=None):
     return load_params(today(), lastID(), output=output)
     
-def last_plot(experiment):
-    load_plot(experiment, today(), lastID())
-    return    
+def last_plot():
+    return load_plot(today(), lastID())
     
 def load_data(date, ID):
     """
@@ -444,13 +493,25 @@ def load_params(date, ID, output=None):
     return
     
 
-def load_plot(experiment, date, ID):
+def load_plot(date, ID):
+    file_format = nfu.filename_format(date, ID, script_name=False)
+    try:
+        matching_file = [filename for filename in glob.glob("saved/experiment/"+date+"/*") if file_format in filename][0]
+    except IndexError:
+        raise LabMasterError, "Date or ID does not match any existing file."
+    with open(matching_file) as f:
+        experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
+    experiment = importlib.import_module(experiment_name)
     fig = plt.figure()
     params = load_params(date, ID)
     data = load_data(date, ID)
-    experiment.create_plot(fig, params, data)
-    experiment.update_plot(fig, params, data)
-    return
+    try:
+        experiment.create_plot(fig, params, data)
+        experiment.update_plot(fig, params, data)
+    except AttributeError:
+        plotting.create_plot_auto(fig, params, data)
+        plotting.update_plot_auto(fig, params, data)
+    return fig
     
 
 def pickle_save(filename, thing):
@@ -548,11 +609,21 @@ def save_experiment(lab, params, experiment, ID, error_string):
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
     filename = "saved/experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
+    time_launched_string = "Time launched:  "
+    time_ended_string    = "Time ended:     "
+    datetime_format = "%Y-%b-%d %H:%M:%S"
     with open(filename, "a") as f:    
         if error_string == "first_time":
-            f.write("Time launched: "+datetime.datetime.now().strftime("%Y-%b-%d %H:%M'%S''")+"\n")
+            f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
         else:
-            f.write("Time ended:    "+datetime.datetime.now().strftime("%Y-%b-%d %H:%M'%S''")+"\n\n")
+            f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
+    if error_string != "first_time":
+        with open(filename, "r") as f:    
+            contents = f.read()
+            time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
+            time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
+        with open(filename, "a") as f:     
+            f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
             f.write(error_string+"\n\n")
             f.write("### "+str(lab)+"\n\n")
             f.write("### Scheduled run \n"+str(params)+"\n")
@@ -602,26 +673,25 @@ def save_fig(fig, ID, ext="pdf"):
     return 
     
 
-def send_email(program, recipient):
-    import smtplib
+def send_email(recipient, add_subject="", add_msg=""):
     user = 'my.goto.remote.email.2016@gmail.com'
     pwd = 'useless_password_here'
-    #recipient = 'adeabreu@sfu.ca'
 
     ltime = time.localtime()
     fin_time = str(ltime[3]).zfill(2)+':'+str(ltime[4]).zfill(2)+', '+str(ltime[2])+'/'+str(ltime[1])
 
-    msg = program + ' finished at ' + fin_time
-    print msg
-
+    subject = nfu.get_script_filename()[:3] + ' finished at ' + fin_time
+    
     gmail_user = user
     gmail_pwd = pwd
     FROM = user
     TO = recipient if type(recipient) is list else [recipient]
-    SUBJECT = program
-    TEXT = msg
+    SUBJECT = subject+add_subject
 
-    # Prepare actual message
+    TEXT = ""
+    
+    
+    ### Prepare actual message
     message = """\From: %s\nTo: %s\nSubject: %s\n\n%s
     """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
     try:
@@ -629,9 +699,8 @@ def send_email(program, recipient):
         server.ehlo()
         server.starttls()
         server.login(gmail_user, gmail_pwd)
-        server.sendmail(FROM, TO, message)
+        server.sendmail(FROM, TO, message+add_msg)
         server.close()
-        print 'successfully sent the mail'
     except:
         print "failed to send mail"
 

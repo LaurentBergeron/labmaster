@@ -39,6 +39,7 @@ class Default_visa(Instrument):
 
 class Laser(Instrument):
     """
+    # need things to set the things in the itc
     """
     def __init__(self, name, parent, visa_ID):
         Instrument.__init__(self, name, parent) 
@@ -71,8 +72,18 @@ class Laser(Instrument):
         elif curr < self.MIN_CURR:
             raise nfu.LabMasterError, "Can't set laser current lower than "+str(self.MIN_CURR*1e3)+" mA."
         return
-
-    def set_temperature(self, temp):
+    
+    def get_temp(self):
+        return self.device_handle.query("meas:temp?")
+    
+    def get_current(self):
+        return self.device_handle.query("meas:curr?")
+    
+    def measure(self):
+        retval = self.device_handle.query("read?")
+        return float(retval)
+        
+    def set_temp(self, temp):
         self.check_temperature(temp)
         self.temp = temp
         self.device_handle.write("source2:temp "+str(temp))
@@ -84,26 +95,10 @@ class Laser(Instrument):
         self.device_handle.write("source:curr "+str(curr))
         return
         
-    def quick_measure(self, tomeasure):
-        if tomeasure == "temp":
-            retval = self.device_handle.query("meas:temp?")
-        elif tomeasure == "curr":
-            retval = self.device_handle.query("meas:curr?")
-        else:
-            print "not implemented"
-            retval = 0;
-        return float(retval)
-        
     def set_meas_mode(self, tomeasure):
         self.device_handle.write("conf:"+tomeasure)
         self.meas_mode = tomeasure
         return
-        
-    def measure(self):
-        retval = self.device_handle.query("read?")
-        return float(retval)
-
-    # need things to set the things in the itc
     
     def beep(self):
         retval = self.device_handle.write("SYST:BEEP:IMM")
@@ -117,6 +112,7 @@ class Laser(Instrument):
 
 class Lockin(Instrument):
     """
+    # Need some functions to set all the lockin parameters
     """
     def __init__(self, name, parent, visa_ID):
         Instrument.__init__(self, name, parent) 
@@ -131,7 +127,6 @@ class Lockin(Instrument):
     def set_meas_mode(self, meas_mode):
         self.meas_mode = meas_mode
         return
-    # Need some functions to set all the lockin parameters
 
     def measure(self):
         retval = self.device_handle.query(self.meas_mode)
@@ -179,7 +174,8 @@ class Signal_generator(Instrument):
         return
 
     def set_freq(self, freq):
-        freq = str(freq)
+        """ """
+        freq = str(freq/1e9)
         self.device_handle.write("source:freq:fix "+freq+"GHZ")
         return
 

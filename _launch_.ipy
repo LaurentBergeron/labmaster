@@ -40,7 +40,7 @@ print "*** In case of emergency, try help_please(). ***\n"
 plt.ion() # interactive matplotlib ON
 plt.close("all") # close matplotlib figures (good for performance)
 
-# Disable annoying matplotlib warning for something deprecated.
+# Disable annoying matplotlib warning for deprecated pause() function.
 import warnings
 import matplotlib.cbook
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
@@ -51,22 +51,24 @@ _INTERACTIVE_START_ = 0
 from IPython.core.magic import register_line_magic
 @register_line_magic
 def irun(line):
+    get_ipython().run_line_magic('autoreload')
     get_ipython().run_line_magic('run', ' -i ' + line)
 del irun
 
+wavemeter = 0
+awg = 0
+
 # Initialize instruments
 lab = Lab()
-try:
-    lab.add_instrument("awg")
-    lab.add_instrument("pb")
-    lab.add_instrument("usb_counter")
-    # lab.add_instrument("laser")
-    # lab.add_instrument("lockin")
-    # lab.add_instrument("sig_gen")
-    # lab.add_instrument("sig_gen_srs")
-    # lab.add_instrument("wavemeter")
-except:
-    lab.close_all()
+
+lab.add_instrument("awg")
+lab.add_instrument("pb")
+lab.add_instrument("usb_counter")
+lab.add_instrument("laser")
+lab.add_instrument("lockin")
+lab.add_instrument("sig_gen")
+lab.add_instrument("sig_gen_srs")
+lab.add_instrument("wavemeter")
 
 print ""
 print lab

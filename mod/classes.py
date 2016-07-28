@@ -130,8 +130,12 @@ class Lab(Drawer):
             else:
                 raise nfu.LabMasterError, "Requested instrument "+name+" not found in available list."
             
-            # init requested instrument
-            self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
+            try:
+                # init requested instrument
+                self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
+            except:
+                print "Can't add "+name+"."
+                raise
         return
     
     def __str__(self):
