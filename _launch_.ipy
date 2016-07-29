@@ -70,6 +70,7 @@ lab.add_instrument("usb_counter")
 print ""
 print lab
 
+
 ### Auto completion for instrument strings
 for name in available_instruments().keys():
     exec(name+"='for science!'")

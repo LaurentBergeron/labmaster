@@ -361,7 +361,8 @@ def error_manager(as_string=False, all=True):
         print message+ "\n%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
     return out
     
-def export_data_simple(date, IDs, location, param_output=None, output='txt'):
+def export_data(date, IDs, location, output, \
+        data_manipulation = None, param_manipulation = None, popts_manipulation = None):
     """
     export data and params to a single file
     
@@ -371,45 +372,48 @@ def export_data_simple(date, IDs, location, param_output=None, output='txt'):
             %m is month in two characters.
             %d is day in two characters.
             Good format example: 2016_06_24
-    - IDs: array of numbers indicated after the date in file name.
-    - param_output: Param instance of which value is desired. More complicated manipulations must be hard coded in.
+    - IDs: array of numbers indicated after the date in file name. Can be '0075' or 75
     - location: Directory in which files will be saved
     - output: file type of data, either 'npy' or 'txt'
+    - data_manipulation: function to manipulate loaded data in a form to be saved with np.save or np.savetxt
+            (see analyze_data.py)
+    - param_manipulation: function to manipulate loaded param class into a numpy array to be saved with np.save or
+            np.savetxt (see analyze_data.py)
+    - popts_manipulation: function to manipulate loaded data and loaded param class to generate fit parameters
+            (see analyze_data.py)
     """
-    for ID in IDs:
-        data = np.load(nfu.saving_folder()+"data/"+date+"/"+date+"_"+ID+".npy")
+    popts_ar = None 
+    for i, ID in enumerate(IDs):
+        print ID
+        ID = str(ID).zfill(4)
+        fig, data, params, popts = load_plot(date, ID, analyze = True)
 
-        size_array = np.min(np.sum(np.isfinite(data),0))
-
-        to_save = np.empty(shape=(size_array, data.shape[1]+1))
-
-        for i in range(data.shape[1]):
-            to_save[:,i] = data[:size_array,i]
-
-        filename = nfu.saving_folder()+"params/"+date+"/"+date+"_"+ID+".pickle"
-
-        ###parameter manipulation to something you want
-        with open(filename, "rb") as f:
-            params = pickle.load(f)
-        if param_output is None:
-            to_save_params = np.ones(to_save.shape[0])
+        if data_manipulation is not None:
+            to_save_data = data_manipulation(data)
         else:
-            to_save_params = params.__dict__[param_output].value
-        ###Examples:
-        ###iterating tau:
-        ###to_save_params = params.tau.value*taus_per_sequence*loops
-        ###iterating loops:
-        ###to_save_params = params.loops.value*params.tau.value*taus_per_sequence
-        ###to_save_params = params.tau.value*12
+            print "need a data manipulation function, nothing was saved"
+            return popts
+        if param_manipulation is not None:
+            to_save_param = param_manipulation(params)
+        else:
+            print "need a param manipulation function, nothing was saved"
+            return popts
+        if popts_manipulation is not None:
+            popts = popts_manipulation(data, params, fig)
 
-        to_save[:,-1] = to_save_params[:size_array]
+        if popts_ar is None:
+            popts_ar = np.empty(shape=(len(IDs), len(popts)))
+        popts_ar[i,:] = popts
 
-        if output == 'npy':
-            np.save(location+'/'+date+"_"+ID+"_full_data.npy",to_save)
-        elif output == 'txt':
-            np.savetxt(location+'/'+date+"_"+ID+"_full_data.txt", to_save)
+        if 'npy' in output:
+            np.save(location+'/'+date+"_"+ID+"_data.npy",to_save_data)
+            np.save(location+'/'+date+"_"+ID+"_params.npy",to_save_param)
+        elif 'txt' in output:
+            np.savetxt(location+'/'+date+"_"+ID+"_data.npy",to_save_data)
+            np.savetxt(location+'/'+date+"_"+ID+"_params.npy",to_save_param)
+        plt.savefig(location+date+"_"+ID+"figure.pdf")
 
-    return
+    return popts_ar
 
 def help_please():
     """
@@ -539,11 +543,12 @@ def load_plot(date, ID, experiment_name=None, fig=None):
     data = load_data(date, ID)
     try:
         experiment.create_plot(fig, params, data)
-        experiment.update_plot(fig, params, data)
+        scan_out = experiment.update_plot(fig, params, data)
     except AttributeError:
         plotting.create_plot_auto(fig, params, data)
         plotting.update_plot_auto(fig, params, data)
-    return fig
+        scan_out = None
+    return fig, data, params, scan_out
     
 
 
