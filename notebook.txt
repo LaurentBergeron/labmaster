@@ -9,3 +9,7 @@ nmr.py;2016_07_28;ID;sequence;T2;A;awg freq;awg ampl;pi len;tau start;tau end;ta
 
 ramsey.py;2016_07_29;ID;period;awg freq;awg ampl;pi len;tau start;tau end;tau step;phase cycling;laser current;rf freq;ND filters;sensitivity;bin length;phase start;error;comment;
 ;;0001;None;49996240.0;0.2;3.15e-05;0.01;0.01;None;No;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;X;Scan successful.;
+
+nmr.py;2016_07_29;ID;sequence;T2;A;awg freq;awg ampl;pi len;tau start;tau end;tau step;loops start;loops end;loops step;phase cycling;laser current;rf freq;ND filters;sensitivity;bin length;phase start;error;comment;
+;;0002;HAHN;None;None;49996240.0;0.2;3.15e-05;0.01;0.01;None;1;3;1;Yes;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;X;Scan successful.;
+;;0003;HAHN;None;None;49996240.0;0.2;3.15e-05;0.01;0.01;None;1;3;1;Yes;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;X;Scan successful.;
