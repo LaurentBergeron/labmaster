@@ -43,6 +43,8 @@ def param_manipulation(params):
     save_param = save_param[selection]
     return save_param
 
+## This is only necessary if there is no fitting done in the experiment file
+## or if you want to change the fitting done in the experiment file
 def popts_manipulation(data, params, fig):
     size_array = np.min(np.sum(np.isfinite(data),0),0)
     data = np.abs(data[:size_array,0] - data[:size_array,1])
