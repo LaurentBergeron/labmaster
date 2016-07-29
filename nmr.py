@@ -20,11 +20,11 @@ try:
     params.bin_length.value = 150*ms
     params.phase_start.value = "X"
     
-    # params.loops.value = 1
-    params.loops.value = np.arange(1, 20, 1)
+    params.loops.value = 1
+    #params.loops.value = np.arange(1, 20, 1)
     
-    params.tau.value = 10*ms
-    # params.tau.value = np.arange(0, 20, 10*ms)
+    #params.tau.value = 10*ms
+    params.tau.value = np.arange(0, 20, 10*ms)
 
     
     params.phase_cycle.sweep_ID = 2

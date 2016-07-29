@@ -346,10 +346,15 @@ def export_data(date, IDs, location, output, \
             %m is month in two characters.
             %d is day in two characters.
             Good format example: 2016_06_24
-    - IDs: array of numbers indicated after the date in file name.
-    - param_output: Param instance of which value is desired. More complicated manipulations must be hard coded in.
+    - IDs: array of numbers indicated after the date in file name. Can be '0075' or 75
     - location: Directory in which files will be saved
     - output: file type of data, either 'npy' or 'txt'
+    - data_manipulation: function to manipulate loaded data in a form to be saved with np.save or np.savetxt
+            (see analyze_data.py)
+    - param_manipulation: function to manipulate loaded param class into a numpy array to be saved with np.save or
+            np.savetxt (see analyze_data.py)
+    - popts_manipulation: function to manipulate loaded data and loaded param class to generate fit parameters
+            (see analyze_data.py)
     """
     popts_ar = None 
     for i, ID in enumerate(IDs):
@@ -368,18 +373,18 @@ def export_data(date, IDs, location, output, \
             print "need a param manipulation function, nothing was saved"
             return popts
         if popts_manipulation is not None:
-            popts = popts_manipulation(data, params)
+            popts = popts_manipulation(data, params, fig)
 
         if popts_ar is None:
             popts_ar = np.empty(shape=(len(IDs), len(popts)))
         popts_ar[i,:] = popts
 
-        to_save = np.empty(shape=(to_save_data.size, 2))
-
         if 'npy' in output:
-            np.save(location+'/'+date+"_"+ID+"_full_data.npy",to_save)
+            np.save(location+'/'+date+"_"+ID+"_data.npy",to_save_data)
+            np.save(location+'/'+date+"_"+ID+"_params.npy",to_save_param)
         elif 'txt' in output:
-            np.savetxt(location+'/'+date+"_"+ID+"_full_data.txt", to_save)
+            np.savetxt(location+'/'+date+"_"+ID+"_data.npy",to_save_data)
+            np.savetxt(location+'/'+date+"_"+ID+"_params.npy",to_save_param)
         plt.savefig(location+date+"_"+ID+"figure.pdf")
 
     return popts_ar
