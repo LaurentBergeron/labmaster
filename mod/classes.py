@@ -98,6 +98,7 @@ class Lab(Drawer):
             self.abort(name)
         return
         
+        
     def add_instrument(self, *names):
         """
         Connect to the specified instruments and add them as attributes to Lab.
@@ -108,9 +109,9 @@ class Lab(Drawer):
                       ex: "VISA, death_ray, GPIB0::12::INSTR"
         """
         from mod.main import available_instruments
+        available = available_instruments()
+        
         for name in names:
-            available = available_instruments()
-
             # Case for generic VISA instrument, with custom name and custom visa_ID
             if name[:4]=="VISA":
                 print "Generic VISA instrument requested."
@@ -134,8 +135,9 @@ class Lab(Drawer):
                 # init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
             except:
-                print "Can't add "+name+"."
-                raise
+                print "Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1])
+                
+                
         return
     
     def __str__(self):
@@ -359,9 +361,6 @@ class Params(Drawer):
     
     def get_sweeps(self):
         return [param for param in self.get_classes() if param.is_not_const() and param.sweep_ID > 0]
-
-    def get_times(self):
-        return [param for param in self.get_sweeps() if hasattr(param, "time")]
     
     def print_run(self, as_string=False):
         """ 
@@ -388,10 +387,11 @@ class Params(Drawer):
                 string +=  param.name+" from "+nfu.auto_unit(param.value[0],param.unit)+" to "+nfu.auto_unit(param.value[-1],param.unit)+" in "+str(len(param.value))+" steps.\n"
             string +=  "\n"
         if as_string:
-            return string
+            out = string
         else:
+            out = ""
             print string
-        return
+        return out
         
     def _save_values(self):
         for param in self.get_sweeps():
@@ -423,7 +423,30 @@ class Parameter():
         
     def is_not_const(self):
         return isinstance(self.value, (list, np.ndarray))
-                
+    
+    def get_end(self):
+        try:
+            end = self.value[-1]
+        except (IndexError, TypeError):
+            end = self.value
+        return end
+        
+    
+    def get_start(self):
+        try:
+            start = self.value[0]
+        except (IndexError, TypeError):
+            start = self.value
+        return start
+    
+    
+    def get_step(self):
+        try:
+            step = self.value[1]-self.value[0]
+        except (IndexError, TypeError):
+            step = None
+        return step
+        
     def scan_with(self, param, *args):
         if param.is_const():
             raise nfu.LabMasterError, param.name+" is not currently configured to be swept."
@@ -445,10 +468,10 @@ class Parameter():
         return
     
     def size(self):
-        if self.is_const():
-            size = 1
-        else:
+        try:
             size = len(self.value)
+        except TypeError:
+            size = 1
         return size
 
     def __setattr__(self, key, value):
@@ -481,54 +504,6 @@ class Parameter():
             if hasattr(self, "time"):
                 self.time.v = self.time.value[i]
         return 
-    
-    ### deprecated ###
-    # def enable_time(self,step):
-        # """ update __setattr__ accordingly if any change is made to this method """
-        # self.time = Time_parameter(self.name+"_time")
-        # self.time.step = step
-        # self.time.sweep_ID = self.sweep_ID
-        # if self.is_const():
-            # self.time.value = 0
-        # else:   
-            # self.time.value = np.linspace(step, step*(len(self.value)), len(self.value))
-        # return
-    # def disable_time(self):
-        # del self.time
-        # return
-    ################## 
-        
-        
-class Time_parameter(Parameter):
-    """ deprecated """
-    def __init__(self, name):
-        Parameter.__init__(self, name, 0, "s")
-        self._first_launch_time = 0
-        self.lag_tolerance = 0.25 # if the program lags more than lag_tolerance seconds, will display warning message
-        self.lag_warning_was_shown = False
-        return
-        
-    def enable_time(self, step):
-        raise nfu.LabMasterError, "What did you smoke?"
-        
-    def wait(self):
-        if self.is_not_const():
-            if self._first_launch_time == 0:
-                self._first_launch_time = timeit.default_timer() # time() returns epoch time
-            if timeit.default_timer() > (self.v + self._first_launch_time + self.lag_tolerance):
-                if not self.lag_warning_was_shown:
-                    print nfu.warn_msg()+"Time lag of "+self.name+" is higher than "+str(int(self.lag_tolerance*1000))+"ms. Do not trust "+self.name+" values."
-                    self.lag_warning_was_shown = True
-            else:
-                while timeit.default_timer() < self.v + self._first_launch_time:
-                    pass
-        return
-    
-    def reset(self):
-        self.lag_warning_was_shown = False
-        self._update_value(0)
-        return
-        
     
 
 class Locked:

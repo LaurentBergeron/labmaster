@@ -8,45 +8,47 @@ import time as time_module
 
 def launch(lab, params):
     lab.laser.set_current(params.current.v)
-    time_module.sleep(500*ms)
-    
+    time_module.sleep(params.delay.v)    
     return
 
 
 def get_data(lab, params):
-    params.current.set_ith_value(lab.laser.quick_measure("curr"))  
-    return lab.lockin.measure(), lab.wavemeter.measure()
+    params.current_meas.set_ith_value(lab.laser.quick_measure("curr"))  
+    if USE_WAVEMETER:
+        wavenumber = lab.wavemeter.measure()
+    else:
+        wavenumber = 0
+    return lab.lockin.measure(), wavenumber
 
 
 def create_plot(fig, params, data):
     plotting.createfig_XY(fig, "Current", "lockin", 1, "--o")
-    return fig
+    return 
 
 def update_plot(fig, params, data):
-    wavemeter = data[params.current.i,1]
     ax = fig.axes[0]
-    plotting.updatefig_XY(fig, params.current.value, data[:,0])
-    ax.text(0.5,0.1,"$k$ = "+str(wavemeter), transform = ax.transAxes, fontsize=15)
+    if USE_WAVEMETER:
+        wavenumber = data[params.current.i,1]
+        ax.text(0.5,0.1,"$\lambda$ = %0.3f nm"%wavenumber, transform = ax.transAxes, fontsize=15)
+        
+    
+    plotting.updatefig_XY(fig, params.current_meas.value, data[:,0])
     
     lockin_out = data[:,0]
     nonan = lockin_out[np.logical_not(np.isnan(lockin_out))]
+       
     
-    ### where is your peak? ###
-    curr_min = 0.146
-    curr_max = 0.149
-    ###########################
-    
-    
-    curr_min_idx = np.argmin(np.abs(params.current.value - curr_min))
-    curr_max_idx = np.argmin(np.abs(params.current.value - curr_max))
+    curr_min_idx = np.argmin(np.abs(params.current_meas.value - params.curr_estimate_min.v))
+    curr_max_idx = np.argmin(np.abs(params.current_meas.value - params.curr_estimate_max.v))
     
     try:
-        peak_min = np.min(nonan[curr_min_idx:curr_max_idx+1])
-        at_curr = " at current "+str(params.current.value[np.argmin(nonan[curr_min_idx:curr_max_idx+1])+curr_min_idx])
-        at_curr += " and $k$ = "+str(wavemeter)
+        peak_min = "%0.0f"%np.min(nonan[curr_min_idx:curr_max_idx+1])
+        at_curr = " at current %0.6f"%params.current.value[np.argmin(nonan[curr_min_idx:curr_max_idx+1])+curr_min_idx]
+        if USE_WAVEMETER:
+            at_curr += " and $\lambda$ = %0.3f nm"%wavenumber
     except ValueError:
         peak_min = "unknown"
         at_curr = ""
-    fig.suptitle("peak min = "+str(peak_min)+at_curr, fontsize=15)
+    fig.suptitle("peak min = "+peak_min+at_curr, fontsize=15)
     
     return

@@ -33,9 +33,7 @@ def sweep(lab, params, experiment, data, fig, current_sweep_ID, show_plot):
                 for ... : (sweep_ID #max)
     This function is recursive, because the number of 'for' loops depends on input parameters.. 
     """
-    for param in params.get_times():
-        if param.sweep_ID == current_sweep_ID: # if time is swept, this will reset the initial time (see Time_parameter.wait())
-            param.time._first_launch_time = 0
+
 
     if params.get_dimension()==0: # This happens if every parameter is a constant.
         run_experiment(lab, params, experiment, data, fig, show_plot)
@@ -81,10 +79,6 @@ def run_experiment(lab, params, experiment, data, fig, show_plot):
     # Load memory of instruments who can't ping_pong.
     for instrument in [x for x in lab.get_memory_instruments() if (not x.is_ping_pong)]:
         instrument.load_memory()
-    # TODO comment here.
-    # for param in params.get_times(): # TODO fix this. there is a problem I tell you.
-        # print "t", param.time.v
-        # param.time.wait()
     # The starting pistol.
     experiment.launch(lab, params)
     # Save time at which the experiment really starts.
@@ -161,15 +155,15 @@ def get_ready(lab, params):
         param.i = 0
     for param in params.get_sweeps():
         param._update(0)
-    for param in params.get_times():
-        param.time.reset()
+    if "awg" in lab.get_names():
+        lab.awg.reset_warnings()
     return
 
     
 def detect_experiment_ID():
-    """ Read the maximum ID from files under saved/experiment/. Add one to this result and return it as a string with padded zeros if ID < 10000. """
+    """ Read the maximum ID from files under experiment/. Add one to this result and return it as a string with padded zeros if ID < 10000. """
     date = today()
-    prefix = "saved/experiment/"+date+"/"+date+"_"
+    prefix = saving_folder()+"experiment/"+date+"/"+date+"_"
     # two purges to get a list of IDs in folder
     first_purge = [filename[len(prefix):].split("_")[0] for filename in glob.glob(prefix+"*.txt")] # 1st purge: get .txt files with correct prefix.
     second_purge = []
@@ -229,43 +223,14 @@ def zeros(params, experiment):
 
 
 def create_todays_folder():
-    """ Create those files if they don't exist. """
+    """ Create those folders if they don't exist. """
     for section in ["data", "experiment","data_txt","fig","script","params"]:
-        folder_name = "saved/"+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
+        folder_name = saving_folder()+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
     return 
     
 
-    
-
-def auto_unit(value, unit=""):
-    """ Return value and unit as a compact string with automatic prefix. Ex, (50e9, "Hz") will output "50 GHz". """
-    has_unit = (unit!="") # boolean value
-    if value == 0: # don't want to deal with 0
-        return "0"+has_unit*(" "+unit) 
-    result = str(value)+has_unit*(" "+unit) # if something goes wrong, return this simple format.
-    try:
-        exp = int(np.floor(np.log10(abs(value))/3.))*3 # exponent of value (scientific notation) rounded down to a multiple of 3.
-        index = exp/3+3
-        if 0 <= index < 7:
-            prefix = ["n", "u", "m", "", "k", "M", "G"][index]
-        else:
-            raise IndexError # needs to be done to avoid negative indexes. pico is not giga.
-        if has_unit:
-            value_ = value*(10**(-exp)) # update value to account for prefix
-        else:
-            value_ = value
-        if float("%s"%(value_))%1>0:
-            str_fmt = "%s" # with decimals
-        else:
-            str_fmt = "%i" # without decimals
-        result = str_fmt%(value_)+has_unit*(" "+prefix+unit)
-    except:
-        pass
-    return result
-    
-    
 
 def auto_unit(value, unit="", decimal=None):
     """ Return value and unit as a compact string with automatic prefix. Ex, (50e9, "Hz") will output "50 GHz". """
@@ -303,6 +268,7 @@ def auto_unit(value, unit="", decimal=None):
         pass
     return result
     
+    
 def get_notebook_line_format(delimiter="\t"):
     with open("notebook.txt","r") as f:
         lines = f.read().split("\n")
@@ -320,7 +286,9 @@ def get_notebook_line_format(delimiter="\t"):
     
     return lines[i]
 
-
+def saving_folder():
+    return "saved/"
+    
 def get_script_filename():
     return sys.argv[0]
     

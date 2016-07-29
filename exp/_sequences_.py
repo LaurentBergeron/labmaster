@@ -13,7 +13,6 @@ MREVd = 'tau, -X/2, tau, Y/2, tau*2, -Y/2, tau, X/2, tau,'
 ### Sequences
 RAMSEY = 'tau,'
 HAHN = 'tau/2, X, tau/2,'
-PI = 'tau/2, X, tau/2,'
 PIBY2 = 'tau/2, X/2, tau/2,' 
 XY16 = 'tau/2,'+XYXY+'tau,'+YXYX+'tau,'+minusXYXY+'tau,'+minusYXYX+'tau/2,'
 MREV4 = MREVa
@@ -72,27 +71,58 @@ gc4fwd = 'tau, -Y/2, tau, Y, tau, X/2, tau, Y, tau, -Y/2, tau,'
 gc4rev = 'tau, Y/2, tau, -Y, tau, -X/2, tau, -Y, tau, Y/2, tau,'
 
 ### Concatenation levels
-bclvl0 = bc1fwd + bc1rev
-bclvl1 = bc1fwd + bc1fwd + bc1rev + bc1rev
-bclvl2 = bc1fwd + bclvl1 + bc1fwd + bclvl1 + bc1rev + bclvl1 + bc1rev
+        
+bc1lvl0 = bc1fwd + bc1rev
+bc2lvl0 = bc2fwd + bc2rev
+bc3lvl0 = bc3fwd + bc3rev
+bc4lvl0 = bc4fwd + bc4rev
+bc1lvl1 = bc1fwd + bc1fwd + bc1rev + bc1rev
+bc2lvl1 = bc2fwd + bc2fwd + bc2rev + bc2rev
+bc3lvl1 = bc3fwd + bc3fwd + bc3rev + bc3rev
+bc4lvl1 = bc4fwd + bc4fwd + bc4rev + bc4rev
+bc1lvl2 = bc1fwd + bc1lvl1 + bc1fwd + bc1lvl1 + bc1rev + bc1lvl1 + bc1rev
+bc2lvl2 = bc2fwd + bc2lvl1 + bc2fwd + bc2lvl1 + bc2rev + bc2lvl1 + bc2rev
+bc3lvl2 = bc3fwd + bc3lvl1 + bc3fwd + bc3lvl1 + bc3rev + bc3lvl1 + bc3rev
+bc4lvl2 = bc4fwd + bc4lvl1 + bc4fwd + bc4lvl1 + bc4rev + bc4lvl1 + bc4rev
 
-bcfwd_list = [bc1fwd, bc2fwd, bc3fwd, bc4fwd]
-chfwd_list = [ch1fwd, ch2fwd, ch3fwd, ch4fwd]
-gcfwd_list = [gc1fwd, gc2fwd, gc3fwd, gc4fwd]
 
-bcrev_list = [bc1rev, bc2rev, bc3rev, bc4rev]
-chrev_list = [ch1rev, ch2rev, ch3rev, ch4rev]
-gcrev_list = [gc1rev, gc2rev, gc3rev, gc4rev]
+ch1lvl0 = ch1fwd + ch1rev
+ch2lvl0 = ch2fwd + ch2rev
+ch3lvl0 = ch3fwd + ch3rev
+ch4lvl0 = ch4fwd + ch4rev
+ch1lvl1 = ch1fwd + ch1fwd + ch1rev + ch1rev
+ch2lvl1 = ch2fwd + ch2fwd + ch2rev + ch2rev
+ch3lvl1 = ch3fwd + ch3fwd + ch3rev + ch3rev
+ch4lvl1 = ch4fwd + ch4fwd + ch4rev + ch4rev
+ch1lvl2 = ch1fwd + ch1lvl1 + ch1fwd + ch1lvl1 + ch1rev + ch1lvl1 + ch1rev
+ch2lvl2 = ch2fwd + ch2lvl1 + ch2fwd + ch2lvl1 + ch2rev + ch2lvl1 + ch2rev
+ch3lvl2 = ch3fwd + ch3lvl1 + ch3fwd + ch3lvl1 + ch3rev + ch3lvl1 + ch3rev
+ch4lvl2 = ch4fwd + ch4lvl1 + ch4fwd + ch4lvl1 + ch4rev + ch4lvl1 + ch4rev
+        
+gc1lvl0 = gc1fwd + gc1rev
+gc2lvl0 = gc2fwd + gc2rev
+gc3lvl0 = gc3fwd + gc3rev
+gc4lvl0 = gc4fwd + gc4rev
+gc1lvl1 = gc1fwd + gc1fwd + gc1rev + gc1rev
+gc2lvl1 = gc2fwd + gc2fwd + gc2rev + gc2rev
+gc3lvl1 = gc3fwd + gc3fwd + gc3rev + gc3rev
+gc4lvl1 = gc4fwd + gc4fwd + gc4rev + gc4rev
+gc1lvl2 = gc1fwd + gc1lvl1 + gc1fwd + gc1lvl1 + gc1rev + gc1lvl1 + gc1rev
+gc2lvl2 = gc2fwd + gc2lvl1 + gc2fwd + gc2lvl1 + gc2rev + gc2lvl1 + gc2rev
+gc3lvl2 = gc3fwd + gc3lvl1 + gc3fwd + gc3lvl1 + gc3rev + gc3lvl1 + gc3rev
+gc4lvl2 = gc4fwd + gc4lvl1 + gc4fwd + gc4lvl1 + gc4rev + gc4lvl1 + gc4rev
         
         
-bclvl0_list = [fwd+rev for fwd,rev in zip(bcfwd_list, bcrev_list)]
-chlvl0_list = [fwd+rev for fwd,rev in zip(chfwd_list, chrev_list)]
-gclvl0_list = [fwd+rev for fwd,rev in zip(gcfwd_list, gcrev_list)]
-
-bclvl1_list = [fwd*2+rev*2 for fwd,rev in zip(bcfwd_list, bcrev_list)]
-chlvl1_list = [fwd*2+rev*2 for fwd,rev in zip(chfwd_list, chrev_list)]
-gclvl1_list = [fwd*2+rev*2 for fwd,rev in zip(gcfwd_list, gcrev_list)]
-
-bclvl2_list = [fwd+lvl1+fwd+lvl1+rev+lvl1+rev for fwd,rev,lvl1 in zip(bcfwd_list, bcrev_list, bclvl1_list)]
-chlvl2_list = [fwd+lvl1+fwd+lvl1+rev+lvl1+rev for fwd,rev,lvl1 in zip(chfwd_list, chrev_list, chlvl1_list)]
-gclvl2_list = [fwd+lvl1+fwd+lvl1+rev+lvl1+rev for fwd,rev,lvl1 in zip(gcfwd_list, gcrev_list, gclvl1_list)]
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

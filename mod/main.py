@@ -4,7 +4,7 @@ Contains all the functions callable from Ipython interface when using '%run _lau
 Please read HTML for more info.
 """
 __author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Adam DeAbreu <adeabreu@sfu.ca>, Camille Bowness <cbowness@sfu.ca>"
-__version__ = "1.2"   
+__version__ = "1.3"   
 
 
 # Base modules
@@ -23,7 +23,10 @@ import pickle # save and load any instance from python into a .pickle file
 import inspect # retrieve information on python objects
 import shutil # high-level system operation
 import smtplib # SMTP protocol client (send_email)
+import xlrd # .xlsx read
+import xlwt # .xlsx write
 from pydoc import help # help function for user
+
 
 # Homemade modules
 import not_for_user as nfu
@@ -64,6 +67,32 @@ def available_instruments():
 
     return d
 
+def notebook_to_xlsx(filename="notebook"):
+    boldblue_fmt = xlwt.easyxf('font: color-index blue, bold on')
+    bold_fmt = xlwt.easyxf('font: bold on')
+    with open(filename+".txt", 'r+') as f:
+        row_list = []
+        for row in f:
+            row_list.append(row.split(';'))
+        workbook = xlwt.Workbook()
+        worksheet = workbook.add_sheet('Sheet1')
+        for i, row in enumerate(row_list):
+            for j, item in enumerate(row):
+                if row[0]!="":
+                    if j < 2:
+                        fmt = boldblue_fmt
+                    else:
+                        fmt = bold_fmt
+                else:
+                    fmt=xlwt.easyxf("")
+                worksheet.write(i, j, item, fmt)
+                
+    try:
+        workbook.save(filename + '.xlsx')
+    except IOError:
+        print "Close notebook.xlsx to update."
+    return
+    
 def notebook(*args):
     delimiter = ";"
     date = nfu.today()
@@ -73,13 +102,14 @@ def notebook(*args):
     entry       = ["",          "",   ID] +   [""]*len(args) + [" ".join(sys.argv[1:])]
     for i, arg in enumerate(args):
         column_name[i+3], entry[i+3] = arg.split(delimiter)
-    line_format = delimiter.join(column_name)
+    line_format = delimiter.join(column_name)+delimiter
     with open("notebook.txt", "a") as f:
         if line_format==nfu.get_notebook_line_format(delimiter=delimiter):
             pass
         else:
             f.write("\n"+line_format+"\n")
         f.write(delimiter.join(entry)+"\n")
+        notebook_to_xlsx()
     return
         
         
@@ -135,7 +165,7 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         experiment.end(lab, params)
     except:
         # On any error catched, print a simplified version of traceback to saved/experiment/.
-        save_experiment(lab, params, experiment, ID, error_manager(as_string=True, all=True))
+        save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
         raise
     finally:
         # Call the abort method of each instrument connected to the Lab instance.
@@ -147,12 +177,12 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         # Save fig as pdf in saved/fig/ folder
         save_fig(fig, ID)
         # Update the figure for the first time if show_plot is False
-        if not show_plot and fig!= None:
-            experiment.update_plot(fig, params, data)
+        if fig!= None:
+            output = experiment.update_plot(fig, params, data)
         print "\nsaved as",ID,"\n"
     # Save the rest about experiment in saved/experiment/ folder.         
-    save_experiment(lab, params, experiment, ID, "Scan successful.")
-    return 
+    save_experiment(lab, params, experiment, ID, "Scan successful.\n")
+    return output
 
 
 
@@ -270,16 +300,10 @@ def check_params(params):
 
     return
 
-def clean_start(namespace, close_figs=False):
+def clean_start(namespace):
     """
-    Reset all Lab and Params instances from namespace.
+    Reset all Lab and Params instances from namespace (should be globals() most of the time).
     """
-    if close_figs:
-        plt.close("all")
-    try:
-        namespace["_INTERACTIVE_START_"]
-    except KeyError:
-        raise LabMasterError, "Scripts must be run interactively (-i flag) to prevent losing connection with instruments."
     
     ### Close connected instrument drivers
     for key, value in namespace.items():
@@ -315,25 +339,27 @@ def error_manager(as_string=False, all=True):
     Output
     - The error message as a string, if as_string is True
     """
-    error_type = sys.exc_info()[0]
-    error_value = sys.exc_info()[1]
+    error_type, error_value, error_traceback = sys.exc_info()
+    if error_type == None:
+        return "Scan successful."
     if error_type is LabMasterError:
-        message = nfu.err_msg()+ str(error_value)+ "\n"
+        message = nfu.err_msg()+ str(error_value)
     elif LabMasterError in error_type.__bases__:
-        message = error_type.__name__+": "+ str(error_value)+ "\n"
+        message = error_type.__name__+": "+ str(error_value)
     elif error_type is KeyboardInterrupt:
-        message = "Experiment aborted.\n"
+        message = "Experiment aborted."
     else:
         if all:
-            message = error_type.__name__+": "+str(error_value)+"\n"
+            message = error_type.__name__+": "+str(error_value)
         else:
             raise
-    sys.last_type, sys.last_value, sys.last_traceback = sys.exc_info()
+    sys.last_type, sys.last_value, sys.last_traceback = error_type, error_value, error_traceback
     if as_string:
-        return message
+        out = message
     else:
-        print message+ "%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
-    return
+        out = ""
+        print message+ "\n%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
+    return out
     
 def export_data_simple(date, IDs, location, param_output=None, output='txt'):
     """
@@ -351,7 +377,7 @@ def export_data_simple(date, IDs, location, param_output=None, output='txt'):
     - output: file type of data, either 'npy' or 'txt'
     """
     for ID in IDs:
-        data = np.load("saved/data/"+date+"/"+date+"_"+ID+".npy")
+        data = np.load(nfu.saving_folder()+"data/"+date+"/"+date+"_"+ID+".npy")
 
         size_array = np.min(np.sum(np.isfinite(data),0))
 
@@ -360,7 +386,7 @@ def export_data_simple(date, IDs, location, param_output=None, output='txt'):
         for i in range(data.shape[1]):
             to_save[:,i] = data[:size_array,i]
 
-        filename = "saved/params/"+date+"/"+date+"_"+ID+".pickle"
+        filename = nfu.saving_folder()+"params/"+date+"/"+date+"_"+ID+".pickle"
 
         ###parameter manipulation to something you want
         with open(filename, "rb") as f:
@@ -404,8 +430,8 @@ def last_datatxt():
 def last_params(output=None):
     return load_params(today(), lastID(), output=output)
     
-def last_plot():
-    return load_plot(today(), lastID())
+def last_plot(experiment_name=None):
+    return load_plot(today(), lastID(), experiment_name=experiment_name)
     
 def load_data(date, ID):
     """
@@ -424,7 +450,7 @@ def load_data(date, ID):
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
     try:
-        matching_file = [filename for filename in glob.glob("saved/data/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"data/"+date+"/*") if file_format in filename][0]
     except IndexError:
         raise LabMasterError, "Date or ID does not match any existing file."
     return np.load(matching_file)
@@ -446,7 +472,7 @@ def load_datatxt(date, ID):
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
     try:
-        matching_file = [filename for filename in glob.glob("saved/datatxt/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"datatxt/"+date+"/*") if file_format in filename][0]
     except IndexError:
         try:
             size_of_data = load_data(date, ID).size
@@ -478,7 +504,7 @@ def load_params(date, ID, output=None):
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
     try:
-        matching_file = [filename for filename in glob.glob("saved/params/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"params/"+date+"/*") if file_format in filename][0]
     except IndexError:
         raise LabMasterError, "Date or ID does not match any existing file."
     with open(matching_file, "rb") as f:
@@ -493,16 +519,22 @@ def load_params(date, ID, output=None):
     return
     
 
-def load_plot(date, ID):
-    file_format = nfu.filename_format(date, ID, script_name=False)
+def load_plot(date, ID, experiment_name=None, fig=None):
+    if experiment_name==None:
+        file_format = nfu.filename_format(date, ID, script_name=False)
+        try:
+            matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"experiment/"+date+"/*") if file_format in filename][0]
+        except IndexError:
+            raise LabMasterError, "Date or ID does not match any existing file."
+        with open(matching_file) as f:
+            experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
     try:
-        matching_file = [filename for filename in glob.glob("saved/experiment/"+date+"/*") if file_format in filename][0]
-    except IndexError:
-        raise LabMasterError, "Date or ID does not match any existing file."
-    with open(matching_file) as f:
-        experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
-    experiment = importlib.import_module(experiment_name)
-    fig = plt.figure()
+        experiment = importlib.import_module(experiment_name)
+    except ImportError:
+        print "Could not import experiment. Using auto plotting from plotting module."
+        experiment = None
+    if fig==None:
+        fig = plt.figure()
     params = load_params(date, ID)
     data = load_data(date, ID)
     try:
@@ -514,24 +546,29 @@ def load_plot(date, ID):
     return fig
     
 
+
+def orange(start, stop, step):
+    """ orange stands for omnipotent range """
+    return np.arange(start, stop+step, step)
+
 def pickle_save(filename, thing):
     """
     Save a python object to filename.pickle under saved/pickle/ folder. Useful to save params. 
     Do not save lab with this, because instruments will not connect when calling pickle_load().
 
     Input
-    - filename: string to be used as file name. The "saved/pickle/" folder and ".pickle" extension are added automatically. Avoid spaces (as always).
+    - filename: string to be used as file name. The "pickle/" folder and ".pickle" extension are added automatically. Avoid spaces (as always).
     - thing: python object to be saved.
     """
     if isinstance(thing, classes.Lab):
         raise LabMasterError, "Can't save instrument connexion in the pickle file. It's thus pointless to save a Lab instance."
-    if not os.path.exists("saved/pickle"):
-        os.makedirs("saved/pickle")
-    if os.path.isfile("saved/pickle/"+filename+".pickle"):
+    if not os.path.exists(nfu.saving_folder()+"pickle"):
+        os.makedirs(nfu.saving_folder()+"pickle")
+    if os.path.isfile(nfu.saving_folder()+"pickle/"+filename+".pickle"):
         if raw_input(nfu.warn_msg()+"Overwriting "+filename+".pickle? [y/N]") not in nfu.positive_answer_N():
             print "not saved\n"
             return
-    with open("saved/pickle/"+filename+".pickle", "wb") as f:
+    with open(nfu.saving_folder()+"pickle/"+filename+".pickle", "wb") as f:
         pickle.dump(thing, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
         print "saved to saved/pickle/"+filename+".pickle\n"
     return
@@ -542,10 +579,10 @@ def pickle_load(filename):
     Do not load lab with this, because instruments will not connect.
     
     Input
-    - filename: Name of the file to load. The "saved/pickle/" folder and ".pickle" extension are added automatically.
+    - filename: Name of the file to load. The "pickle/" folder and ".pickle" extension are added automatically.
     """
     try:
-        with open("saved/pickle/"+filename+".pickle", "rb") as f:
+        with open(nfu.saving_folder()+"pickle/"+filename+".pickle", "rb") as f:
             thing = pickle.load(f)
             print "loaded from "+filename+".pickle"
     except IOError:
@@ -571,8 +608,8 @@ def save_data(data, ID):
     - ID: Number indicated after the date in file name.
     
     """
-    filename = "saved/data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
-    filenametxt = "saved/data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
+    filename = nfu.saving_folder()+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
+    filenametxt = nfu.saving_folder()+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
     if isinstance(data, np.ndarray):
         np.save(filename, data) # always save a .npy file
         if data.ndim < 3:
@@ -608,7 +645,7 @@ def save_experiment(lab, params, experiment, ID, error_string):
     - error_string: Error message to save.
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
-    filename = "saved/experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
+    filename = nfu.saving_folder()+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
     time_launched_string = "Time launched:  "
     time_ended_string    = "Time ended:     "
     datetime_format = "%Y-%b-%d %H:%M:%S"
@@ -639,7 +676,7 @@ def save_params(params, ID):
     - params: Params instance.
     - ID: Number indicated after the date in file name.
     """
-    filename = "saved/params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
+    filename = nfu.saving_folder()+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
     with open(filename, "wb") as f:
         pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
     return
@@ -648,14 +685,14 @@ def save_script():
     """
     Copy script_filename to saved/script/
     Add flaged comments to the header of the copied script file and in notebook.txt
-    The file ID will be one more than the maximum ID detected in saved/experiment/ folder.
+    The file ID will be maximum ID detected in saved/experiment/ folder.
     
     Input:
         script_filename: Name of the script to save. Use __file__ to get current file name.
     """
     nfu.create_todays_folder()
-    ID = nfu.detect_experiment_ID()
-    new_filename = "saved/script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
+    ID = nfu.pad_ID(int(nfu.detect_experiment_ID())-1)
+    new_filename = nfu.saving_folder()+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
     shutil.copy(nfu.get_script_filename(), new_filename)     
     return
 
@@ -669,7 +706,7 @@ def save_fig(fig, ID, ext="pdf"):
     - ext: Extension of the file to save. Supported formats: emf, eps, pdf, png, ps, raw, rgba, svg, svgz.
     """
     if fig != None:
-        fig.savefig("saved/fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
+        fig.savefig(nfu.saving_folder()+"fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
     return 
     
 
@@ -688,7 +725,7 @@ def send_email(recipient, add_subject="", add_msg=""):
     TO = recipient if type(recipient) is list else [recipient]
     SUBJECT = subject+add_subject
 
-    TEXT = ""
+    TEXT = error_manager(as_string=True)+"\n"
     
     
     ### Prepare actual message

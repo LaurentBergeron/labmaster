@@ -1,0 +1,58 @@
+Time launched:  2016-Jul-28 15:16:27
+Time ended:     2016-Jul-28 15:16:32
+Total duration: 0:00:05
+
+Experiment aborted.
+
+
+### intruments connected:
+   awg
+   pb
+   usb_counter
+
+
+### Scheduled run 
+Constants:
+bin_length = 150 ms
+
+1st sweep:
+pi_len from 0 s to 1 ms in 1001 steps.
+
+
+### Experiment: exp.exp_rabi.py
+""" 
+Rabi experiment.
+"""
+
+# Base modules
+import numpy as np 
+import scipy.constants as cst
+
+# Home modules
+import _shared_ 
+from mod.main import *
+
+
+def sequence(lab, params):
+    _shared_.pb_master_trigger(lab)
+    _shared_.prepare(lab, params)
+    lab.pb.turn_on("scope_trig", time_on=us, rewind="start")
+
+    lab.awg.pulse(1, length=params.pi_len.v)
+        
+    _shared_.readout(lab, params)
+    
+    return 
+    
+from exp_nmr import launch, get_data
+    
+def create_plot(fig, params, data):
+    plotting.createfig_XY(fig, "$\pi$", "data", 1, "--o")
+    return 
+    
+def update_plot(fig, params, data):
+    plotting.updatefig_XY(fig, params.pi_len.value, data, line_index=0)
+    out = None
+    return out
+
+    

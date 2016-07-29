@@ -19,10 +19,7 @@ class Wavemeter(Instrument):
         Instrument.__init__(self, name, parent)
         self.CLDevIFace = importlib.import_module("mod.instruments.wrappers.dll_CLDevIFace")
         self.com_number = com_number
-        try:
-            self.device_handle = self.CLDevIFace.CLOpenUSBSerialDevice(self.com_number)
-        except self.CLDevIFace.BristolWaveLengthMeterWrapperException:
-            raise nfu.LabMasterError, "Could not open "+self.name+"."
+        self.device_handle = self.CLDevIFace.CLOpenUSBSerialDevice(self.com_number)
         self.lambda_units = "nm"
         return
     

@@ -63,6 +63,7 @@ def create_plot(fig, params, data):
     return
     
 def update_plot(fig, params, data):
+    out = None, None
     ### 2D with phase cycling
     if data.ndim == 3 and params.phase_cycle.size()==2: 
         pass
@@ -84,8 +85,9 @@ def update_plot(fig, params, data):
             popt = plotting.update_curve_fit(fig, fit_exp, params.time_axis.value[1:], cyclediff[1:], line_index = 3, nargs = 2, initial_guess=[cyclediff[1], 10])
             if popt is not None:
                 fig.suptitle("$T_2$ = "+nfu.auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
+                out = popt[0], popt[1]
 
-    return
+    return out
 
     
         

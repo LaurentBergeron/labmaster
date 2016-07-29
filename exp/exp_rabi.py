@@ -10,6 +10,7 @@ import scipy.constants as cst
 import _shared_ 
 from mod.main import *
 
+from exp_nmr import launch, get_data
 
 def sequence(lab, params):
     _shared_.pb_master_trigger(lab)
@@ -20,9 +21,7 @@ def sequence(lab, params):
         
     _shared_.readout(lab, params)
     
-    return 
-    
-from exp_nmr import launch, get_data
+    return     
     
 def create_plot(fig, params, data):
     plotting.createfig_XY(fig, "$\pi$", "data", 1, "--o")
@@ -30,6 +29,7 @@ def create_plot(fig, params, data):
     
 def update_plot(fig, params, data):
     plotting.updatefig_XY(fig, params.pi_len.value, data, line_index=0)
-    return
+    out = None
+    return out
 
     

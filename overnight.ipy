@@ -9,7 +9,7 @@ fwd_list = [bc1fwd, bc2fwd, bc3fwd, bc4fwd,
 rev_list = [bc1rev, bc2rev, bc3rev, bc4rev,
             ch1rev, ch2rev, ch3rev, ch4rev,
             gc1rev, gc2rev, gc3rev, gc4rev]
-        
+
 lvl0_list = bclvl0_list + chlvl0_list + gclvl0_list
 lvl1_list = bclvl1_list + chlvl1_list + gclvl1_list
 lvl2_list = bclvl2_list + chlvl2_list + gclvl2_list
