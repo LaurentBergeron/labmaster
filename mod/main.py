@@ -335,7 +335,8 @@ def error_manager(as_string=False, all=True):
         print message+ "%tb for full traceback\n"*(error_type is not KeyboardInterrupt)
     return
     
-def export_data_simple(date, IDs, location, param_output=None, output='txt'):
+def export_data(date, IDs, location, output, \
+        data_manipulation = None, param_manipulation = None, popts_manipulation = None):
     """
     export data and params to a single file
     
@@ -350,40 +351,38 @@ def export_data_simple(date, IDs, location, param_output=None, output='txt'):
     - location: Directory in which files will be saved
     - output: file type of data, either 'npy' or 'txt'
     """
-    for ID in IDs:
-        data = np.load("saved/data/"+date+"/"+date+"_"+ID+".npy")
+    popts_ar = None 
+    for i, ID in enumerate(IDs):
+        print ID
+        ID = str(ID).zfill(4)
+        fig, data, params, popts = load_plot(date, ID, analyze = True)
 
-        size_array = np.min(np.sum(np.isfinite(data),0))
-
-        to_save = np.empty(shape=(size_array, data.shape[1]+1))
-
-        for i in range(data.shape[1]):
-            to_save[:,i] = data[:size_array,i]
-
-        filename = "saved/params/"+date+"/"+date+"_"+ID+".pickle"
-
-        ###parameter manipulation to something you want
-        with open(filename, "rb") as f:
-            params = pickle.load(f)
-        if param_output is None:
-            to_save_params = np.ones(to_save.shape[0])
+        if data_manipulation is not None:
+            to_save_data = data_manipulation(data)
         else:
-            to_save_params = params.__dict__[param_output].value
-        ###Examples:
-        ###iterating tau:
-        ###to_save_params = params.tau.value*taus_per_sequence*loops
-        ###iterating loops:
-        ###to_save_params = params.loops.value*params.tau.value*taus_per_sequence
-        ###to_save_params = params.tau.value*12
+            print "need a data manipulation function, nothing was saved"
+            return popts
+        if param_manipulation is not None:
+            to_save_param = param_manipulation(params)
+        else:
+            print "need a param manipulation function, nothing was saved"
+            return popts
+        if popts_manipulation is not None:
+            popts = popts_manipulation(data, params)
 
-        to_save[:,-1] = to_save_params[:size_array]
+        if popts_ar is None:
+            popts_ar = np.empty(shape=(len(IDs), len(popts)))
+        popts_ar[i,:] = popts
 
-        if output == 'npy':
+        to_save = np.empty(shape=(to_save_data.size, 2))
+
+        if 'npy' in output:
             np.save(location+'/'+date+"_"+ID+"_full_data.npy",to_save)
-        elif output == 'txt':
+        elif 'txt' in output:
             np.savetxt(location+'/'+date+"_"+ID+"_full_data.txt", to_save)
+        plt.savefig(location+date+"_"+ID+"figure.pdf")
 
-    return
+    return popts_ar
 
 def help_please():
     """
@@ -493,7 +492,7 @@ def load_params(date, ID, output=None):
     return
     
 
-def load_plot(date, ID):
+def load_plot(date, ID, analyze = False):
     file_format = nfu.filename_format(date, ID, script_name=False)
     try:
         matching_file = [filename for filename in glob.glob("saved/experiment/"+date+"/*") if file_format in filename][0]
@@ -507,11 +506,15 @@ def load_plot(date, ID):
     data = load_data(date, ID)
     try:
         experiment.create_plot(fig, params, data)
-        experiment.update_plot(fig, params, data)
+        popts = experiment.update_plot(fig, params, data)
     except AttributeError:
         plotting.create_plot_auto(fig, params, data)
         plotting.update_plot_auto(fig, params, data)
-    return fig
+        popts = None
+    if analyze:
+        return fig, data, params, popts
+    else:
+        return fig
     
 
 def pickle_save(filename, thing):
