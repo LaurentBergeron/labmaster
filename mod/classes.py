@@ -10,11 +10,12 @@ import numpy as np
 import timeit
 import types
 import sys
+import importlib
 
 # Homemade modules
 import not_for_user as nfu
 from units import *
-
+import available_instruments
     
 class Drawer():
     """    
@@ -108,33 +109,39 @@ class Lab(Drawer):
                   You can connect to a generic VISA instrument by starting the name with VISA, following with custom name and VISA connexion ID, all separated by comas (not space sensitive).
                       ex: "VISA, death_ray, GPIB0::12::INSTR"
         """
-        from mod.main import available_instruments
-        available = available_instruments()
         
         for name in names:
-            # Case for generic VISA instrument, with custom name and custom visa_ID
-            if name[:4]=="VISA":
-                print "Generic VISA instrument requested."
-                _, new_name, visa_ID = "".join(name.split()).split(",")
-                print "Name: "+new_name+" \nVisaID: "+visa_ID
-                available[name[5:]] = [Default_visa, (visa_ID)]
-            
-            # Be sure instrument is not to be overwritten.
-            if name in self.get_names():
-                raise nfu.LabMasterError, name+" is already connected."
-                
-            # look if requested instrument is available
-            if name in available.keys():
-                class_ = available[name][0]
-                opt_args = available[name][1]
-                opt_keyargs = available[name][2]
-            else:
-                raise nfu.LabMasterError, "Requested instrument "+name+" not found in available list."
-            
             try:
+                # Be sure instrument is not to be overwritten.
+                if name in self.get_names():
+                    raise nfu.LabMasterError, name+" is already connected."
+                    
+                # Case for generic VISA instrument, with custom name and custom visa_ID
+                if name[:4]=="VISA":
+                    print "Generic VISA instrument requested."
+                    _, new_name, visa_ID = "".join(name.split()).split(",")
+                    print "Name: "+new_name+" \nVisaID: "+visa_ID
+                    import mod.instruments.visa_instruments
+                    module_name = "visa_instruments"
+                    class_name = "Default_visa"
+                    opt_args = (visa_ID,)
+                    opt_keyargs = {}
+                else:
+                    # look if requested instrument is available
+                    if name not in available_instruments.__dict__:
+                        raise nfu.LabMasterError, "Requested instrument "+name+" not found in available_instruments module."
+                    module_name = available_instruments.__dict__[name][0]
+                    class_name = available_instruments.__dict__[name][1]
+                    opt_args = available_instruments.__dict__[name][2]
+                    opt_keyargs = available_instruments.__dict__[name][3]
+
+                module = importlib.import_module("mod.instruments."+module_name)
+                class_ = module.__dict__[class_name]
+            
                 # init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
             except:
+                raise
                 print "Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1])
                 
                 
@@ -335,7 +342,7 @@ class Params(Drawer):
         
     def add_parameter(self, *args):
         for arg in args:
-            arg_list = arg.replace(" ","").replace("\t","").replace("\n","").split(":")
+            arg_list = arg.replace(" ","").replace("\t","").replace("\n","").split(";")
             name = arg_list[0]
             try:
                 self.__dict__[name] = Parameter(name, unit=arg_list[1])
@@ -384,7 +391,7 @@ class Params(Drawer):
         for i in range(1, self.get_dimension()+1):
             string +=  str(i)+nfu.number_suffix(i)+" sweep:\n"
             for param in self.get_current_sweeps(i):
-                string +=  param.name+" from "+nfu.auto_unit(param.value[0],param.unit)+" to "+nfu.auto_unit(param.value[-1],param.unit)+" in "+str(len(param.value))+" steps.\n"
+                string +=  param.name+" from "+nfu.auto_unit(param.value[0],param.unit)+" to "+nfu.auto_unit(param.value[-1],param.unit)+" with "+nfu.auto_unit(param.get_step(), param.unit)+" step size.\n"
             string +=  "\n"
         if as_string:
             out = string
@@ -417,7 +424,7 @@ class Parameter():
         self._saved_v = None
         self._saved_i = None
         return
-
+        
     def is_const(self):
         return not self.is_not_const()
         

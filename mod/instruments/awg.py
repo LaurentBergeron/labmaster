@@ -1096,7 +1096,7 @@ class Awg(Instrument):
                 else:
                     raise ValueError
             except ValueError:
-                raise nfu.LabMasterError, "Token '"+str(token)+"' for "+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" was not recognized. \n\n"+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" docstring:\n"+Awg.string_sequence.__doc__+"\n"
+                raise nfu.LabMasterError, "Token '"+str(token)+"' for "+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" was not recognized. \n\n"+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" docstring:\n"+textwrap.dedent(Awg.string_sequence.__doc__)+"\n"
         if loops > 1:
             self.loop_end(channel)
         return

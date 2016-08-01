@@ -8,7 +8,7 @@ import visa as vi
 from ..classes import Instrument
 from ..units import *
 from .. import not_for_user     
-nfu = not_for_user 
+nfu = not_for_user
         
 class Default_visa(Instrument):
     """

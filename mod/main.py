@@ -3,7 +3,7 @@ Contains all the functions callable from Ipython interface when using '%run _lau
 
 Please read HTML for more info.
 """
-__author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Adam DeAbreu <adeabreu@sfu.ca>, Camille Bowness <cbowness@sfu.ca>"
+__author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Camille Bowness <cbowness@sfu.ca>, Adam DeAbreu <adeabreu@sfu.ca>"
 __version__ = "1.3"   
 
 
@@ -26,92 +26,21 @@ import smtplib # SMTP protocol client (send_email)
 import xlrd # .xlsx read
 import xlwt # .xlsx write
 from pydoc import help # help function for user
+import visa
 
 
 # Homemade modules
 import not_for_user as nfu
 from not_for_user import LabMasterError, today, lastID
 import classes
+from classes import Lab, Params
 import plotting
-from instruments import *
+import instruments
+import available_instruments
 from units import *
 
-def available_instruments():
-    """
-    Return a dictionnary containing all available instruments. This dictionnary doesn't need to be updated from station to station, just fill it up as you add more instruments.
-    
-    An entry in the dictionnary must be written as shown below:
-        key : [list of arguments] 
-    where key is instrument name, and [list of arguments] is as follows:
-    [class, (optional arguments,), {optional key arguments}]
-    
-    As you can see, (optional arguments,) has to be a tuple, so don't forget the coma before closing the parenthesis.
-                    {optional key arguments} has to be a dictionnary.
 
-    When adding a new instrument to the program, you need to update this list (and code a new instrument class if needed).
-    
-    It's possible to connect to a generic VISA instrument with no specific class, more info in Lab.add_instrument() documentation.
-    """
-    ### Update this dictionnary when adding a new instrument or changing connexion settings.
-    
-    #    name                  class                optional arguments                             optional key arguments
-    d = {"awg":             [  Awg,                 ("PXI13::0::0::INSTR",),                        {}  ],
-         "lockin":          [  Lockin,              ("GPIB0::12::INSTR",),                          {}  ],
-         "pb":              [  Pulse_blaster_usb,   (),                                             {}  ],
-         "laser":           [  Laser,               ("USB0::0x1313::0x804A::M00243388::INSTR",),    {}  ],
-         "sig_gen":         [  Signal_generator,    ("GPIB0::19::INSTR",),                          {}  ],
-         "sig_gen_srs":     [  Signal_generator_srs,("GPIB0::3::INSTR",),                           {}  ],
-         "wavemeter":       [  Wavemeter,           (3,),                                           {}  ],
-         "usb_counter":     [  Usb_counter,         (0,),                                           {}  ]
-         }
-
-    return d
-
-def notebook_to_xlsx(filename="notebook"):
-    boldblue_fmt = xlwt.easyxf('font: color-index blue, bold on')
-    bold_fmt = xlwt.easyxf('font: bold on')
-    with open(filename+".txt", 'r+') as f:
-        row_list = []
-        for row in f:
-            row_list.append(row.split(';'))
-        workbook = xlwt.Workbook()
-        worksheet = workbook.add_sheet('Sheet1')
-        for i, row in enumerate(row_list):
-            for j, item in enumerate(row):
-                if row[0]!="":
-                    if j < 2:
-                        fmt = boldblue_fmt
-                    else:
-                        fmt = bold_fmt
-                else:
-                    fmt=xlwt.easyxf("")
-                worksheet.write(i, j, item, fmt)
-                
-    try:
-        workbook.save(filename + '.xlsx')
-    except IOError:
-        print "Close notebook.xlsx to update."
-    return
-    
-def notebook(*args):
-    delimiter = ";"
-    date = nfu.today()
-    ID = nfu.detect_experiment_ID()
-    script_name = nfu.get_script_filename()
-    column_name = [script_name, date, "ID"] + [""]*len(args) + ["comment"]
-    entry       = ["",          "",   ID] +   [""]*len(args) + [" ".join(sys.argv[1:])]
-    for i, arg in enumerate(args):
-        column_name[i+3], entry[i+3] = arg.split(delimiter)
-    line_format = delimiter.join(column_name)+delimiter
-    with open("notebook.txt", "a") as f:
-        if line_format==nfu.get_notebook_line_format(delimiter=delimiter):
-            pass
-        else:
-            f.write("\n"+line_format+"\n")
-        f.write(delimiter.join(entry)+"\n")
-        notebook_to_xlsx()
-    return
-        
+     
         
     
 def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
@@ -134,11 +63,11 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     check_experiment(experiment)
     check_lab(lab)    
     
+    print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
+    print params   # Print the future run.
     if quiet: # No time for questions.
         pass
     else:
-        print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
-        print params   # Print the future run.
         if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
             raise KeyboardInterrupt
 
@@ -302,7 +231,7 @@ def check_params(params):
 
 def clean_start(namespace):
     """
-    Reset all Lab and Params instances from namespace (should be globals() most of the time).
+    Reset all Lab instances from namespace (should be globals() most of the time).
     """
     
     ### Close connected instrument drivers
@@ -334,7 +263,7 @@ def error_manager(as_string=False, all=True):
     Input
     - as_string: If as_string is True, return the error message as a string.
                  If as_string is False, just print it to console.
-    - all: If all is True, stop traceback and return an error message for every type of error.
+    - all: If all is True, stop traceback and print an error message for every type of error.
 
     Output
     - The error message as a string, if as_string is True
@@ -386,7 +315,7 @@ def export_data(date, IDs, location, output, \
     for i, ID in enumerate(IDs):
         print ID
         ID = str(ID).zfill(4)
-        fig, data, params, popts = load_plot(date, ID, analyze = True)
+        fig, data, params, popts = load_plot(date, ID)
 
         if data_manipulation is not None:
             to_save_data = data_manipulation(data)
@@ -417,12 +346,11 @@ def export_data(date, IDs, location, output, \
 
 def help_please():
     """
-    Some advice on how to get advice.
-    """
-    print "Use ? after an object to get documentation."
-    print "Python advice: Type help() for interactive help, or help(object) for help about object."
-    print "Lab-Master users manual is located under doc/_Lab-Master_users-manual_"
-    print "For a more detailed doc of the source code, you will find HTML help under doc/_Lab-Master_html_"
+Use ? after an object to get documentation. With ?? you get source code.
+Python advice: Type help() for interactive help, or help(object) for help about object.
+Lab-Master users manual is located under doc/_Lab-Master_users-manual_
+For a more detailed doc of the source code of Lab-Master, you will find HTML help under doc/_Lab-Master_html_"""
+    print help_please.__doc__
     return
 
 def last_data():
@@ -524,17 +452,15 @@ def load_params(date, ID, output=None):
     
 
 def load_plot(date, ID, experiment_name=None, fig=None):
-    if experiment_name==None:
-        file_format = nfu.filename_format(date, ID, script_name=False)
-        try:
-            matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"experiment/"+date+"/*") if file_format in filename][0]
-        except IndexError:
-            raise LabMasterError, "Date or ID does not match any existing file."
-        with open(matching_file) as f:
-            experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
     try:
+        if experiment_name==None:
+            file_format = nfu.filename_format(date, ID, script_name=False)
+            matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"experiment/"+date+"/*") if file_format in filename][0]
+            "Date or ID does not match any existing experiment file."
+            with open(matching_file) as f:
+                experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
         experiment = importlib.import_module(experiment_name)
-    except ImportError:
+    except ImportError, IndexError:
         print "Could not import experiment. Using auto plotting from plotting module."
         experiment = None
     if fig==None:
@@ -550,6 +476,50 @@ def load_plot(date, ID, experiment_name=None, fig=None):
         scan_out = None
     return fig, data, params, scan_out
     
+def notebook(*args):
+    delimiter = ";"
+    date = nfu.today()
+    ID = nfu.detect_experiment_ID()
+    script_name = nfu.get_script_filename()
+    column_name = [script_name, date, "ID"] + [""]*len(args) + ["comment"]
+    entry       = ["",          "",   ID] +   [""]*len(args) + [" ".join(sys.argv[1:])]
+    for i, arg in enumerate(args):
+        column_name[i+3], entry[i+3] = arg.split(delimiter)
+    line_format = delimiter.join(column_name)+delimiter
+    with open("notebook.txt", "a") as f:
+        if line_format==nfu.get_notebook_line_format(delimiter=delimiter):
+            pass
+        else:
+            f.write("\n"+line_format+"\n")
+        f.write(delimiter.join(entry)+"\n")
+        notebook_to_xlsx()
+    return
+       
+def notebook_to_xlsx(filename="notebook"):
+    boldblue_fmt = xlwt.easyxf('font: color-index blue, bold on')
+    bold_fmt = xlwt.easyxf('font: bold on')
+    with open(filename+".txt", 'r+') as f:
+        row_list = []
+        for row in f:
+            row_list.append(row.split(';'))
+        workbook = xlwt.Workbook()
+        worksheet = workbook.add_sheet('Sheet1')
+        for i, row in enumerate(row_list):
+            for j, item in enumerate(row):
+                if row[0]!="":
+                    if j < 2:
+                        fmt = boldblue_fmt
+                    else:
+                        fmt = bold_fmt
+                else:
+                    fmt=xlwt.easyxf("")
+                worksheet.write(i, j, item, fmt)
+                
+    try:
+        workbook.save(filename + '.xlsx')
+    except IOError:
+        print "Close notebook.xlsx to update."
+    return
 
 
 def orange(start, stop, step):
@@ -716,27 +686,27 @@ def save_fig(fig, ID, ext="pdf"):
     
 
 def send_email(recipient, add_subject="", add_msg=""):
-    user = 'my.goto.remote.email.2016@gmail.com'
-    pwd = 'useless_password_here'
-
-    ltime = time.localtime()
-    fin_time = str(ltime[3]).zfill(2)+':'+str(ltime[4]).zfill(2)+', '+str(ltime[2])+'/'+str(ltime[1])
-
-    subject = nfu.get_script_filename()[:3] + ' finished at ' + fin_time
-    
-    gmail_user = user
-    gmail_pwd = pwd
-    FROM = user
-    TO = recipient if type(recipient) is list else [recipient]
-    SUBJECT = subject+add_subject
-
-    TEXT = error_manager(as_string=True)+"\n"
-    
-    
-    ### Prepare actual message
-    message = """\From: %s\nTo: %s\nSubject: %s\n\n%s
-    """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
     try:
+        user = 'my.goto.remote.email.2016@gmail.com'
+        pwd = 'useless_password_here'
+
+        ltime = time.localtime()
+        fin_time = str(ltime[3]).zfill(2)+':'+str(ltime[4]).zfill(2)+', '+str(ltime[2])+'/'+str(ltime[1])
+
+        subject = nfu.get_script_filename()[:3] + ' finished at ' + fin_time
+        
+        gmail_user = user
+        gmail_pwd = pwd
+        FROM = user
+        TO = recipient if type(recipient) is list else [recipient]
+        SUBJECT = subject+add_subject
+
+        TEXT = error_manager(as_string=True)+"\n"
+        
+        
+        ### Prepare actual message
+        message = """\From: %s\nTo: %s\nSubject: %s\n\n%s
+        """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.ehlo()
         server.starttls()
@@ -745,6 +715,12 @@ def send_email(recipient, add_subject="", add_msg=""):
         server.close()
     except:
         print "failed to send mail"
+    return
 
 
+def show_visa():
+    rm = visa.ResourceManager()
+    for name, res in rm.list_resources_info().items():
+        print name
+    return 
 

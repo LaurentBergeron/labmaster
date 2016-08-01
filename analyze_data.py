@@ -10,7 +10,9 @@ Will output fitting parameters as well as saving the data and param files
 as .npy (thus not needing all of LabMaster to manipulate) in the location
 directory
 """
-
+import numpy as np
+import os
+from mod.main import * 
 
 ## Define all IDs and dates for the files to be exported
 acpmg = [66, 67, 68]

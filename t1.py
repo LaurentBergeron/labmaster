@@ -12,7 +12,7 @@ pi_len = _defaults_.pi_len
 laser_curr = _defaults_.laser_current
 rf_freq = _defaults_.sig_gen_freq
 
-params = Params("tau:s", "phase_cycle", "phase_start", "time_axis:s", "bin_length:s")
+params = Params("tau;s", "phase_cycle", "phase_start", "time_axis;s", "bin_length;s")
 params.phase_start.value = "X"
 params.bin_length.value = _defaults_.bin_len
         

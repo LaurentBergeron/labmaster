@@ -6,7 +6,7 @@ awg_amp = _defaults_.awg_amp
 awg_freq = _defaults_.awg_freq
 awg_sample_rate = 976*MHz
 
-params = Params("freq:Hz", "delay:s")
+params = Params("freq;Hz", "freq_estimate_min;Hz", "freq_estimate_max;Hz", "delay;s")
 
 params.freq.value = orange(1.6093*GHz, 1.613*GHz, 10*kHz)
 params.delay.value = 100*ms

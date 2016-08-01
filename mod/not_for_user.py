@@ -232,12 +232,11 @@ def create_todays_folder():
     
 
 
-def auto_unit(value, unit="", decimal=None):
+def auto_unit(value, unit, decimal=None):
     """ Return value and unit as a compact string with automatic prefix. Ex, (50e9, "Hz") will output "50 GHz". """
     has_unit = (unit!="") # boolean value
     if value == 0: # don't want to deal with 0
         return "0"+has_unit*(" "+unit) 
-    result = str(value)+has_unit*(" "+unit) # if something goes wrong, return this simple format.
     try:
         exp = int(np.floor(np.log10(abs(value))/3.))*3 # exponent of value (scientific notation) rounded down to a multiple of 3.
         index = exp/3+3
@@ -246,26 +245,26 @@ def auto_unit(value, unit="", decimal=None):
         else:
             raise IndexError # needs to be done to avoid negative indexes. pico is not giga.
         if has_unit:
-            # if unit=="s":
-                # if value < 1:
-                    # value_ = value*(10**(-exp)) # update value to account for prefix
-                # else:
-                    # value_ = value
-                    # prefix = ""
-            # else:
-            value_ = value*(10**(-exp)) # update value to account for prefix
+            if unit=="s":
+                if value < 1:
+                    value_out = value*(10**(-exp)) # update value to account for prefix
+                else:
+                    value_out = value
+                    prefix = ""
+            else:
+                value_out = value*(10**(-exp)) # update value to account for prefix
         else:
-            value_ = value
+            value_out = value
         if decimal:
             str_fmt = "%0."+str(decimal)+"f"
         else:
-            if float("%s"%(value_))%1>0:
+            if float("%s"%(value_out))%1>0:
                 str_fmt = "%s" # with decimals
             else:
                 str_fmt = "%i" # without decimals
-        result = str_fmt%(value_)+has_unit*(" "+prefix+unit)
+        result = str_fmt%(value_out)+has_unit*(" "+prefix+unit)
     except:
-        pass
+        result = str(value)+has_unit*(" "+unit) # if something goes wrong, return this simple format.
     return result
     
     

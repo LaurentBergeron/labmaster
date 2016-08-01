@@ -10,13 +10,13 @@ pi_len = _defaults_.pi_len
 laser_curr = _defaults_.laser_current
 rf_freq = _defaults_.sig_gen_freq
 
-params = Params("loops", "tau:s", "phase_cycle", "phase_start", "time_axis:s", "bin_length:s")
+params = Params("loops", "tau;s", "phase_cycle", "phase_start", "time_axis;s", "bin_length:s")
 params.phase_start.value = "X"
 params.bin_length.value = _defaults_.bin_len
 
 params.tau.sweep_ID = 1
-params.tau.value = 10*ms
-# params.tau.value = orange(0, 20, 10*ms)
+# params.tau.value = 10*ms
+params.tau.value = orange(0, 20, 10*ms)
 
 fig_ref = plt.figure()
 # fig_ref = None
@@ -44,7 +44,6 @@ try:
     params.time_axis.sweep_ID = 0
     params.time_axis.value = np.zeros(params.tau.size())
 
-    experiment.LOADED_SEQUENCE = _sequences_.RAMSEY 
     
     period = scan(lab, params, experiment, fig=fig_ref, quiet=True)
 

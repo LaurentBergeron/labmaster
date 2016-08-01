@@ -7,6 +7,7 @@ import ctypes as ct
 import matplotlib.pyplot as plt
 import importlib
 import time
+import textwrap
 
 # Homemade modules
 from ..classes import Instrument
@@ -46,6 +47,8 @@ class Pulse_blaster_usb(Instrument):
         return 
         
     def add_slave(self, name, channel):
+        if name in ["OPCODE"]:
+            raise nfu.LabMasterError, name+" is a reserved name."
         if not (0 < channel < 25):
             raise nfu.LabMasterError, "Pulse blaster slave "+self.name+" channel must be between 1 and 24."
         self.slaves[name] = channel
@@ -114,6 +117,12 @@ class Pulse_blaster_usb(Instrument):
         self.check_error(status)
         return
     
+    def loop_start(self, num_loops, ref):
+        
+        return
+        
+    def loop_end(self, link_to):
+        return
         
     def preprocess(self):
         instructions = sorted([x for x in self.instructions if x[1]!="OPCODE"])
@@ -211,12 +220,26 @@ class Pulse_blaster_usb(Instrument):
         plt.show()
         return
         
-    def opcode(self, opcode_str, link_to):
+    def opcode(self, opcode_str, data_field):
+        """
+        Valid entries:
+        opcode_str      data_field                  Note
+        ------------------------------------------------------
+        CONTINUE        -                           Use turn_on and turn_off methods instead.
+        STOP            -                           -
+        LOOP            # of loops                  Use loop_start method instead.
+        END_LOOP        address of LOOP             Use loop_end method instead.
+        JSR             address of 1st instruction  WARNING: Time cursor won't update.
+        RTS             -                           WARNING: Time cursor won't update.
+        BRANCH          address to branch to        WARNING: Time cursor won't update.
+        LONG_DELAY      # of repetitions            Automatic when using turn_on and turn_off methods.
+        WAIT            -                           -
+        """
         try:
             exec("opcode=self.spinapi.Inst."+opcode_str)
         except AttributeError:
-            raise nfu.LabMasterError, "Wrong opcode_str"
-        self.instructions.append([self.lab.time_cursor, "OPCODE", opcode, link_to])
+            raise nfu.LabMasterError, "Wrong opcode. \n"+textwrap.dedent(self.opcode.__doc__)
+        self.instructions.append([self.lab.time_cursor, "OPCODE", opcode, data_field])
         return
         
     def turn_on(self, slave, time_on=None, opcode_str="", ref="", rewind=None):

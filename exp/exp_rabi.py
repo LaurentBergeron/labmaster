@@ -25,11 +25,24 @@ def sequence(lab, params):
     
 def create_plot(fig, params, data):
     plotting.createfig_XY(fig, "$\pi$", "data", 1, "--o")
+    fig.axes[0].plot([], "k--")
     return 
     
 def update_plot(fig, params, data):
     plotting.updatefig_XY(fig, params.pi_len.value, data, line_index=0)
     out = None
+    popt = plotting.update_curve_fit(fig, fit_sin, params.pi_len.value[1:], data[1:], nargs = 2, line_index = 1)
+    if popt is not None:
+        fig.suptitle("$T$ = "+nfu.auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
+
+        out = popt[1]
+
     return out
 
     
+
+    
+def fit_sin(xdata, A, period): 
+    """ sine for fitting """
+    return A*np.sin(2*np.pi*xdata/period)
+        

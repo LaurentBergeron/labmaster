@@ -29,8 +29,6 @@ clean_start(globals())
 # Import Lab-Master
 from mod.main import *
 from mod.main import __version__
-from mod.instruments import *
-from mod.classes import Lab, Params
 
 __LABMASTER__ = True
 
@@ -58,8 +56,8 @@ del irun
 # Initialize instruments
 lab = Lab()
 
-lab.add_instrument("awg")
 lab.add_instrument("pb")
+lab.add_instrument("awg")
 lab.add_instrument("usb_counter")
 # lab.add_instrument("laser")
 # lab.add_instrument("lockin")
@@ -72,5 +70,8 @@ print lab
 
 
 ### Auto completion for instrument strings
-for name in available_instruments().keys():
-    exec(name+"='for science!'")
+for name in available_instruments.__dict__.keys():
+    if not name.startswith("_"):
+        exec(name+"='for science!'")
+    
+import numpy

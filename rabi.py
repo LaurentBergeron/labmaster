@@ -8,7 +8,7 @@ pi_len = _defaults_.pi_len
 laser_curr = _defaults_.laser_current
 rf_freq = _defaults_.sig_gen_freq
 
-params = Params("pi_len:s", "bin_length:s")
+params = Params("pi_len;s", "bin_length;s")
 
 params.bin_length.value = _defaults_.bin_len
 
@@ -45,8 +45,8 @@ finally:
              "pi len step;"+str(params.pi_len.get_step()),
              "laser current;"+str(laser_curr),
              "rf freq;"+str(rf_freq),
-             "ND filters;"+ND_filters, 
-             "sensitivity;"+str(amp_sensitivity), 
+             "ND filters;"+_defaults_.ND_filters, 
+             "sensitivity;"+str(_defaults_.amp_sensitivity), 
              "bin length;"+str(params.bin_length.value),
              "error;"+error_manager(as_string=True),
              )

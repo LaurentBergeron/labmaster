@@ -10,6 +10,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as plt3d
 import pylab
+import inspect
+import sys
 from scipy.optimize import curve_fit
 
 # Homemade modules
@@ -61,15 +63,16 @@ def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
     return
 
 def updatefig_XY(fig, xdata, ydata, line_index=0):
-    for child in [x for x in fig.axes[0].get_children() if isinstance(x, mpl.text.Text)]:
+    ax = fig.axes[0]
+    for child in [x for x in ax.get_children() if isinstance(x, mpl.text.Text)]:
         try:
             child.remove()
         except NotImplementedError:
-            pass
-    fig.axes[0].lines[line_index].set_xdata(xdata)
-    fig.axes[0].lines[line_index].set_ydata(ydata)
-    fig.axes[0].relim()
-    fig.axes[0].autoscale()
+            pass          
+    ax.lines[line_index].set_xdata(xdata)
+    ax.lines[line_index].set_ydata(ydata)
+    ax.relim()
+    ax.autoscale()
     return
 
 # surface plot
@@ -81,17 +84,18 @@ def createfig_surface(fig, xlabel, ylabel, zlabel):
     return 
 
 def updatefig_surface(fig, xdata, ydata, zdata):
-    for child in [x for x in fig.axes[0].get_children() if type(x)==plt3d.art3d.Poly3DCollection]:
+    ax = fig.axes[0]
+    for child in [x for x in ax.get_children() if type(x)==plt3d.art3d.Poly3DCollection]:
         child.remove()
-    for child in [x for x in fig.axes[0].get_children() if isinstance(x, mpl.text.Text)]:
+    for child in [x for x in ax.get_children() if isinstance(x, mpl.text.Text)]:
         try:
             child.remove()
         except NotImplementedError:
             pass
     Y, X = np.meshgrid(ydata, xdata)
-    fig.axes[0].plot_surface(X, Y, np.nan_to_num(zdata), rstride=1, cstride=1)
-    fig.axes[0].relim()
-    fig.axes[0].autoscale()
+    ax.plot_surface(X, Y, np.nan_to_num(zdata), rstride=1, cstride=1)
+    ax.relim()
+    ax.autoscale()
     return
 
 # image plot
@@ -104,18 +108,22 @@ def createfig_image(fig, xlabel, xdata, ylabel, ydata):
     return 
 
 def updatefig_image(fig, array):
-    fig.axes[0].images[0].set_data(np.nan_to_num(array.T))            
-    fig.axes[0].images[0].set_norm(mpl.colors.Normalize(vmin=np.min(array), vmax=np.max(array)))
+    ax = fig.axes[0]
+    ax.images[0].set_data(np.nan_to_num(array.T))            
+    ax.images[0].set_norm(mpl.colors.Normalize(vmin=np.min(array), vmax=np.max(array)))
     return
 
 # fitting
     
-def update_curve_fit(fig, fit_func, xdata, ydata, nargs, line_index, \
-        initial_guess = None, *fit_args):
+def update_curve_fit(fig, fit_func, xdata, ydata,  line_index, \
+        nargs=None, initial_guess = None, *fit_args):
 
     xdata = xdata[np.isfinite(ydata)]
     ydata = ydata[np.isfinite(ydata)]
 
+    if nargs==None:
+        nargs = len(inspect.getargspec(fit_func).args) - 1
+    
     if nargs >= xdata.size:
         updatefig_XY(fig, xdata, ydata, line_index = line_index)
         return
@@ -124,13 +132,9 @@ def update_curve_fit(fig, fit_func, xdata, ydata, nargs, line_index, \
         popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
         fit_curve = fit_func(xdata, *popt)
         updatefig_XY(fig, xdata, fit_curve, line_index = line_index)
-    except RuntimeError:
-        print "curve_fit RuntimeError"
+    except:
+        print "curve_fit raised "+sys.exc_info()[0].__name__
         popt = None
-    # display_string = ', '.join(['%0.4f'%x for x in popt])
 
-    ### update fit values
-    # ax = fig.axes[0]
-    # fig.suptitle(display_string, fontsize=15)
     return popt
 

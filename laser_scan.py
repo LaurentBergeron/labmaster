@@ -2,7 +2,7 @@ import exp.exp_laser_scan as experiment
 
 experiment.USE_WAVEMETER = False
 
-params = Params("current:A", "current_meas:A", "curr_estimate_min:A", "curr_estimate_max:A", "wavelength:m", "delay:s")
+params = Params("current;A", "current_meas;A", "curr_estimate_min;A", "curr_estimate_max;A", "wavelength;m", "delay;s")
 
 params.delay.value = 100*ms
 params.current.value = orange(.14,.16,.0001)
