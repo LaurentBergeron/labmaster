@@ -18,34 +18,55 @@ from units import *
 import available_instruments
     
 class Drawer():
-    """    
+    """ 
+    The purpose of the Drawer class is to regroup a specific type of object under the same name.
+    The Lab class and the Params class both inherit from the Drawer class.
+    Only the attributes corresponding to the specific object type will be considered by methods.
+    Though a Drawer can only manage one type of object, any object that inherits from another object is considered to be of that type as well.
+    For example, when calling lab.get_classes(), all Intrument instances from lab will be listed, as well as any instance that inherits from Instrument.
     """
     def __init__(self, type_str):
-        self.class_type = type_str
-    
-    def is_class_type(self, value):
+        """Initialize the drawer. Specify the type of objects that the drawer is meant to hold."""
+        self.object_type = type_str ## name of the object type the drawer is meant to hold (as a string)
+        return
+
+    def __setattr__(self, key, value):
+        if key=="object_type":
+            self.__dict__[key] = value
+        else:
+            if key in self.__dict__.keys(): 
+                if self.is_object_type(self.__dict__[key]):
+                    raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."
+                else:
+                    self.__dict__[key] = value 
+            else:
+                self.__dict__[key] = value 
+        return
+        
+    def is_object_type(self, value):
         try:
             classes = [str(x).split(".")[-1] for x in list(value.__class__.__bases__)+[value.__class__]]
-            return self.class_type in classes
+            out = self.object_type in classes
         except:
-            return False
-        
+            out = False
+        return out
     
     def get_dict(self):
-        return {key:value for key, value in self.__dict__.items() if self.is_class_type(value)}
+        return {key:value for key, value in self.__dict__.items() if self.is_object_type(value)}
     def get_names(self):
-        return [key for key, value in self.__dict__.items() if self.is_class_type(value)]
+        return self.get_dict().keys()
     def get_classes(self):
-        return [value for value in self.__dict__.values() if self.is_class_type(value)]
+        return self.get_dict().values()
     def get_items(self):
-        return [(key, value) for key, value in self.__dict__.items() if self.is_class_type(value)]
+        return self.get_dict().items()
         
     def get_arb_class(self):
         """ Returns an arbitrary class from class drawer. Returns -1 if no class was found. """
         if self.get_dict()=={}:
-            return -1;
+            out = -1;
         else:
-            return self.get_dict().itervalues().next()
+            out = self.get_dict().itervalues().next()
+        return out
 
     def import_to(self, namespace):
         """ Import classes from drawer in the specified namespace. """
@@ -54,19 +75,6 @@ class Drawer():
         namespace.update(self.get_dict())
         return
         
-
-    def __setattr__(self, key, value):
-        if key=="class_type":
-            self.__dict__[key] = value
-        else:
-            if key in self.__dict__.keys(): 
-                if self.is_class_type(self.__dict__[key]):
-                    raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.class_type+"."
-                else:
-                    self.__dict__[key] = value 
-            else:
-                self.__dict__[key] = value 
-        return 
         
         
     
@@ -78,13 +86,13 @@ class Lab(Drawer):
     def __init__(self, *names):
         """ Initialize a Lab instance. """
         Drawer.__init__(self, "Instrument")
-        self.time_cursor = 0 # Keeps track of current time when loading instructions
-        self.total_duration = 0 # The time at which the experiment ends, aka the duration of experiment.
-        self.time_launched = 0 # The time at which last experiment was launched. Must be initialized to zero.
-        self.end_buffer = 20*ms # Add a delay to the end of each experiment (suggested 20 ms). (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows, but still, better be safe.) Second reason for doing this is to let some space for the awg to get its granularity right (so in any case the time buffer should be higher than granularity/sample_rate).
+        self.time_cursor = 0 ## Keeps track of current time when loading instructions
+        self.total_duration = 0 ## The time at which the experiment ends, aka the duration of experiment.
+        self.time_launched = 0 ## The time at which last experiment was launched. Must be initialized to zero.
+        self.end_buffer = 20*ms ## Add a delay to the end of each experiment (suggested 20 ms). (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows, but still, better be safe.) Second reason for doing this is to let some space for the awg to get its granularity right (so in any case the time buffer should be higher than granularity/sample_rate).
         self.add_instrument(*names)
         
-        self.free_evolution_time = 0 # each time the delay() function is called, this variable += the duration of delay.
+        self.free_evolution_time = 0 ## each time the delay() function is called, this variable += the duration of delay.
         return
         
     def abort(self, name):
@@ -112,11 +120,11 @@ class Lab(Drawer):
         
         for name in names:
             try:
-                # Be sure instrument is not to be overwritten.
+                ## Be sure instrument is not to be overwritten.
                 if name in self.get_names():
                     raise nfu.LabMasterError, name+" is already connected."
                     
-                # Case for generic VISA instrument, with custom name and custom visa_ID
+                ## Case for generic VISA instrument, with custom name and custom visa_ID
                 if name[:4]=="VISA":
                     print "Generic VISA instrument requested."
                     _, new_name, visa_ID = "".join(name.split()).split(",")
@@ -127,7 +135,7 @@ class Lab(Drawer):
                     opt_args = (visa_ID,)
                     opt_keyargs = {}
                 else:
-                    # look if requested instrument is available
+                    ## look if requested instrument is available
                     if name not in available_instruments.__dict__:
                         raise nfu.LabMasterError, "Requested instrument "+name+" not found in available_instruments module."
                     module_name = available_instruments.__dict__[name][0]
@@ -138,7 +146,7 @@ class Lab(Drawer):
                 module = importlib.import_module("mod.instruments."+module_name)
                 class_ = module.__dict__[class_name]
             
-                # init requested instrument
+                ## init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
             except:
                 raise
@@ -261,11 +269,11 @@ class Lab(Drawer):
         Input
         - instruction_duration: duration of currently loaded instruction.
         - rewind: After updating time_cursor, call the rewind method with rewind as input.
-               If rewind is the string "start", call the rewind method with instruction_duration as input (go back to )
+               If rewind is "start", do not update time cursor.
         """
         self.time_cursor += instruction_duration
 
-        # The time for current instruction is higher than the final time we have stored, set the final time to current instruction time.
+        ### The time for current instruction is higher than the final time we have stored, set the final time to current instruction time.
         if self.time_cursor > self.total_duration:
             self.total_duration = self.time_cursor
 

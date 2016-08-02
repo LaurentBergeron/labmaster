@@ -9,8 +9,6 @@ awg_amp = _defaults_.awg_amp
 awg_freq = _defaults_.awg_freq
 awg_sample_rate = 976*MHz
 pi_len = _defaults_.pi_len
-laser_curr = _defaults_.laser_current
-rf_freq = _defaults_.sig_gen_freq
 
 params = Params("tau;s", "phase_cycle", "phase_start", "time_axis;s", "bin_length;s")
 params.phase_start.value = "X"
@@ -60,8 +58,9 @@ finally:
              "tau end;"+str(params.tau.get_end()),
              "tau step;"+str(params.tau.get_step()),
              "phase cycling;"+("Yes"*PHASE_CYCLING+"No"*(not PHASE_CYCLING)),
-             "laser current;"+str(laser_curr),
-             "rf freq;"+str(rf_freq),
+             "laser current set;"+str(_defaults_.laser_current),
+             "laser current read;"+str(lab.laser.get_current()),
+             "rf freq;"+str(lab.sig_gen.get_freq()),
              "ND filters;"+_defaults_.ND_filters, 
              "sensitivity;"+str(_defaults_.amp_sensitivity), 
              "bin length;"+str(params.bin_length.value),

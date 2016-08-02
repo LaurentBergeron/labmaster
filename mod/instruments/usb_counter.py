@@ -15,7 +15,7 @@ from .. import not_for_user
 nfu = not_for_user 
         
 
-class Usb_counter(Instrument):
+class Usb_counter_CTR04(Instrument):
     """
     First use procedure: 
     1) Install instaCal from Measurement Computing Corporation. http://www.mccdaq.com/daq-software/instacal.aspx

@@ -31,7 +31,7 @@ def update_plot(fig, params, data):
     
     try:
         peak_min = "%0.0f"%np.min(nonan[curr_min_idx:curr_max_idx+1])
-        at_freq = " at freq "+nfu.auto_unit(params.current.value[np.argmin(nonan[curr_min_idx:curr_max_idx+1])+curr_min_idx], "Hz", decimal=6)
+        at_freq = " at freq "+auto_unit(params.current.value[np.argmin(nonan[curr_min_idx:curr_max_idx+1])+curr_min_idx], "Hz", decimal=6)
     except ValueError:
         peak_min = "unknown"
         at_freq = ""

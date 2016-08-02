@@ -57,7 +57,7 @@ def update_plot(fig, params, data):
         if params.phase_cycle.v=="-":
             popt = plotting.update_curve_fit(fig, fit_exp, params.time_axis.value[1:], cyclediff[1:], line_index = 3, nargs = 2, initial_guess=[cyclediff[1], 10])
             if popt is not None:
-                fig.suptitle("$T_1$ = "+nfu.auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
+                fig.suptitle("$T_1$ = "+auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
                 out = popt[0], popt[1]
 
     return out

@@ -34,10 +34,10 @@ class Default_visa(Instrument):
     
     def close(self):
         return self.device_handle.close()
-    
+            
 ####################################################################################################################################################################################################################
 
-class Laser(Instrument):
+class Laser_ITC4001(Instrument):
     """
     # need things to set the things in the itc
     """
@@ -61,23 +61,27 @@ class Laser(Instrument):
         
     def check_temperature(self, temp):
         if temp > self.MAX_TEMP:
-            raise nfu.LabMasterError, "Can't set laser current higher than "+str(self.MAX_TEMP)+" Celcius."
+            self.beep()
+            raise LaserITC4001Error, "Can't set temperature higher than "+str(self.MAX_TEMP)+" Celcius."
         elif temp < self.MIN_TEMP:
-            raise nfu.LabMasterError, "Can't set laser current lower than "+str(self.MIN_TEMP)+" Celcius."
+            self.beep()
+            raise LaserITC4001Error, "Can't set temperature lower than "+str(self.MIN_TEMP)+" Celcius."
         return
         
     def check_current(self, curr):
         if curr > self.MAX_CURR:
-            raise nfu.LabMasterError, "Can't set laser current higher than "+str(self.MAX_CURR*1e3)+" mA."
+            self.beep()
+            raise LaserITC4001Error, "Can't set current higher than "+str(self.MAX_CURR*1e3)+" mA."
         elif curr < self.MIN_CURR:
-            raise nfu.LabMasterError, "Can't set laser current lower than "+str(self.MIN_CURR*1e3)+" mA."
+            self.beep()
+            raise LaserITC4001Error, "Can't set current lower than "+str(self.MIN_CURR*1e3)+" mA."
         return
     
     def get_temp(self):
-        return self.device_handle.query("meas:temp?")
+        return float(self.device_handle.query("meas:temp?"))
     
     def get_current(self):
-        return self.device_handle.query("meas:curr?")
+        return float(self.device_handle.query("meas:curr?"))
     
     def measure(self):
         retval = self.device_handle.query("read?")
@@ -106,11 +110,13 @@ class Laser(Instrument):
 
     def close(self):
         return self.device_handle.close()
-        
+
+class LaserITC4001Error(nfu.LabMasterError):
+    pass
         
 ####################################################################################################################################################################################################################
 
-class Lockin(Instrument):
+class Lockin_5210(Instrument):
     """
     # Need some functions to set all the lockin parameters
     """
@@ -158,9 +164,12 @@ class Lockin(Instrument):
         return self.device_handle.close()
 
 
+class Lockin5210Error(nfu.LabMasterError):
+    pass
+        
 ####################################################################################################################################################################################################################
 
-class Signal_generator(Instrument):
+class Sig_gen_E8257D(Instrument):
     """
     authors : Adam DeAbreu <adeabreu@sfu.ca>, Laurent Bergeron <laurent.bergeron4@gmail.com>
     """
@@ -173,6 +182,15 @@ class Signal_generator(Instrument):
     def abort(self):
         return
 
+    def get_freq(self):
+        retval = self.device_handle.query("source:freq:fix?")
+        return float(retval)
+
+    def get_amp(self):
+        retval = self.device_handle.query("source:power:alc:level?")
+        return float(retval)
+
+
     def set_freq(self, freq):
         """ """
         freq = str(freq/1e9)
@@ -184,20 +202,16 @@ class Signal_generator(Instrument):
         self.device_handle.write("source:power:alc:level "+amp+"DBM")
         return
 
-    def read_freq(self):
-        retval = self.device_handle.query("source:freq:fix?")
-        return float(retval)
-
-    def read_amp(self):
-        retval = self.device_handle.query("source:power:alc:level?")
-        return float(retval)
-
     def close(self):
         return self.device_handle.close()
 
+class SigGenE8257D(nfu.LabMasterError):
+    pass
+    
+    
 ####################################################################################################################################################################################################################
 
-class Signal_generator_srs(Instrument):
+class Sig_gen_SRS(Instrument):
     """
     """
     def __init__(self, name, parent, visa_ID):
@@ -208,17 +222,21 @@ class Signal_generator_srs(Instrument):
 
     def abort(self):
         return
+        
+    def get_freq(self):
+        retval = self.device_handle.query("FREQ?")
+        return float(retval)
 
     def set_freq(self, freq):
         freq = str(freq)
         self.device_handle.write("FREQ " + freq)
         return
 
-    def read_freq(self):
-        retval = self.device_handle.query("FREQ?")
-        return float(retval)
 
     def close(self):
         return self.device_handle.close()
-    
+
+class SigGenSRSError(nfu.LabMasterError):
+    pass
+        
 ####################################################################################################################################################################################################################

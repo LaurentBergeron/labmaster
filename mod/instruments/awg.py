@@ -18,7 +18,7 @@ from .. import not_for_user
 nfu = not_for_user 
 
 
-class Awg(Instrument):
+class Awg_M8190A(Instrument):
     """
     First use procedure: TODO
     I recommend to use the Soft Front Panel to debug.

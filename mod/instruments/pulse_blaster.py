@@ -15,7 +15,7 @@ from ..units import *
 from .. import not_for_user     
 nfu = not_for_user 
 
-class Pulse_blaster_usb(Instrument):
+class Pulse_blaster_USB(Instrument):
     """
     Installation procedure: 
     1) Install 32-bit spinapi drivers. http://www.spincore.com/support/spinapi/SpinAPI_Main.shtml

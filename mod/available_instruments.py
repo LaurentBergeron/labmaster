@@ -20,11 +20,11 @@ It's possible to connect to a generic VISA instrument with no specific class, mo
 """
 
 ## name         ## Module             ## class                ## optional arguments                           ## optional key arguments
-awg =         [ "awg",                "Awg",                  ("PXI13::0::0::INSTR",),                        {}  ]
-lockin =      [ "visa_instruments",   "Lockin",               ("GPIB0::12::INSTR",),                          {}  ]
-pb =          [ "pulse_blaster",      "Pulse_blaster_usb",    (),                                             {}  ]
-laser =       [ "visa_instruments",   "Laser",                ("USB0::0x1313::0x804A::M00243388::INSTR",),    {}  ]
-sig_gen =     [ "visa_instruments",   "Signal_generator",     ("GPIB0::19::INSTR",),                          {}  ]
-sig_gen_srs = [ "visa_instruments",   "Signal_generator_srs", ("GPIB0::3::INSTR",),                           {}  ]
+awg =         [ "awg",                "Awg_M8190A",           ("PXI13::0::0::INSTR",),                        {}  ]
+pb =          [ "pulse_blaster",      "Pulse_blaster_USB",    (),                                             {}  ]
+usb_counter = [ "usb_counter",        "Usb_counter_CTR04",    (0,),                                           {}  ]
+lockin =      [ "visa_instruments",   "Lockin_5210",          ("GPIB0::12::INSTR",),                          {}  ]
+laser =       [ "visa_instruments",   "Laser_ITC4001",        ("USB0::0x1313::0x804A::M00243388::INSTR",),    {}  ]
+sig_gen =     [ "visa_instruments",   "Sig_gen_E8257D",       ("GPIB0::19::INSTR",),                          {}  ]
+sig_gen_srs = [ "visa_instruments",   "Sig_gen_SRS",          ("GPIB0::3::INSTR",),                           {}  ]
 wavemeter =   [ "wavemeter",          "Wavemeter",            (3,),                                           {}  ]
-usb_counter = [ "usb_counter",        "Usb_counter",          (0,),                                           {}  ]
