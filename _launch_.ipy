@@ -57,8 +57,8 @@ del irun
 lab = Lab()
 
 lab.add_instrument("pb")
-lab.add_instrument("awg")
-lab.add_instrument("usb_counter")
+# lab.add_instrument("awg")
+# lab.add_instrument("usb_counter")
 # lab.add_instrument("laser")
 # lab.add_instrument("lockin")
 # lab.add_instrument("sig_gen")

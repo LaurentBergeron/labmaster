@@ -31,7 +31,7 @@ import visa
 
 # Homemade modules
 import not_for_user as nfu
-from not_for_user import LabMasterError, today, lastID
+from not_for_user import LabMasterError, today, lastID, auto_unit
 import classes
 from classes import Lab, Params
 import plotting

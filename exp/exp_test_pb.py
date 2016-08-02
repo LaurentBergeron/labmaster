@@ -6,7 +6,7 @@ import numpy as np
 from mod.main import *
 
 def sequence(lab, params):
-    lab.pb.turn_on("slave", time_on=100*ms)
+    lab.pb.turn_on("slave", time_on=100*ms, ref="prout")
     lab.pb.delay(params.tau1.v)
     lab.pb.turn_on("slave", time_on=100*ms)
     lab.pb.delay(params.tau2.v)

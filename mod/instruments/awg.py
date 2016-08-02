@@ -71,7 +71,7 @@ class Awg(Instrument):
             self.check_error(status)
             self.set_ref_clock_route("AXI")
             self.set_sample_clock_output_route("internal")
-            self.set_sample_clock_rate(9e9)
+            self.set_sample_rate(9e9)
             self.set_channel_coupling("off")
             for channel in ("1", "2"):
                 self.abort_generation(channel)
@@ -197,7 +197,7 @@ class Awg(Instrument):
             route = "external"
         return route  
         
-    def get_sample_clock_rate(self):
+    def get_sample_rate(self):
         sample_rate = self.get_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE)
         return sample_rate
 
@@ -234,7 +234,7 @@ class Awg(Instrument):
     def initiate_generation(self, channel):
         status = self.AgM8190.ChannelInitiateGeneration(self.session, str(channel))
         self.check_error(status)
-        time.sleep(0.1) # needed to let some time to initiate. TODO: test with 10240/sample_rate
+        time.sleep(2*10240/self.get_sample_rate()) ## needed to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
         return
         
     def load_memory(self):
@@ -249,7 +249,7 @@ class Awg(Instrument):
             ### Preprocess: Merge pulses and markers into blocks, detect delays.
             segments={}
             self.preprocess(channel, segments)
-            if segments=={}: # skip the rest of the loop if no instructions are detected.
+            if segments=={}: ## skip the rest of the loop if no instructions are detected.
                 if channel=="1" and self.show_warning_no_inst1:
                     print nfu.warn_msg()+"awg: no instructions for channel1"
                     self.show_warning_no_inst1 = False
@@ -267,10 +267,10 @@ class Awg(Instrument):
             self.check_error(status)
             
             
-            segment_ID_delay = vt.ViInt32(0) # Segment ID for the zero amplitude waveform used for delays.
-            segment_ID = vt.ViInt32(0) # Segment ID for block type waveforms (will increment by one for each different block)
-            data = (vt.ViInt32 * 6)() # Array intented for the SequenceTableSetData() function
-            waveform_int16_delay = (vt.ViInt16*self.tick)() # waveform used for delay sequences (initialized with zeros)
+            segment_ID_delay = vt.ViInt32(0) ## Segment ID for the zero amplitude waveform used for delays.
+            segment_ID = vt.ViInt32(0) ## Segment ID for block type waveforms (will increment by one for each different block)
+            data = (vt.ViInt32 * 6)() ## Array intented for the SequenceTableSetData() function
+            waveform_int16_delay = (vt.ViInt16*self.tick)() ## waveform used for delay sequences (initialized with zeros)
             
         
             ### For each segment, load the sequence table accordingly. The process will differ if the segment is a "block" or a "delay".
@@ -307,24 +307,23 @@ class Awg(Instrument):
                     self.check_error(status)
                     segment_ID_active = segment_ID_delay
                 
-                # print i, is_start_of_a_sequence, is_end_of_a_sequence
-                
+               
                 ### Prepare the data array
-                data[0] = 0 # data = 0 if nothing is special about the segment
+                data[0] = 0 ## data = 0 if nothing is special about the segment
                 if self.marker_enable:
-                    data[0] += self.AgM8190.control["MarkerEnable"] # Enable marker
+                    data[0] += self.AgM8190.control["MarkerEnable"] ## Enable marker
                 if is_start_of_a_sequence:
-                    data[0] += self.AgM8190.control["InitMarkerSequence"] # start sequence if it's the start of table or start of a loop
+                    data[0] += self.AgM8190.control["InitMarkerSequence"] ## start sequence if it's the start of table or start of a loop
                 if is_end_of_a_sequence:
-                    data[0] += self.AgM8190.control["EndMarkerSequence"]  # end sequence if it's the end of a loop
+                    data[0] += self.AgM8190.control["EndMarkerSequence"]  ## end sequence if it's the end of a loop
                 if i == len(segments["type"])-1:
-                    data[0] += self.AgM8190.control["EndMarkerScenario"]  # end scenario
+                    data[0] += self.AgM8190.control["EndMarkerScenario"]  ## end scenario
                 
-                data[1] = sequence_loops # Sequence Loop Count
-                data[2] = segment_loops # Segment Loop Count
-                data[3] = segment_ID_active.value  # Active segment ID
-                data[4] = 0 # Segment Start Offset (0 = no offset)
-                data[5] = 0xffffffff # Segment End Offset (0xffffffff = no offset)
+                data[1] = sequence_loops ## Sequence Loop Count
+                data[2] = segment_loops ## Segment Loop Count
+                data[3] = segment_ID_active.value  ## Active segment ID
+                data[4] = 0 ## Segment Start Offset (0 = no offset)
+                data[5] = 0xffffffff ## Segment End Offset (0xffffffff = no offset)
                 
                 
                 ### Load the sequence table in awg memory.
@@ -365,7 +364,7 @@ class Awg(Instrument):
         """
         ### Add a tiny delay to start loop on a tick.
         if autopad:
-            sample_rate = self.get_sample_clock_rate()
+            sample_rate = self.get_sample_rate()
             sample_counts = int(self.lab.time_cursor*sample_rate)
             if sample_counts%320 == 0:
                 padded_counts = sample_counts
@@ -384,7 +383,7 @@ class Awg(Instrument):
         """        
         ### Add a tiny delay to end loop on a tick.
         if autopad:
-            sample_rate = self.get_sample_clock_rate()
+            sample_rate = self.get_sample_rate()
             sample_counts = int(self.lab.time_cursor*sample_rate)
             if sample_counts%320 == 0:
                 padded_counts = sample_counts
@@ -450,7 +449,7 @@ class Awg(Instrument):
             raise nfu.LabMasterError, "Activate the marker_enable awg option when using markers."
 
         ### Get useful info from awg
-        sample_rate = self.get_sample_clock_rate()
+        sample_rate = self.get_sample_rate()
         awg_amp = self.get_amplitude(channel)
         
         ### Combine marker specs and pulses specs (the trick is to consider each marker as a zero amplitude pulse: preprocess will pad correctly, then after padding markers will be added to the waveform)
@@ -536,7 +535,7 @@ class Awg(Instrument):
             segments["sequence_info"].append({"is_start":is_start_of_a_sequence, "is_end":is_end_of_a_sequence, "loops":loops_count})
         else:
             first_segment_is_block_type = True
-            if trigger_latency > 0:
+            if self.adjust_trig_latency:
                 raise nfu.LabMasterError, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
         
         _magic_crop = False
@@ -674,7 +673,7 @@ class Awg(Instrument):
         loops_count = 1
         is_end_of_a_sequence = False
         
-        sample_rate = self.get_sample_clock_rate()
+        sample_rate = self.get_sample_rate()
         ### Find out if a loop starts in this segment
         count = 0
         for t, time_ in enumerate(loop_start_times):
@@ -710,7 +709,7 @@ class Awg(Instrument):
         if self.lab.total_duration == 0:
             raise nfu.LabMasterError, "No sequence is loaded."
 
-        sample_rate = self.get_sample_clock_rate()
+        sample_rate = self.get_sample_rate()
 
         segments = {}
         self.preprocess("1", segments)
@@ -775,7 +774,7 @@ class Awg(Instrument):
             raise nfu.LabMasterError, shapes[i]+" is not a valid shape. Refer to dll_wfmGenLib2.py for valid shapes."
         
         # check freq
-        if freq > 2*self.get_sample_clock_rate():
+        if freq > 2*self.get_sample_rate():
             raise nfu.LabMasterError, "Nyquist sampling criterion violated."
         if (not 50*MHz <= freq <= 5*GHz) and self.get_channel_route(1)=="AC":
             if self.show_warning_freqrangeAC:
@@ -992,8 +991,8 @@ class Awg(Instrument):
             print "awg sample clock output route set to "+str(query)+"." 
         return    
         
-    def set_sample_clock_rate(self, rate):
-        current_rate = self.get_sample_clock_rate()
+    def set_sample_rate(self, rate):
+        current_rate = self.get_sample_rate()
         if current_rate == rate:
             print "awg sample rate is "+nfu.auto_unit(rate, "Sa/s")+"."
         else:
@@ -1104,6 +1103,7 @@ class Awg(Instrument):
     
 
 class AgM8190Error(nfu.LabMasterError):
+    """Errors raised by the instrument"""
     pass       
 
         
