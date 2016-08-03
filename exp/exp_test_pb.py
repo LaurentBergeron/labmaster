@@ -6,12 +6,16 @@ import numpy as np
 from mod.main import *
 
 def sequence(lab, params):
-    lab.pb.turn_on("slave", time_on=100*ms, ref="prout")
-    lab.pb.delay(params.tau1.v)
-    lab.pb.turn_on("slave", time_on=100*ms)
-    lab.pb.delay(params.tau2.v)
-    lab.pb.turn_on("slave", time_on=100*ms)
-    lab.pb.delay(1)
+    lab.pb.turn_on(1, time_on=50*us)
+    lab.pb.loop_start(2, ref="loop")
+    lab.pb.delay(50*us)
+    lab.pb.turn_on(2, time_on=50*us, rewind=25*us, ref="b")
+    lab.pb.turn_on(3, time_on=50*us)
+    lab.pb.loop_end("loop", duration = 50*us)
+    lab.pb.delay(50*us)
+    lab.pb.turn_on(4, time_on=50*us)
+    lab.pb.branch("b", duration = 25*us)
+    
     return
     
  

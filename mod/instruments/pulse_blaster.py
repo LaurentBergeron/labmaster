@@ -58,7 +58,7 @@ class Pulse_blaster_USB(Instrument):
         if not (0 < channel < 25):
             raise PulseBlasterUSBError, "Failed to add slave, "+name+" channel must be between 1 and 24."
         for key, channel_ in self.slaves.items():
-            if channel==channel_:
+            if channel==channel_ and key!=name:
                 raise PulseBlasterUSBError, "Channel "+str(channel)+" is already assigned to '"+key+"'."
         self.slaves[name] = channel
         return
@@ -124,6 +124,10 @@ class Pulse_blaster_USB(Instrument):
         self.check_error(status)
         return status
     
+    def JSR(self, link_to, duration=0, ref="", rewind=None):
+        self.opcode("JSR", link_to, duration=duration, ref=ref, rewind=rewind)
+        return
+    
     def keep_going(self, ref=""):
         """
         Status quo instruction.
@@ -172,8 +176,9 @@ class Pulse_blaster_USB(Instrument):
         
         ### Load results from self.preprocess() using spinapi.pb_inst_pbonly commands.
         for flags, opcode, data_field, duration in self.preprocess():
+            print flags, opcode, data_field, duration
             status = self.spinapi.pb_inst_pbonly(int(flags,2), opcode, data_field, duration*1e9)
-        
+        print ""
         ### All channels offs.
         self.flags = "0"*24
         start = self.spinapi.pb_inst_pbonly(int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
@@ -342,7 +347,9 @@ class Pulse_blaster_USB(Instrument):
     
     def print_loaded_sequence(self, show_slave="all", ax=None):
         """
-        Show the loaded sequence in a matplotlib figure.
+        Show the loaded sequence in a matplotlib figure. 
+        
+        Loops and branches not implemented.
         
         Input:
         - show_slave: A list of slaves names to show.
@@ -400,13 +407,13 @@ class Pulse_blaster_USB(Instrument):
         STOP            Not used                    -
         LOOP            # of loops                  Use loop_start() method instead. WARNING: Time cursor won't update.
         END_LOOP        ref string to loop start    Use loop_end() method instead. WARNING: Time cursor won't update.
-        JSR             address of 1st instruction  WARNING: Time cursor won't update.
-        RTS             Not used                    WARNING: Time cursor won't update.
+        JSR             address of 1st instruction  Not tested. WARNING: Time cursor won't update.
+        RTS             Not used                    Not tested. WARNING: Time cursor won't update.
         BRANCH          ref string to branch start  Use branch() method instead. WARNING: Time cursor won't update.
-        LONG_DELAY      # of repetitions            Automatic when using turn_on and turn_off methods.
+        LONG_DELAY      # of repetitions            Automatic in preprocess.
         WAIT            Not used                    -
         """
-        if opcode not in self.available_opcodes():
+        if opcode_str not in self.available_opcodes():
             raise PulseBlasterUSBError, "Wrong opcode. \n"+textwrap.dedent(PulseBlasterUSB.opcode.__doc__)
         self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref])
         if duration > 0:
@@ -414,6 +421,9 @@ class Pulse_blaster_USB(Instrument):
             self.keep_going()
         return
         
+    def RTS(self, duration=0, ref="", rewind=None):
+        self.opcode("RTS", 0, duration=duration, ref=ref, rewind=rewind)
+        return
     
     def turn_on(self, slave, time_on=None, opcode_str="", data_field=0, ref="", rewind=None):
         """
