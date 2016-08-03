@@ -13,7 +13,7 @@ console = "Console2" ## choose from the list in header documentation
 
 
 import os
-
+ 
 ## WINDOWS
 if os.name == "nt":
     ## Classic cmd.exe start
