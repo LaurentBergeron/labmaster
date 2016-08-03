@@ -10,7 +10,7 @@ def launch(lab, params):
 
 
 def get_data(lab, params):  
-    return lab.lockin.measure()
+    return lab.lockin.get_X()
 
     
 def create_plot(fig, params, data):

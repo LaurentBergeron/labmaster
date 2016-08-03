@@ -18,7 +18,7 @@ def get_data(lab, params):
         wavenumber = lab.wavemeter.measure()
     else:
         wavenumber = 0
-    return lab.lockin.measure(), wavenumber
+    return lab.lockin.get_X(), wavenumber
 
 
 def create_plot(fig, params, data):

@@ -90,6 +90,7 @@ class Pulse_blaster_USB(Instrument):
         """
         BRANCH opcode.
         Will branch to the instruction with the same ref as the 'link_to' input. 
+        WARNING: Time cursor won't update. Do not use in combinaison with other instruments if timing is important.
         Ex:
         turn_on(..., ref="ilovetobranch!")
         ... useful experiment ...
@@ -125,6 +126,7 @@ class Pulse_blaster_USB(Instrument):
         return status
     
     def JSR(self, link_to, duration=0, ref="", rewind=None):
+        """WARNING: Time cursor won't update. Do not use in combinaison with other instruments if timing is important."""
         self.opcode("JSR", link_to, duration=duration, ref=ref, rewind=rewind)
         return
     
@@ -405,13 +407,15 @@ class Pulse_blaster_USB(Instrument):
         ------------------------------------------------------
         CONTINUE        Not used                    Use turn_on and turn_off methods instead.
         STOP            Not used                    -
-        LOOP            # of loops                  Use loop_start() method instead. WARNING: Time cursor won't update.
-        END_LOOP        ref string to loop start    Use loop_end() method instead. WARNING: Time cursor won't update.
-        JSR             address of 1st instruction  Not tested. WARNING: Time cursor won't update.
-        RTS             Not used                    Not tested. WARNING: Time cursor won't update.
-        BRANCH          ref string to branch start  Use branch() method instead. WARNING: Time cursor won't update.
+        LOOP            # of loops                  Use loop_start() method instead. *SEE WARNING*
+        END_LOOP        ref string to loop start    Use loop_end() method instead. *SEE WARNING*
+        JSR             ref string to subroutine    Not tested. *SEE WARNING*
+        RTS             Not used                    Not tested. *SEE WARNING*
+        BRANCH          ref string to branch start  Use branch() method instead. *SEE WARNING*
         LONG_DELAY      # of repetitions            Automatic in preprocess.
         WAIT            Not used                    -
+        
+        *WARNING*: Time cursor won't update. Do not use in combinaison with other instruments if timing is important.
         """
         if opcode_str not in self.available_opcodes():
             raise PulseBlasterUSBError, "Wrong opcode. \n"+textwrap.dedent(PulseBlasterUSB.opcode.__doc__)
@@ -422,6 +426,7 @@ class Pulse_blaster_USB(Instrument):
         return
         
     def RTS(self, duration=0, ref="", rewind=None):
+        """WARNING: Time cursor won't update. Do not use in combinaison with other instruments if timing is important."""
         self.opcode("RTS", 0, duration=duration, ref=ref, rewind=rewind)
         return
     

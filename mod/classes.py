@@ -244,6 +244,11 @@ class Lab(Drawer):
         plt.show()
         return
         
+    def reload(self, name):
+        self.close(name)
+        self.add_instrument(name)
+        return
+        
     def reset_instructions(self):
         """ Reset everything instructions related from lab, as well as the instructions of each memory instrument. """
         for instrument in self.get_memory_instruments():
@@ -321,6 +326,10 @@ class Instrument():
                 self.is_ping_pong = False
                 print nfu.warn_msg()+self.name+" is set to ping_pong but has no memory. is_ping_pong attribute set back to False.\n"
             
+        return
+    
+    def reload(self):
+        self.lab.reload(self.name)
         return
     
     def delay(self, length):

@@ -214,7 +214,8 @@ def check_params(params):
         if param.is_not_const():
             if len(param.value) < 1:
                 raise LabMasterError, key+".value is an array or list with length zero."
-         
+            if len(param.value) > 1e6:
+                print nfu.warn_msg()+param.name+" array is very large and takes a lot of memory. Consider using a smaller array."
     # Sweep checks
     for i in range(1,params.get_dimension()+1):
         if params.get_current_sweeps(i)==[]:

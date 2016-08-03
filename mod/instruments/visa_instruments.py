@@ -124,19 +124,65 @@ class Lockin_5210(Instrument):
         Instrument.__init__(self, name, parent) 
         rm = vi.ResourceManager()
         self.device_handle = rm.open_resource(visa_ID)
-        self.meas_mode = 'Y'
         return
     
     def abort(self):
         return
-
-    def set_meas_mode(self, meas_mode):
-        self.meas_mode = meas_mode
+        
+    def auto_phase(self):
+        self.device_handle.write('AQN')
         return
 
-    def measure(self):
-        retval = self.device_handle.query(self.meas_mode)
+    def get_X(self):
+        retval = self.device_handle.query('X')
         return float(retval)
+        
+    def get_Y(self):
+        retval = self.device_handle.query('Y')
+        return float(retval)
+        
+    def get_XY(self):
+        X, Y = self.device_handle.query('XY').split(",")
+        return float(X), float(Y)
+        
+    def get_magnitude(self):
+        retval = self.device_handle.query('MAG')
+        return float(retval)
+        
+    def get_phase(self):
+        retval = self.device_handle.query('PHA')
+        return float(retval)
+        
+    def get_magnitude_and_phase(self):
+        mag, phase = self.device_handle.query('MP').split(",")
+        return float(mag), float(phase)/1000.0
+
+    def get_time_constant(self):
+        code = self.device_handle.query('TC')
+        return self.time_cst_chart.get(str(int(code)), "failed")
+
+    def get_sensitivity(self):
+        code = self.device_handle.query('SEN')
+        return self.sensitivity_chart.get(str(int(code)), "failed")
+        
+    def set_time_constant(self, time_cst):
+        code = None
+        for key, value in self.time_cst_chart.items():
+            if value==time_cst:
+                code = key
+        if code==None:
+            raise Lockin5210Error, "Requested time constant not available."
+        return self.device_handle.write('TC '+code)
+
+    def set_sensitivity(self, sensitivity):
+        code = None
+        for key, value in self.sensitivity_chart.items():
+            if value==sensitivity:
+                code = key
+        if code==None:
+            raise Lockin5210Error, "Requested sensitivity not available."
+        return self.device_handle.write('SEN '+code)
+        
         
     def write_arb(self, towrite):
         try:
@@ -164,6 +210,38 @@ class Lockin_5210(Instrument):
         return self.device_handle.close()
 
 
+    sensitivity_chart = {"0":100*nV,
+                         "1":300*nV,
+                         "2":uV,
+                         "3":3*uV,
+                         "4":10*uV,
+                         "5":30*uV,
+                         "6":100*uV,
+                         "7":300*uV,
+                         "8":mV,
+                         "9":3*mV,
+                         "10":10*mV,
+                         "11":30*mV,
+                         "12":100*mV,
+                         "13":300*mV,
+                         "14":1,
+                         "15":3}
+
+    time_cst_chart = {"0":ms,
+                      "1":3*ms,
+                      "2":10*ms,
+                      "3":30*ms,
+                      "4":100*ms,
+                      "5":300*ms,
+                      "6":1,
+                      "7":3,
+                      "8":10,
+                      "9":30,
+                      "10":100,
+                      "11":300,
+                      "12":1000,
+                      "13":3000}
+        
 class Lockin5210Error(nfu.LabMasterError):
     pass
         
@@ -177,9 +255,27 @@ class Sig_gen_E8257D(Instrument):
         Instrument.__init__(self, name, parent) 
         rm = vi.ResourceManager()
         self.device_handle = rm.open_resource(visa_ID)
+        self.MIN_FREQ = 100*kHz
+        self.MAX_FREQ = 50*GHz
+        self.MIN_AMP = -20 ##dBm
+        self.MAX_AMP = 12 ##dBm
         return
 
     def abort(self):
+        return
+        
+    def check_freq(self, freq):
+        if freq > self.MAX_FREQ:
+            raise SigGenE8257DError, "Can't set freq higher than "+nfu.auto_unit(self.MAX_FREQ, "Hz")+"."
+        elif freq < self.MIN_FREQ:
+            raise SigGenE8257DError, "Can't set freq lower than "+nfu.auto_unit(self.MIN_FREQ, "Hz")+"."
+        return
+        
+    def check_amp(self, amp):
+        if amp > self.MAX_AMP:
+            raise SigGenE8257DError, "Can't set amp higher than "+nfu.auto_unit(self.MAX_AMP, "dBm")+"."
+        elif amp < self.MIN_AMP:
+            raise SigGenE8257DError, "Can't set amp lower than "+nfu.auto_unit(self.MIN_AMP, "dBm")+"."
         return
 
     def get_freq(self):
@@ -192,20 +288,19 @@ class Sig_gen_E8257D(Instrument):
 
 
     def set_freq(self, freq):
-        """ """
-        freq = str(freq/1e9)
-        self.device_handle.write("source:freq:fix "+freq+"GHZ")
+        self.check_freq(freq)
+        self.device_handle.write("source:freq:fix "+str(freq/1e9)+"GHZ")
         return
 
     def set_amp(self, amp):
-        amp = str(amp)
-        self.device_handle.write("source:power:alc:level "+amp+"DBM")
+        self.check_amp(amp)
+        self.device_handle.write("source:power:alc:level "+str(amp)+"DBM")
         return
 
     def close(self):
         return self.device_handle.close()
 
-class SigGenE8257D(nfu.LabMasterError):
+class SigGenE8257DError(nfu.LabMasterError):
     pass
     
     
