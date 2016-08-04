@@ -9,3 +9,9 @@ from mod.main import *
 
 def get_data(lab, params):  
     return params.x.v, random.random()
+
+def update_plot(fig, lab, params):
+    return "test"
+    
+def create_plot(fig, lab, params):
+    return "test"

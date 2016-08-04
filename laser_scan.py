@@ -15,25 +15,19 @@ fig_ref = plt.figure()
 # fig_ref = None
 
     
-try:
-    lab.laser.set_current(params.current.value[0])
-    time.sleep(200*ms)
-    
-    params.current_meas.value = np.zeros(params.current.size())
-    
-    current_at_min = scan(lab, params, experiment, fig=fig_ref)
-    
-except:
-    current_at_min = None
-    error_manager()
+lab.laser.set_current(params.current.value[0])
+time.sleep(200*ms)
 
-finally:
-    save_script()
-    notebook("current start;"+str(params.current.get_start()),
-             "current end;"+str(params.current.get_end()),
-             "current step;"+str(params.current.get_step()),
-             "delay;"+str(params.delay.value),
-             "ND filters;"+_defaults_.ND_filters, 
-             "sensitivity;"+str(_defaults_.amp_sensitivity), 
-             "error;"+error_manager(as_string=True),
-             )
+params.current_meas.value = np.zeros(params.current.size())
+
+current_at_min = scan(lab, params, experiment, fig=fig_ref)
+
+
+notebook("current start;"+str(params.current.get_start()),
+         "current end;"+str(params.current.get_end()),
+         "current step;"+str(params.current.get_step()),
+         "delay;"+str(params.delay.value),
+         "ND filters;"+_defaults_.ND_filters, 
+         "sensitivity;"+str(_defaults_.amp_sensitivity), 
+         "error;"+error_manager(as_string=True),
+         )

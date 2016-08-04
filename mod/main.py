@@ -43,75 +43,92 @@ from units import *
      
         
     
-def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
+def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_errors=False):
     """
     The holy grail of Lab-Master.
     Scan parameters value attribute in the order imposed by their sweep_ID.
     For each point in scan, run an experiment as dicted by experiment module.
     Saves everything under /saved.
     Animated plotting available.
-    
+    TODO describe the error management.
     Input
     - lab: Lab instance with required instruments connected.
     - params: Params instance with required parameters ready for scan.
     - experiment: module from experiments folder, will rule what is going on during experiment.
     - quiet: If True, won't print run and won't ask user if everything is ok. Enable this for overnight runs or if you are overconfident.
     """
-    
-    # Check if inputs are conform to a bunch of restrictions
-    check_params(params)
-    check_experiment(experiment)
-    check_lab(lab)    
-    
-    print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
-    print params   # Print the future run.
-    if quiet: # No time for questions.
-        pass
-    else:
-        if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
-            raise KeyboardInterrupt
-
-    # data is an array full of zeros matching good dimensions imposed by params. dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
-    data = nfu.zeros(params, experiment)
-    # Create folders for today if they don't exist
-    nfu.create_todays_folder()
-    # Create a figure object.
-    if fig != None:
-        experiment.create_plot(fig, params, data)
-    # ID is the number indicated after the date in file names.
-    ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
-    print "ID:",ID,"\n"
-    # Save what we know about the experiment so far in saved/experiment/ folder. 
-    save_experiment(None, None, None, ID, "first_time")
+    output = None
     try:
-        # Stuff that needs to be done before the scan.
+    
+        ## Check if inputs are conform to a bunch of restrictions
+        check_params(params)
+        check_experiment(experiment)
+        check_lab(lab)    
+        
+        print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
+        print params   ## Print the future run.
+        if quiet: ## No time for questions.
+            pass
+        else:
+            if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
+                raise KeyboardInterrupt
+
+        ## data is an array full of zeros matching good dimensions imposed by params. dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
+        data = nfu.zeros(params, experiment)
+        ## Create folders for today if they don't exist
+        nfu.create_todays_folder()
+        ## Create a figure object.
+        if fig != None:
+            experiment.create_plot(fig, params, data)
+        ## ID is the number indicated after the date in file names.
+        ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
+    except:
+        if raise_errors:
+            raise
+        else:
+            error_manager()
+            return
+
+    try:
+        print "ID:",ID,"\n"
+        ## Save what we know about the experiment so far in saved/experiment/ folder. 
+        save_experiment(None, None, None, ID, "first_time")
+        ## Stuff that needs to be done before the scan.
         nfu.get_ready(lab, params)
-        # Call the start function of experiment module
+        ## Call the start function of experiment module
         experiment.start(lab, params)
-        # Start the sweep! data will be filled with science
+        ## Start the sweep! data will be filled with science
         nfu.sweep(lab, params, experiment, data, fig, 1, show_plot)
-        # Call the end function of experiment module
+        ## Call the end function of experiment module
         experiment.end(lab, params)
     except:
-        # On any error catched, print a simplified version of traceback to saved/experiment/.
-        save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
-        raise
+        if raise_errors:
+            raise
+        else:
+            error_manager()
     finally:
-        # Call the abort method of each instrument connected to the Lab instance.
+        ################ MAKE SURE EACH STATEMENT HERE IS ERROR PROOF ################
+        ## Call the abort method of each instrument connected to the Lab instance.
         lab.abort_all()
-        # Save params in saved/params/ folder. 
+        ## Save a simplified version of traceback to saved/experiment/.
+        save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
+        ## Save params in saved/params/ folder. 
         save_params(params, ID)
-        # Save data as numpy array in saved/data/ folder, and as text in saved/datatxt/ if dimension of scan < 2.
+        ## Save data as numpy array in saved/data/ folder, and as text in saved/datatxt/ if dimension of scan < 2.
         save_data(data, ID)
-        # Save fig as pdf in saved/fig/ folder
+        ## Save fig as pdf in saved/fig/ folder
         save_fig(fig, ID)
-        # Update the figure for the first time if show_plot is False
+        ## Save the script that executed scan.
+        save_script()
+        ## Update the figure for the first time if show_plot is False
         if fig!= None:
-            output = experiment.update_plot(fig, params, data)
+            try:
+                output = experiment.update_plot(fig, params, data)
+            except:
+                print "last update_plot failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         print "\nsaved as",ID,"\n"
-    # Save the rest about experiment in saved/experiment/ folder.         
-    save_experiment(lab, params, experiment, ID, "Scan successful.\n")
-    return output
+        if not raise_errors:
+            return output
 
 
 
@@ -247,7 +264,7 @@ def clean_start(namespace):
                     print "-> "+key+".close_all()"
                     number_of_failures = value.close_all()
                     if number_of_failures > 0:
-                        raise LabMasterError, "Lab instance "+key+" is unable to close instruments. \nPlease close instrument drivers before the environnement reset caused by launch.ipy.\n\n\n"
+                        raise LabMasterError, "Lab instance "+key+" is unable to close instruments.\nReset aborted. \nPlease close instrument drivers before the environnement reset caused by _reset_.ipy.\n\n\n"
         except AttributeError:
             pass
 
@@ -584,22 +601,24 @@ def save_data(data, ID):
     - ID: Number indicated after the date in file name.
     
     """
-    filename = nfu.saving_folder()+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
-    filenametxt = nfu.saving_folder()+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
-    if isinstance(data, np.ndarray):
-        np.save(filename, data) # always save a .npy file
-        if data.ndim < 3:
-            # if dimension of data is not higher than 2, save a .txt file
-            np.savetxt(filenametxt, data)
+    try:
+        filename = nfu.saving_folder()+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
+        filenametxt = nfu.saving_folder()+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
+        if isinstance(data, np.ndarray):
+            np.save(filename, data) # always save a .npy file
+            if data.ndim < 3:
+                # if dimension of data is not higher than 2, save a .txt file
+                np.savetxt(filenametxt, data)
+            else:
+                # if dimension of data is higher than 2, leave a message in the .txt file
+                with open(filenametxt,"w") as f:
+                    f.write("# Array dimension is > 2 thus numpy can't save it as a .txt file.")
+        elif data==None:
+            pass
         else:
-            # if dimension of data is higher than 2, leave a message in the .txt file
-            with open(filenametxt,"w") as f:
-                f.write("# Array dimension is > 2 thus numpy can't save it as a .txt file.")
-    elif data==None:
-        pass
-    else:
-         raise LabMasterError, "data is not a numpy array."
-        
+             raise LabMasterError, "data is not a numpy array."
+    except:
+        print "save_data() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
     
     
@@ -621,26 +640,29 @@ def save_experiment(lab, params, experiment, ID, error_string):
     - error_string: Error message to save.
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
-    filename = nfu.saving_folder()+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
-    time_launched_string = "Time launched:  "
-    time_ended_string    = "Time ended:     "
-    datetime_format = "%Y-%b-%d %H:%M:%S"
-    with open(filename, "a") as f:    
-        if error_string == "first_time":
-            f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-        else:
-            f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-    if error_string != "first_time":
-        with open(filename, "r") as f:    
-            contents = f.read()
-            time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
-            time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
-        with open(filename, "a") as f:     
-            f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
-            f.write(error_string+"\n\n")
-            f.write("### "+str(lab)+"\n\n")
-            f.write("### Scheduled run \n"+str(params)+"\n")
-            f.write("### Experiment: "+experiment.__name__+".py\n"+inspect.getsource(experiment))
+    try:
+        filename = nfu.saving_folder()+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
+        time_launched_string = "Time launched:  "
+        time_ended_string    = "Time ended:     "
+        datetime_format = "%Y-%b-%d %H:%M:%S"
+        with open(filename, "a") as f:    
+            if error_string == "first_time":
+                f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
+            else:
+                f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
+        if error_string != "first_time":
+            with open(filename, "r") as f:    
+                contents = f.read()
+                time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
+                time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
+            with open(filename, "a") as f:     
+                f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
+                f.write(error_string+"\n\n")
+                f.write("### "+str(lab)+"\n\n")
+                f.write("### Scheduled run \n"+str(params)+"\n")
+                f.write("### Experiment: "+experiment.__name__+".py\n"+inspect.getsource(experiment))
+    except:
+        print "save_experiment() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
 
 def save_params(params, ID):
@@ -652,9 +674,12 @@ def save_params(params, ID):
     - params: Params instance.
     - ID: Number indicated after the date in file name.
     """
-    filename = nfu.saving_folder()+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
-    with open(filename, "wb") as f:
-        pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
+    try:
+        filename = nfu.saving_folder()+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
+        with open(filename, "wb") as f:
+            pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
+    except:
+        print "save_params() failed."
     return
 
 def save_script():
@@ -666,10 +691,13 @@ def save_script():
     Input:
         script_filename: Name of the script to save. Use __file__ to get current file name.
     """
-    nfu.create_todays_folder()
-    ID = nfu.pad_ID(int(nfu.detect_experiment_ID())-1)
-    new_filename = nfu.saving_folder()+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
-    shutil.copy(nfu.get_script_filename(), new_filename)     
+    try:
+        nfu.create_todays_folder()
+        ID = nfu.pad_ID(int(nfu.detect_experiment_ID())-1)
+        new_filename = nfu.saving_folder()+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
+        shutil.copy(nfu.get_script_filename(), new_filename)     
+    except:
+        print "save_script() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
 
 def save_fig(fig, ID, ext="pdf"):
@@ -681,8 +709,11 @@ def save_fig(fig, ID, ext="pdf"):
     - ID: Number indicated after the date in file name.
     - ext: Extension of the file to save. Supported formats: emf, eps, pdf, png, ps, raw, rgba, svg, svgz.
     """
-    if fig != None:
-        fig.savefig(nfu.saving_folder()+"fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
+    try:
+        if fig != None:
+            fig.savefig(nfu.saving_folder()+"fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
+    except:
+        print "save_fig() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return 
     
 
@@ -715,7 +746,7 @@ def send_email(recipient, add_subject="", add_msg=""):
         server.sendmail(FROM, TO, message+add_msg)
         server.close()
     except:
-        print "failed to send mail"
+        print "send_email() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
 
 
