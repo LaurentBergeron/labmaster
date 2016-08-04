@@ -14,8 +14,8 @@ import os
 import wrappers.visa_types as vt
 from ..units import *
 from ..classes import Instrument
-from .. import not_for_user     
-nfu = not_for_user 
+from .. import not_for_user
+nfu = not_for_user
 
 
 class Awg_M8190A(Instrument):
@@ -34,12 +34,14 @@ class Awg_M8190A(Instrument):
         self.coupled = False # coupled channels
         self.marker_enable = True
         # default pulse
+        #default values are dictionaries with values defined below in set_default_params
         self.default_delay = {}
         self.default_length = {}
         self.default_freq = {}
         self.default_phase = {}
         self.default_amp = {}
         self.default_offset = {}
+        #Shape defines the shape of the envelope
         self.default_shape = {}
         self.set_default_params("1", delay=0, length=0, freq=0, phase=0, amp=1.0, offset=0.0, shape="square")
         self.set_default_params("2", delay=0, length=0, freq=0, phase=0, amp=1.0, offset=0.0, shape="square")
@@ -62,7 +64,7 @@ class Awg_M8190A(Instrument):
         # instrument initilization
         current_dir = os.getcwd() # sometimes Keysight changes the current directory in the console.
         status = self.AgM8190.init(resource, True, True, ct.byref(self.session))
-        os.chdir(current_dir) 
+        os.chdir(current_dir)
         if self.verbose:
             print "AgM8190 init status", status
         try:
@@ -88,7 +90,7 @@ class Awg_M8190A(Instrument):
             self.close()
             raise
         return
-    
+
     def abort(self):
         self.use_memory = True
         self.abort_generation(1)
@@ -99,17 +101,17 @@ class Awg_M8190A(Instrument):
         status = self.AgM8190.ChannelAbortGeneration(self.session, str(channel))
         self.check_error(status)
         return
-        
+
     def close(self):
-        # close all previously opened sessions if they were not closed because of bad user. 
-        for i in range(1,self.session.value): 
+        # close all previously opened sessions if they were not closed because of bad user.
+        for i in range(1,self.session.value):
             self.AgM8190.close(i) # will return negative if session was closed correctly.
         # close current session, can raise error.
-        status = self.AgM8190.close(self.session) 
+        status = self.AgM8190.close(self.session)
         if self.verbose:
             print "AgM8190 close status", status
         return status
-        
+
 
     def check_error(self, status):
         if self.verbose:
@@ -118,12 +120,13 @@ class Awg_M8190A(Instrument):
             self.AgM8190.GetError(self.session, ct.byref(self.error_code), 255, self.error_message)
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
-    
+    def cw(self):
+        pass
     def force_trigger(self):
         status = self.AgM8190.SendSoftwareTrigger(self.session)
         self.check_error(status)
         return
-        
+
     def get_amplitude(self, channel):
         channel_route = self.get_channel_route(channel)
         if channel_route=="DAC":
@@ -133,7 +136,7 @@ class Awg_M8190A(Instrument):
         elif channel_route=="AC":
             amp = self.get_ViReal64_attribute(channel, self.AgM8190.ATTR_ARBITRARY_AC_AMPLITUDE)
         return amp
-        
+
     def get_arm_mode(self, channel):
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE)
         if result==self.AgM8190.VAL_ARM_MODE_SELF:
@@ -149,9 +152,9 @@ class Awg_M8190A(Instrument):
         elif result==self.AgM8190.VAL_OUTPUT_ROUTE_DC:
             route = "DC"
         elif result==self.AgM8190.VAL_OUTPUT_ROUTE_DAC:
-            route = "DAC" 
+            route = "DAC"
         return route
-        
+
     def get_channel_coupling(self):
         result = self.get_ViInt32_attribute("", self.AgM8190.ATTR_INSTRUMENT_CHANNEL_COUPLING_ENABLED)
         if result==self.AgM8190.VAL_CHANNEL_COUPLING_STATE_ON:
@@ -159,7 +162,7 @@ class Awg_M8190A(Instrument):
         elif result==self.AgM8190.VAL_CHANNEL_COUPLING_STATE_OFF:
             coupling = "off"
         return coupling
-        
+
     def get_gate_mode(self, channel):
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_GATE_MODE)
         if result==self.AgM8190.VAL_GATE_MODE_GATED:
@@ -178,7 +181,7 @@ class Awg_M8190A(Instrument):
             offset = float(0)
         return offset
 
-        
+
     def get_ref_clock_route(self):
         result = self.get_ViInt32_attribute("", self.AgM8190.ATTR_OUTPUT_REFERENCE_CLOCK_SOURCE)
         if result==self.AgM8190.VAL_REFERENCE_CLOCK_SOURCE_AXI:
@@ -188,15 +191,15 @@ class Awg_M8190A(Instrument):
         elif result==self.AgM8190.VAL_REFERENCE_CLOCK_SOURCE_EXTERNAL:
             route = "external"
         return route
-        
+
     def get_sample_clock_output_route(self):
         result = self.get_ViInt32_attribute("", self.AgM8190.ATTR_SAMPLE_CLOCK_OUTPUT)
         if result==self.AgM8190.VAL_SAMPLE_CLOCK_OUTPUT_INTERNAL:
             route = "internal"
         elif result==self.AgM8190.VAL_SAMPLE_CLOCK_OUTPUT_EXTERNAL:
             route = "external"
-        return route  
-        
+        return route
+
     def get_sample_rate(self):
         sample_rate = self.get_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE)
         return sample_rate
@@ -210,7 +213,7 @@ class Awg_M8190A(Instrument):
         elif result.value == self.AgM8190.VAL_SAMPLE_CLOCK_SOURCE_EXTERNAL:
             route = "external"
         return route
-    
+
     def get_trigger_mode(self, channel):
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_MODE)
         if result==self.AgM8190.VAL_TRIGGER_MODE_AUTO:
@@ -218,25 +221,25 @@ class Awg_M8190A(Instrument):
         elif result==self.AgM8190.VAL_TRIGGER_MODE_TRIGGERED:
             mode = "trig"
         return mode
-        
+
     def get_ViInt32_attribute(self, string, attr):
         result = vt.ViInt32()
         status = self.AgM8190.GetAttributeViInt32(self.session, str(string), attr, ct.byref(result))
         self.check_error(status)
         return result.value
-        
+
     def get_ViReal64_attribute(self, string, attr):
         result = vt.ViReal64()
         status = self.AgM8190.GetAttributeViReal64(self.session, str(string), attr, ct.byref(result))
         self.check_error(status)
         return result.value
-        
+
     def initiate_generation(self, channel):
         status = self.AgM8190.ChannelInitiateGeneration(self.session, str(channel))
         self.check_error(status)
         time.sleep(2*10240/self.get_sample_rate()) ## needed to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
         return
-        
+
     def load_memory(self):
         # global time_start
         # time_start = time.time()
@@ -245,7 +248,7 @@ class Awg_M8190A(Instrument):
             ### Abort current awg signal generation
             status = self.abort_generation(channel)
             self.check_error(status)
-            
+
             ### Preprocess: Merge pulses and markers into blocks, detect delays.
             segments={}
             self.preprocess(channel, segments)
@@ -258,21 +261,21 @@ class Awg_M8190A(Instrument):
                     print nfu.warn_msg()+"awg: no instructions for channel2"
                     self.show_warning_no_inst2 = False
                     continue
-            
+
             ### Reset the sequence table
             self.AgM8190.SequenceTableReset(self.session, channel)
             self.check_error(status)
             ### Clear waveform data in awg memory.
             status = self.AgM8190.WaveformClearAll(self.session, channel)
             self.check_error(status)
-            
-            
+
+
             segment_ID_delay = vt.ViInt32(0) ## Segment ID for the zero amplitude waveform used for delays.
             segment_ID = vt.ViInt32(0) ## Segment ID for block type waveforms (will increment by one for each different block)
             data = (vt.ViInt32 * 6)() ## Array intented for the SequenceTableSetData() function
             waveform_int16_delay = (vt.ViInt16*self.tick)() ## waveform used for delay sequences (initialized with zeros)
-            
-        
+
+
             ### For each segment, load the sequence table accordingly. The process will differ if the segment is a "block" or a "delay".
             for i, (segment_type, segment_info, sequence_info) in enumerate(zip(segments["type"], segments["segment_info"], segments["sequence_info"])):
                 if segment_type=="block":
@@ -306,8 +309,8 @@ class Awg_M8190A(Instrument):
                     status = self.AgM8190.WaveformCreateChannelWaveformInt16(self.session, channel, len(waveform_int16_delay), waveform_int16_delay, ct.byref(segment_ID_delay))
                     self.check_error(status)
                     segment_ID_active = segment_ID_delay
-                
-               
+
+
                 ### Prepare the data array
                 data[0] = 0 ## data = 0 if nothing is special about the segment
                 if self.marker_enable:
@@ -318,20 +321,20 @@ class Awg_M8190A(Instrument):
                     data[0] += self.AgM8190.control["EndMarkerSequence"]  ## end sequence if it's the end of a loop
                 if i == len(segments["type"])-1:
                     data[0] += self.AgM8190.control["EndMarkerScenario"]  ## end scenario
-                
+
                 data[1] = sequence_loops ## Sequence Loop Count
                 data[2] = segment_loops ## Segment Loop Count
                 data[3] = segment_ID_active.value  ## Active segment ID
                 data[4] = 0 ## Segment Start Offset (0 = no offset)
                 data[5] = 0xffffffff ## Segment End Offset (0xffffffff = no offset)
-                
-                
+
+
                 ### Load the sequence table in awg memory.
                 status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 self.check_error(status)
-                
-                
-                ########## idle command - max delay is 2**25 sample counts - deprecated ##########                                                                     
+
+
+                ########## idle command - max delay is 2**25 sample counts - deprecated ##########
                 # data[0] += self.AgM8190.control["CommandFlag"] # Control
                 # data[1] = 1 # Sequence Loop Count (N/A)
                 # data[2] = 0 # Command Code (0 = idle command)
@@ -340,8 +343,8 @@ class Awg_M8190A(Instrument):
                 # data[5] = 0 # Not used (must be 0)
                 # status = self.AgM8190.SequenceTableSetData(self.session, channel, i, 6, data)
                 # self.check_error(status)
-                ################################################################################## 
-            
+                ##################################################################################
+
             ### Choose correct sequencer mode
             status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ST_SCENARIO)
             self.check_error(status)
@@ -349,15 +352,15 @@ class Awg_M8190A(Instrument):
             ### Turn Output On
             status = self.AgM8190.SetAttributeViBoolean(self.session, channel, self.AgM8190.ATTR_OUTPUT_ENABLED, True)
             self.check_error(status)
-        
-        
+
+
         # print "time to load awg:", time.time()-time_start
         return
-        
+
     def load_memory_ping_pong(self):
         self._current_buffer = (self._current_buffer+1)%2
         return
-        
+
     def loop_start(self, channel, num_loops, autopad=True):
         """
         autopad=False is at your own risk
@@ -371,16 +374,16 @@ class Awg_M8190A(Instrument):
             else:
                 padded_counts = sample_counts//self.tick*self.tick + self.tick
             self.lab.delay((padded_counts-sample_counts)/sample_rate)
-            
+
         ### Insert instruction here
         self.instructions.append([self.lab.time_cursor, str(channel), "loop_start", num_loops])
-        
+
         return
-        
+
     def loop_end(self, channel, autopad=True):
         """
         autopad=False is at your own risk
-        """        
+        """
         ### Add a tiny delay to end loop on a tick.
         if autopad:
             sample_rate = self.get_sample_rate()
@@ -392,7 +395,7 @@ class Awg_M8190A(Instrument):
             self.lab.delay((padded_counts-sample_counts)/sample_rate)
         ### Insert instruction here
         self.instructions.append([self.lab.time_cursor, str(channel), "loop_end", None])
-            
+
         ### Update time cursor to account for all the loops.
         for inst in reversed(self.instructions):
             if inst[2]=="loop_start":
@@ -407,29 +410,29 @@ class Awg_M8190A(Instrument):
         self.lab.delay((self.lab.time_cursor - time_started)*(num_loops - 1) - min_length)
         ####################################################################################################################
         # self.lab.delay((self.lab.time_cursor - time_started)*(num_loops - 1))
-        
+
         return
-    
+
     def marker(self, channel):
         self.instructions.append([self.lab.time_cursor, str(channel), "marker", None])
         return
-        
+
     def preprocess(self, channel, segments):
-        """ 
-        input segments must be a dictionnary. 
-        """ 
+        """
+        input segments must be a dictionnary.
+        """
         if not isinstance(segments, dict):
             raise AgM8190Error, "Input 'segments' should be an empty dictionnary."
         segments.clear()
         segments.update({"type":[], "segment_info":[], "sequence_info":[]})
-            
+
         short_size = (2**16-1)
         # preprocess_time_start = time.time()
-        
-        
+
+
         ### Unzip user instructions
         channel_instructions = [inst for inst in self.instructions if inst[1]==str(channel)]
-        if channel_instructions==[]: 
+        if channel_instructions==[]:
             return  #if there's no instructions for this channel, what's the point?
 
         times   = [inst[0] for inst in channel_instructions if inst[2]=="pulse"]
@@ -438,12 +441,12 @@ class Awg_M8190A(Instrument):
         phases  = [inst[3][2] for inst in channel_instructions if inst[2]=="pulse"]
         amps    = [inst[3][3] for inst in channel_instructions if inst[2]=="pulse"]
         shapes  = [inst[3][4] for inst in channel_instructions if inst[2]=="pulse"]
-        
+
         loop_start_times = [inst[0] for inst in channel_instructions if inst[2]=="loop_start"]
         loop_nums        = [inst[3] for inst in channel_instructions if inst[2]=="loop_start"]
-        
+
         loop_end_times = [inst[0] for inst in channel_instructions if inst[2]=="loop_end"]
-            
+
         marker_times = [inst[0] for inst in channel_instructions if inst[2]=="marker"]
         if (marker_times != []) and (not self.marker_enable):
             raise AgM8190Error, "Activate the marker_enable option when using markers."
@@ -451,35 +454,35 @@ class Awg_M8190A(Instrument):
         ### Get useful info from awg
         sample_rate = self.get_sample_rate()
         awg_amp = self.get_amplitude(channel)
-        
+
         ### Combine marker specs and pulses specs (the trick is to consider each marker as a zero amplitude pulse: preprocess will pad correctly, then after padding markers will be added to the waveform)
         marker_count = len(marker_times)
-        
+
         times += marker_times
         lengths += [128/sample_rate]*marker_count # a marker lasts for 128 samples (number doesn't really matter though because of padding. just needs to be small)
         freqs += [0]*marker_count # marker freq doesn't matter
         phases += [0]*marker_count # marker phase doesn't matter
         amps += [0]*marker_count # marker amplitude will be added to other pulses, needs to be zero.
         shapes += ["square"]*marker_count # marker shape doesn't matter
-        
+
         ### Sort every list in time ascending order
         indices = sorted(range(len(times)),key=times.__getitem__)
-        
+
         times = [times[i] for i in indices]
         lengths = [lengths[i] for i in indices]
         freqs = [freqs[i] for i in indices]
         phases = [phases[i] for i in indices]
         amps = [amps[i] for i in indices]
         shapes = [shapes[i] for i in indices]
-        
+
         ### Add a final point to the times list
         times += [self.lab.total_duration]
 
         ### Merge pulses into blocks.
-        ### One block is a set of pulses, either overlapping or separated by less then minimum_delay_time. 
+        ### One block is a set of pulses, either overlapping or separated by less then minimum_delay_time.
         minimum_delay_time = self.minimum_delay_count/sample_rate
         blocks = []
-        i = 0  
+        i = 0
         while True:
             current_block = {"wfm_starts":[], "wfm_ends":[], "wfm_lengths":[], "wfm_periods":[], "wfm_phases":[], "wfm_amps":[], "wfm_shapes":[]}
             time_to_beat = times[i]+lengths[i]+minimum_delay_time # if the start of a pulse beats this time, a new block is created.
@@ -515,21 +518,21 @@ class Awg_M8190A(Instrument):
             i+=1
             if i > len(freqs)-1:
                 break
-                
-        
+
+
         ### Adjust trigger latency if option is activated. This will chop 10240 counts from the start of sequence. The experiment needs a time buffer.
         if self.adjust_trig_latency:
             trigger_latency = 10240 # latency for trigger in terms of sample rate. There is an uncertainty of (+0/+64).
         else:
             trigger_latency = 0
-        
-            
+
+
         ### Add the first delay block.
         first_segment_start = int(np.min(blocks[0]["wfm_starts"]))//self.tick*self.tick - trigger_latency
         if self.minimum_delay_count < first_segment_start:
             first_segment_is_block_type = False
             _, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, 0, first_segment_start)
-            is_start_of_a_sequence = True 
+            is_start_of_a_sequence = True
             segments["type"].append("delay")
             segments["segment_info"].append({"duration":first_segment_start})
             segments["sequence_info"].append({"is_start":is_start_of_a_sequence, "is_end":is_end_of_a_sequence, "loops":loops_count})
@@ -537,7 +540,7 @@ class Awg_M8190A(Instrument):
             first_segment_is_block_type = True
             if self.adjust_trig_latency:
                 raise AgM8190Error, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
-        
+
         _magic_crop = False
         _blabla= True
         for b, block in enumerate(blocks):
@@ -552,7 +555,7 @@ class Awg_M8190A(Instrument):
                 _magic_crop = False
             ### Find block min and max for padding
             block_start = int(np.min(block["wfm_starts"]))
-            block_end = int(np.max(block["wfm_ends"])) 
+            block_end = int(np.max(block["wfm_ends"]))
             segment_start = block_start//self.tick*self.tick
             if block_end%self.tick==0:
                 segment_end = block_end
@@ -560,8 +563,8 @@ class Awg_M8190A(Instrument):
                 segment_end = block_end//self.tick*self.tick + self.tick
 
             ### Declare C variables.
-            pulse_count = len(block["wfm_starts"]) 
-            
+            pulse_count = len(block["wfm_starts"])
+
             C_countFreq = ct.c_int(pulse_count)
             C_blockStart = ct.c_longlong(segment_start)
             C_wfmstart = (ct.c_longlong*pulse_count)(*block["wfm_starts"])
@@ -574,7 +577,7 @@ class Awg_M8190A(Instrument):
 
             ### Compute the sum of pulses.
             self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16)
-            
+
             ### Clip block amplitude if to high.
             if np.max(C_arrOut_int16) > short_size: # TODO: error because C_arrOut_int16 is limited to short. needs to be in C code.
                 if self.show_clipping_warning:
@@ -584,15 +587,15 @@ class Awg_M8190A(Instrument):
                         C_arrOut_int16[i] = min(item, short_size)
                     else:
                         C_arrOut_int16[i] = max(item, -short_size)
-            
+
 
             ### Add markers
             for time_ in marker_times:
                 if segment_start <= int(time_*sample_rate) < segment_end:
                     index = int(time_*sample_rate - segment_start)
                     C_arrOut_int16[index] += 1
-          
-            
+
+
             ### Append "block" type segment to result.
             is_start_of_a_sequence, is_end_of_a_sequence, loops_count = self.preprocess_loops(loop_start_times, loop_end_times, loop_nums, block_start, block_end)
             if first_segment_is_block_type:
@@ -605,8 +608,8 @@ class Awg_M8190A(Instrument):
                     segments["sequence_info"][-2]["is_end"] = True
                 if segments["sequence_info"][-2]["is_end"]:
                     segments["sequence_info"][-1]["is_start"] = True
-                            
-                    
+
+
             ### Add a delay block if it's not the end.
             if b < len(blocks) - 1:
                 next_block_start = int(np.min(blocks[b+1]["wfm_starts"]))
@@ -621,7 +624,7 @@ class Awg_M8190A(Instrument):
                     segments["sequence_info"][-1]["is_start"] = True
                 if is_start_of_a_sequence:
                     saved_loop_start = segment_start
-                    saved_loop_nums = loops_count                    
+                    saved_loop_nums = loops_count
                 if is_end_of_a_sequence:
                     _magic_crop = True
                     saved_loop_end = segment_end
@@ -630,16 +633,16 @@ class Awg_M8190A(Instrument):
         segments["type"].append("delay")
         segments["segment_info"].append({"duration":self.tick})
         segments["sequence_info"].append({"is_start":False, "is_end":True, "loops":1})
-        
-       
-        
+
+
+
         ### Detect long delays
         max_delay = self.tick*(2**32)-1
         segments_ = segments.copy()
         segments.update({"type":[], "segment_info":[], "sequence_info":[]})
         for seg_type, seg_info, seq_info in zip(segments_["type"], segments_["segment_info"], segments_["sequence_info"]):
             if seg_type=="delay":
-                delay = seg_info["duration"]                    
+                delay = seg_info["duration"]
                 if delay > max_delay:
                     i=0
                     while delay > max_delay:
@@ -660,19 +663,19 @@ class Awg_M8190A(Instrument):
                     segments["sequence_info"][-1]["is_start"] = False
                     segments["sequence_info"][-1]["loops"] = 1
                     continue
-            
+
             segments["type"].append(seg_type)
             segments["segment_info"].append(seg_info)
             segments["sequence_info"].append(seq_info)
         # TODO check segments and assert that there is as many start loops as end loops
         # print "preprocess duration", time.time() - preprocess_time_start
-        return 
-    
+        return
+
     def preprocess_loops(self, loop_start_times, loop_end_times, loop_nums, segment_start, segment_end):
         is_start_of_a_sequence = False
         loops_count = 1
         is_end_of_a_sequence = False
-        
+
         sample_rate = self.get_sample_rate()
         ### Find out if a loop starts in this segment
         count = 0
@@ -684,7 +687,7 @@ class Awg_M8190A(Instrument):
         if count>1 and self.show_warning_loop_start:
             print nfu.warn_msg()+"Many loop starts detected in the same segment."
             self.show_warning_loop_start = False
-        
+
         ### Find out if a loop ends in this segment
         count = 0
         for t, time_ in enumerate(loop_end_times):
@@ -694,16 +697,16 @@ class Awg_M8190A(Instrument):
         if count>1 and self.show_warning_loop_end:
             print nfu.warn_msg()+"Many loop ends detected in the same segment."
             self.show_warning_loop_end = False
- 
+
         if is_start_of_a_sequence:
             self._saved_loop_segment_start = segment_start
             self._saved_loop_num = loops_count
         if is_end_of_a_sequence:
             loop_duration = segment_end-self._saved_loop_segment_start
             self._crop_next_delay = int(loop_duration*(self._saved_loop_num - 1)) - 320
-        
+
         return is_start_of_a_sequence, is_end_of_a_sequence, loops_count
-    
+
     def print_loaded_sequence(self, channel, divider=None, ax=None):
         # TODO: have two plots for both channels
         if self.lab.total_duration == 0:
@@ -722,7 +725,7 @@ class Awg_M8190A(Instrument):
             ax.set_xlabel("Time ("+prefix+"s)")
             # Span time for all experiment duration
             ax.set_xlim([0, c*(self.lab.total_duration - self.lab.end_buffer)])
-            
+
         for i, (segment_type, segment_info, sequence_info) in enumerate(zip(segments["type"], segments["segment_info"], segments["sequence_info"])):
             if segment_type=="delay":
                 continue
@@ -746,16 +749,16 @@ class Awg_M8190A(Instrument):
             try:
                 t = np.linspace(segment_start/sample_rate, segment_end/sample_rate-divider_/sample_rate, linspace_size)
                 ax.plot(c*t, numpy_wfm ,'o', mew=0)
-            except ValueError: # sometimes one point will be lost to the [::divider] operation. 
+            except ValueError: # sometimes one point will be lost to the [::divider] operation.
                 t = np.linspace(segment_start/sample_rate, segment_end/sample_rate, linspace_size+1)
                 ax.plot(c*t, numpy_wfm ,'o', mew=0)
 
         plt.show()
-        
+
         return
-    
-    
-    
+
+
+
     def pulse(self, channel, length=None, phase=None, amp=None, freq=None, shape=None, rewind=None):
         # TODO: check if input is OK. Niquist freq, min pulse length, phase between -360 and 360, shape in valid options.
         if length==None:
@@ -768,11 +771,11 @@ class Awg_M8190A(Instrument):
             freq = self.default_freq[str(channel)]
         if shape==None:
             shape = self.default_shape[str(channel)]
-        
+
         # check shape
         if shape not in self.wfmGenLib2.shapes_code.keys():
             raise AgM8190Error, shapes[i]+" is not a valid shape. Refer to dll_wfmGenLib2.py for valid shapes."
-        
+
         # check freq
         if freq > 2*self.get_sample_rate():
             raise AgM8190Error, "Nyquist sampling criterion violated."
@@ -780,12 +783,12 @@ class Awg_M8190A(Instrument):
             if self.show_warning_freqrangeAC:
                 print nfu.warn_msg()+"AWG frequency is out of the 50MHz - 5GHz range in AC mode. Amplitude can be attenuated."
                 self.show_warning_freqrangeAC = False
-                
+
         # update instructions
         self.instructions.append([self.lab.time_cursor, str(channel), "pulse", (length, freq, phase, amp, shape)])
-        self.lab.update_time_cursor(length, rewind)       
+        self.lab.update_time_cursor(length, rewind)
         return
-        
+
     def pulse_BB1_pi(self, channel, pi_len=None, phase=None, pi_amp=None, freq=None, shape=None):
         if phase==None:
             phase = self.default_phase[str(channel)]
@@ -800,7 +803,7 @@ class Awg_M8190A(Instrument):
         self.delay(5*us)
         self.pulse(channel, length=pi_len, phase=phase+0.5806*180, amp=pi_amp, freq=freq, shape=shape)
         return
-        
+
     def pulse_BB1_piby2(self, channel, pi_len=None, piby2_len=None, phase=None, pi_amp=None, piby2_amp=None, freq=None, shape=None):
         if pi_len==None:
             pi_len = self.default_length[str(channel)]
@@ -812,8 +815,8 @@ class Awg_M8190A(Instrument):
             piby2_amp = pi_amp/2.
         if phase==None:
             phase = self.default_phase[str(channel)]
-            
-        
+
+
         self.pulse(channel, length=piby2_len, phase=phase,            amp=piby2_amp, freq=freq, shape=shape)
         self.delay(5*us)
         self.pulse(channel, length=pi_len,    phase=phase+0.54*180,   amp=pi_amp, freq=freq, shape=shape)
@@ -824,7 +827,7 @@ class Awg_M8190A(Instrument):
         self.delay(5*us)
         self.pulse(channel, length=pi_len,    phase=phase+0.54*180,   amp=pi_amp, freq=freq, shape=shape)
         return
-        
+
     def reset_warnings(self):
         """ Call this function inside nfu.get_ready() """
         self.show_warning_amp_clipping = True
@@ -834,8 +837,8 @@ class Awg_M8190A(Instrument):
         self.show_warning_no_inst1 = True
         self.show_warning_no_inst2 = True
         return
-        
-        
+
+
     def set_amplitude(self, channel, amp):
         current_amp = self.get_amplitude(channel)
         if amp==current_amp:
@@ -869,27 +872,27 @@ class Awg_M8190A(Instrument):
 
     def set_arm_mode(self, channel, query):
         if self.get_arm_mode(channel)==query:
-            print "awg channel "+str(channel)+" arm mode is "+str(query)+"."        
+            print "awg channel "+str(channel)+" arm mode is "+str(query)+"."
         else:
             if query=="armed":
-                self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE, self.AgM8190.VAL_ARM_MODE_ARMED) 
+                self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE, self.AgM8190.VAL_ARM_MODE_ARMED)
             elif query=="self":
-                self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE, self.AgM8190.VAL_ARM_MODE_SELF) 
+                self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE, self.AgM8190.VAL_ARM_MODE_SELF)
             else:
                 raise AgM8190Error, str(query)+" is not a valid input."
             print "awg channel "+str(channel)+" arm mode set to "+str(query)+"."
         return
-        
+
     def set_channel_coupling(self, query):
-        if self.get_channel_coupling()==query:                 
-            print "awg channel coupling is "+str(query)+"."      
+        if self.get_channel_coupling()==query:
+            print "awg channel coupling is "+str(query)+"."
         else:
             if query=="on":
                 self.set_ViInt32_attribute("", self.AgM8190.ATTR_INSTRUMENT_CHANNEL_COUPLING_ENABLED, self.AgM8190.VAL_CHANNEL_COUPLING_STATE_ON)
             elif query=="off":
                 self.set_ViInt32_attribute("", self.AgM8190.ATTR_INSTRUMENT_CHANNEL_COUPLING_ENABLED, self.AgM8190.VAL_CHANNEL_COUPLING_STATE_OFF)
             else:
-                raise AgM8190Error, str(query)+" is not a valid input."                 
+                raise AgM8190Error, str(query)+" is not a valid input."
             print "awg channel coupling set to "+str(query)+"."
         return
 
@@ -905,7 +908,7 @@ class Awg_M8190A(Instrument):
             elif query=="DAC":
                 self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_OUTPUT_ROUTE, self.AgM8190.VAL_OUTPUT_ROUTE_DAC)
             else:
-                raise AgM8190Error, str(query)+" is not a valid input." 
+                raise AgM8190Error, str(query)+" is not a valid input."
             print "awg channel "+str(channel)+" route set to "+str(query)+"."
         return
 
@@ -925,11 +928,11 @@ class Awg_M8190A(Instrument):
         if shape!=None:
             self.default_shape[str(channel)] = shape
         return
-        
-        
+
+
     def set_gate_mode(self, channel, query):
         if self.get_gate_mode(channel)==query:
-            print "awg channel "+str(channel)+" gate mode is "+str(query)+"."     
+            print "awg channel "+str(channel)+" gate mode is "+str(query)+"."
         else:
             if query=="gated":
                 status = self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_GATE_MODE, self.AgM8190.VAL_GATE_MODE_GATED)
@@ -939,11 +942,11 @@ class Awg_M8190A(Instrument):
                 raise AgM8190Error, str(query)+" is not a valid input."
             print "awg channel "+str(channel)+" gate mode set to "+str(query)+"."
         return
-        
+
     def set_offset(self, channel, offset):
         current_offset = self.get_offset(channel)
         if offset==current_offset:
-            print "awg channel "+str(channel)+" offset is "+nfu.auto_unit(offset, unit="V")+"."        
+            print "awg channel "+str(channel)+" offset is "+nfu.auto_unit(offset, unit="V")+"."
         else:
             channel_route = self.get_channel_route(channel)
             if channel_route=="DAC":
@@ -968,7 +971,7 @@ class Awg_M8190A(Instrument):
                 return
             print "awg channel "+str(channel)+" offset set to "+nfu.auto_unit(offset, unit="V")+"."
         return
-        
+
     def set_ref_clock_route(self, query):
         current_route = self.get_ref_clock_route()
         if query==current_route:
@@ -982,10 +985,10 @@ class Awg_M8190A(Instrument):
             elif query == "external":
                 self.set_ViInt32_attribute("", self.AgM8190.ATTR_OUTPUT_REFERENCE_CLOCK_SOURCE, self.AgM8190.VAL_REFERENCE_CLOCK_SOURCE_EXTERNAL)
             else:
-                raise AgM8190Error, str(query)+" is not a valid input."      
-            print "awg ref clock route set to "+str(query)+"." 
-        return 
-        
+                raise AgM8190Error, str(query)+" is not a valid input."
+            print "awg ref clock route set to "+str(query)+"."
+        return
+
     def set_sample_clock_output_route(self, query):
         current_route = self.get_sample_clock_output_route()
         if query==current_route:
@@ -996,16 +999,17 @@ class Awg_M8190A(Instrument):
             elif query in "external":
                 self.set_ViInt32_attribute("", self.AgM8190.ATTR_SAMPLE_CLOCK_OUTPUT, self.AgM8190.VAL_SAMPLE_CLOCK_OUTPUT_EXTERNAL)
             else:
-                raise AgM8190Error, str(query)+" is not a valid input."     
-            print "awg sample clock output route set to "+str(query)+"." 
-        return    
-        
+                raise AgM8190Error, str(query)+" is not a valid input."
+            print "awg sample clock output route set to "+str(query)+"."
+        return
+
     def set_sample_rate(self, rate):
+        #sample rate in Hz (samples/second)
         current_rate = self.get_sample_rate()
         if current_rate == rate:
             print "awg sample rate is "+nfu.auto_unit(rate, "Sa/s")+"."
         else:
-            self.set_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE, rate) 
+            self.set_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE, rate)
             print "awg sample rate set to "+nfu.auto_unit(rate, "Sa/s")+"."
         return
 
@@ -1019,15 +1023,15 @@ class Awg_M8190A(Instrument):
             elif query == "external":
                 status = self.AgM8190.SampleClockSetSampleClockSource(self.session, channel, self.AgM8190.VAL_SAMPLE_CLOCK_SOURCE_EXTERNAL)
             else:
-                raise AgM8190Error, str(query)+" is not a valid input."   
-            print "awg channel "+str(channel)+" sample clock source route set to "+str(query)+"." 
+                raise AgM8190Error, str(query)+" is not a valid input."
+            print "awg channel "+str(channel)+" sample clock source route set to "+str(query)+"."
             self.check_error(status)
-        return  
+        return
 
     def set_trigger_mode(self, channel, query):
         if self.get_trigger_mode(channel)==query:
-            print "awg channel "+str(channel)+" trigger mode is "+str(query)+"."  
-        else:        
+            print "awg channel "+str(channel)+" trigger mode is "+str(query)+"."
+        else:
             if query=="auto":
                 self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_MODE, self.AgM8190.VAL_TRIGGER_MODE_AUTO)
             elif query == "trig":
@@ -1048,7 +1052,7 @@ class Awg_M8190A(Instrument):
         status = self.AgM8190.SetAttributeViReal64(self.session, str(string), attr, value)
         self.check_error(status)
         return
-        
+
     def string_sequence(self, channel, string, loops=1, BB1=False, pulse_factor=None):
         """ uses default delay, length, amplitude, freq and shape. not space/enter/tab sensitive"""
         clean_string = (string.replace(" ", "").replace("\n", "").replace("\t", ""))
@@ -1061,12 +1065,12 @@ class Awg_M8190A(Instrument):
             length = self.default_length[str(channel)]
             tau = self.default_delay[str(channel)]
             amp = self.default_amp[str(channel)]
-        
+
             try:
                 if ("t"==token.split("/")[0].split("*")[0]) or ("tau"==token.split("/")[0].split("*")[0]):
                     if "/" in token:
                         factor = 1/float(token.split("/")[-1])
-                    elif "*" in token:  
+                    elif "*" in token:
                         factor = float(token.split("*")[-1])
                     else:
                         factor = 1
@@ -1094,14 +1098,14 @@ class Awg_M8190A(Instrument):
                     # BB1 option
                     if BB1:
                         if factor==1:
-                            self.pulse_BB1_pi(str(channel), pi_len=self.default_length[str(channel)], phase=phase, pi_amp=amp) 
+                            self.pulse_BB1_pi(str(channel), pi_len=self.default_length[str(channel)], phase=phase, pi_amp=amp)
                         elif factor==0.5:
-                            self.pulse_BB1_piby2(str(channel), pi_len=self.default_length[str(channel)], piby2_len=length, phase=phase, pi_amp=self.default_amp[str(channel)],  piby2_amp=amp)      
+                            self.pulse_BB1_piby2(str(channel), pi_len=self.default_length[str(channel)], piby2_len=length, phase=phase, pi_amp=self.default_amp[str(channel)],  piby2_amp=amp)
                         else:
                             raise AgM8190Error, "BB1 option is valid for pi or pi/2 pulses only."
                     else:
                         self.pulse(str(channel), length=length, phase=phase, amp=amp)
-                        
+
                 elif token=="":
                     pass
                 else:
@@ -1111,11 +1115,9 @@ class Awg_M8190A(Instrument):
         if loops > 1:
             self.loop_end(channel)
         return
-        
-    
+
+
 
 class AgM8190Error(nfu.LabMasterError):
     """Errors raised by the instrument"""
-    pass       
-
-        
+    pass
