@@ -99,7 +99,7 @@ class Lab(Drawer):
         try: 
             self.__dict__[name].abort()
         except:
-            print name+" abort failed."
+            print name+" abort failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         return
             
     def abort_all(self):
@@ -176,7 +176,7 @@ class Lab(Drawer):
         except KeyError:
             raise nfu.LabMasterError, name+" was not found in lab's instruments."
         except:
-            print  name+" failed to close.", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+            print  name+" failed to close; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
             return 1 
             
     def close_all(self):

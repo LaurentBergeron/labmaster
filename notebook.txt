@@ -42,3 +42,15 @@ rabi.py;2016_07_29;ID;fitted pi_len;awg frequency;awg amplitude;pi len start;pi 
 ;;0023;None;49996240.0;0.2;0.0;0.001;1e-06;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;Experiment aborted.;
 ;;0024;None;49996240.0;0.2;0.0;0.001;1e-06;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;Experiment aborted.;
 ;;0025;None;49996240.0;0.2;0.0;0.001;1e-06;0.146205;1610420000.0;Red Open, Green 3;1e-07;0.15;Experiment aborted.;
+
+no_lab.py;2016_08_04;ID;current;ND;sensitivity;comment;
+;;0000; 1.64A; Red Open, Green 3; 1e-7;
+;;0001; 1.64A; Red Open, Green 3; 1e-7;
+;;0002; 1.64A; Red Open, Green 3; 1e-7;
+;;0003; 1.64A; Red Open, Green 3; 1e-7;
+;;0004; 1.64A; Red Open, Green 3; 1e-7;
+;;0005; 1.64A; Red Open, Green 3; 1e-7;
+;;0006; 1.64A; Red Open, Green 3; 1e-7;
+;;0007; 1.64A; Red Open, Green 3; 1e-7;
+;;0007; 1.64A; Red Open, Green 3; 1e-7;
+;;0007; 1.64A; Red Open, Green 3; 1e-7;

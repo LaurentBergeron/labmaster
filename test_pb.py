@@ -10,12 +10,6 @@ params.tau1.value = np.linspace(50*us,50*us,1111)
 # fig_ref = plt.figure()
 fig_ref = None
     
-try:
-    lab.pb.add_slave("slave",17)
-    scan(lab, params, experiment, fig=fig_ref, quiet=True)
-    
-except:
-    error_manager()
-
-finally:
-    save_script()
+lab.pb.add_slave("slave",17)
+scan(lab, params, experiment, fig=fig_ref, quiet=True)    
+save_script()
