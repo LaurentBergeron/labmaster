@@ -45,4 +45,7 @@ def update_plot(fig, params, data):
 def fit_sin(xdata, A, period): 
     """ sine for fitting """
     return A*np.sin(2*np.pi*xdata/period)
-        
+
+    
+def out(fig, lab, params):
+    return update_plot(fig, params, data)

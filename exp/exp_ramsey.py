@@ -45,6 +45,8 @@ def fit_sin(xdata, A, period):
         
     
     
+def out(fig, lab, params):
+    return update_plot(fig, params, data)
     
     
     

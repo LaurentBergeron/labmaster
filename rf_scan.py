@@ -35,7 +35,8 @@ try:
     lab.sig_gen.set_freq(params.freq.value[0])
     time.sleep(200*ms) 
     
-    freq_at_clock = scan(lab, params, experiment, fig=fig_ref)
+    scan(lab, params, experiment, fig=fig_ref)
+    freq_at_clock = experiment.out(fig, lab, params)
     
 except:
     freq_at_clock = None

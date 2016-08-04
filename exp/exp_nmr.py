@@ -98,6 +98,8 @@ def fit_exp(xdata, A, decay_tau):
     
     
     
+def out(fig, lab, params):
+    return update_plot(fig, params, data)
     
     
     

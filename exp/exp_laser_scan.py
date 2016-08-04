@@ -51,4 +51,8 @@ def update_plot(fig, params, data):
         at_curr = ""
     fig.suptitle("peak min = "+peak_min+at_curr, fontsize=15)
     
-    return
+    return at_curr
+    
+    
+def out(fig, lab, params):
+    return update_plot(fig, params, data)

@@ -62,7 +62,8 @@ def update_plot(fig, params, data):
 
     return out
     
-    
+def out(fig, lab, params):
+    return update_plot(fig, params, data)
     
     
     
