@@ -43,7 +43,7 @@ from units import *
      
         
     
-def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_errors=False):
+def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     """
     The holy grail of Lab-Master.
     Scan parameters value attribute in the order imposed by their sweep_ID.
@@ -57,40 +57,32 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_e
     - experiment: module from experiments folder, will rule what is going on during experiment.
     - quiet: If True, won't print run and won't ask user if everything is ok. Enable this for overnight runs or if you are overconfident.
     """
-    output = None
-    try:
+    output = None    
+    ## Check if inputs are conform to a bunch of restrictions
+    check_params(params)
+    check_experiment(experiment)
+    check_lab(lab)    
     
-        ## Check if inputs are conform to a bunch of restrictions
-        check_params(params)
-        check_experiment(experiment)
-        check_lab(lab)    
-        
-        print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
-        print params   ## Print the future run.
-        if quiet: ## No time for questions.
-            pass
-        else:
-            if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
-                raise KeyboardInterrupt
+    print "--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
+    print params   ## Print the future run.
+    if quiet: ## No time for questions.
+        pass
+    else:
+        if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
+            raise KeyboardInterrupt
 
-        ## data is an array full of zeros matching good dimensions imposed by params. dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
-        data = nfu.zeros(params, experiment)
-        ## Create folders for today if they don't exist
-        nfu.create_todays_folder()
-        ## Create a figure object.
-        if fig != None:
-            experiment.create_plot(fig, params, data)
-        ## ID is the number indicated after the date in file names.
-        ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
-    except:
-        if raise_errors:
-            raise
-        else:
-            error_manager()
-            return
+    ## data is an array full of zeros matching good dimensions imposed by params. dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
+    data = nfu.zeros(params, experiment)
+    ## Create folders for today if they don't exist
+    nfu.create_todays_folder()
+    ## Create a figure object.
+    if fig != None:
+        experiment.create_plot(fig, params, data)
+    ## ID is the number indicated after the date in file names.
+    ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
+    print "ID:",ID,"\n"
 
     try:
-        print "ID:",ID,"\n"
         ## Save what we know about the experiment so far in saved/experiment/ folder. 
         save_experiment(None, None, None, ID, "first_time")
         ## Stuff that needs to be done before the scan.
@@ -101,11 +93,6 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_e
         nfu.sweep(lab, params, experiment, data, fig, 1, show_plot)
         ## Call the end function of experiment module
         experiment.end(lab, params)
-    except:
-        if raise_errors:
-            raise
-        else:
-            error_manager()
     finally:
         ################ MAKE SURE EACH STATEMENT HERE IS ERROR PROOF ################
         ## Call the abort method of each instrument connected to the Lab instance.
@@ -120,15 +107,16 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_e
         save_fig(fig, ID)
         ## Save the script that executed scan.
         save_script()
-        ## Update the figure for the first time if show_plot is False
-        if fig!= None:
+        ## Update the figure one last time.
+        if fig!= None and show_plot==False:
             try:
-                output = experiment.update_plot(fig, params, data)
+                experiment.update_plot(fig, params, data)
             except:
-                print "last update_plot failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+                print "update_plot from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+            
         print "\nsaved as",ID,"\n"
-        if not raise_errors:
-            return output
+
+    return
 
 
 

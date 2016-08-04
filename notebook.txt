@@ -54,3 +54,4 @@ no_lab.py;2016_08_04;ID;current;ND;sensitivity;comment;
 ;;0007; 1.64A; Red Open, Green 3; 1e-7;
 ;;0007; 1.64A; Red Open, Green 3; 1e-7;
 ;;0007; 1.64A; Red Open, Green 3; 1e-7;
+;;0007; 1.64A; Red Open, Green 3; 1e-7;
