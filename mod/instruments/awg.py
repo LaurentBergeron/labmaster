@@ -41,6 +41,7 @@ class Awg_M8190A(Instrument):
         self.default_phase = {}
         self.default_amp = {}
         self.default_offset = {}
+        self.default_channel = {}
         #Shape defines the shape of the envelope
         self.default_shape = {}
         self.set_default_params("1", delay=0, length=0, freq=0, phase=0, amp=1.0, offset=0.0, shape="square")
@@ -120,8 +121,32 @@ class Awg_M8190A(Instrument):
             self.AgM8190.GetError(self.session, ct.byref(self.error_code), 255, self.error_message)
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
-    def cw(self):
-        pass
+
+    def check_granularity(self, frequency):
+        if frequency
+
+    def cw(self, channel):
+
+        ###Variable Definitions################################################
+            #trigger mode = "auto"
+            #channel      = self.channels_to_load[0]
+            #frequency    = self.default_freq
+            #amplitude    = self.default_amp
+            #phase        = self.default_phase
+            #pulse length = self.default_length
+        #######################################################################
+
+        self.set_trigger_mode(self.channels_to_load[0], "auto")
+        self.adjust_trig_latency = False
+        self.set_sample_rate =
+
+
+    def cw_sample_rate(self, frequency):
+        #placeholder
+        if self.check_granularity(self.default_freq)
+        self.granularity
+        self.continuous_sample_rate =
+
     def force_trigger(self):
         status = self.AgM8190.SendSoftwareTrigger(self.session)
         self.check_error(status)

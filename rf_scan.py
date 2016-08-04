@@ -1,13 +1,18 @@
 import exp.exp_rf_scan as experiment
 
+### Definition of parameters #################################
+pulseLength = 100*ms                    #pulse
+awg_sample_rate = 976*MHz               #This needs to be adjusted
+                                        #based on granularity and
+                                        #frequency of sample
+awg_amp   = _defaults_.awg_amp          #pulse
+awg_freq  = _defaults_.awg_freq         #pulse
+awg_phase = _defaults_.awg_phase        #pulse
+laser_curr = _defaults_.laser_current   #sets current sent to laser
+channel_number = "1"                    #determines which channel to use
+##############################################################
 
-laser_curr = _defaults_.laser_current
-awg_amp = _defaults_.awg_amp
-awg_freq = _defaults_.awg_freq
-awg_sample_rate = 976*MHz
-
-params = Params("freq;Hz", "freq_estimate_min;Hz", "freq_estimate_max;Hz", "delay;s")
-
+params = Params("freq;Hz", "amp;mV", "phase;rad", "freq_estimate_min;Hz", "freq_estimate_max;Hz", "delay;s")
 params.freq.value = orange(1.6093*GHz, 1.613*GHz, 10*kHz)
 params.delay.value = 100*ms
 
@@ -22,21 +27,13 @@ fig_ref = plt.figure()
 
 try:
     ### cw function ##############################################
+    lab.awg.set_default_params(channel_number, length=pulseLength,freq=awg_freq, phase=awg_phase, amp=awg_amp)
+    lab.awg.cw()
 
-    ### Definition of parameters #################################
-    channelNum  = "1"                   #set_trigger_mode
-    modeName    = "auto"                #set_trigger_mode
-    pulseLength = 100*ms                #pulse
-    awg_sample_rate = 976*MHz           #This needs to be adjusted
-                                        #based on granularity and
-                                        #frequency of sample
-    awg_amp   = _defaults_.awg_amp      #pulse
-    awg_freq  = _defaults_.awg_freq     #pulse
-    awg_phase = _defaults_.awg_phase    #pulse
-    ##############################################################
+
 
     lab.reset_instructions()
-    lab.awg.set_trigger_mode(channelNum, modeName)
+    lab.awg.set_trigger_mode(channel_number, modeName)
     lab.awg.adjust_trig_latency = False
     lab.awg.set_sample_rate(awg_sample_rate)
     lab.awg.pulse(channelNum, length=pulseLength, freq=awg_freq, phase=awg_phase, amp=awg_amp)
