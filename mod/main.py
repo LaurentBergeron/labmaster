@@ -43,14 +43,14 @@ from units import *
      
         
     
-def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
+def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True, raise_errors=False):
     """
     The holy grail of Lab-Master.
     Scan parameters value attribute in the order imposed by their sweep_ID.
     For each point in scan, run an experiment as dicted by experiment module.
     Saves everything under /saved.
     Animated plotting available.
-    
+    TODO describe the error management.
     Input
     - lab: Lab instance with required instruments connected.
     - params: Params instance with required parameters ready for scan.
@@ -83,8 +83,11 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         ## ID is the number indicated after the date in file names.
         ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
     except:
-        error_manager()
-        return
+        if raise_errors:
+            raise
+        else:
+            error_manager()
+            return
 
     try:
         print "ID:",ID,"\n"
@@ -99,7 +102,10 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         ## Call the end function of experiment module
         experiment.end(lab, params)
     except:
-        error_manager()
+        if raise_errors:
+            raise
+        else:
+            error_manager()
     finally:
         ################ MAKE SURE EACH STATEMENT HERE IS ERROR PROOF ################
         ## Call the abort method of each instrument connected to the Lab instance.
@@ -121,7 +127,8 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
             except:
                 print "last update_plot failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         print "\nsaved as",ID,"\n"
-        return output
+        if not raise_errors:
+            return output
 
 
 
