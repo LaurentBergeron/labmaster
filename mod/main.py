@@ -91,12 +91,18 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         experiment.start(lab, params)
         ## Start the sweep! data will be filled with science
         nfu.sweep(lab, params, experiment, data, fig, 1, show_plot)
-        ## Call the end function of experiment module
-        experiment.end(lab, params)
     finally:
         ################ MAKE SURE EACH STATEMENT HERE IS ERROR PROOF ################
+        
+        try:
+            ## Call the end function of experiment module
+            experiment.end(lab, params)
+        except:
+            print "end function from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method of each instrument connected to the Lab instance.
         lab.abort_all()
+        ## Call a customized saving function from experiment.
+        experiment.save(lab, params, fig, data, ID)
         ## Save a simplified version of traceback to saved/experiment/.
         save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
         ## Save params in saved/params/ folder. 
@@ -113,9 +119,8 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
                 experiment.update_plot(fig, params, data)
             except:
                 print "update_plot from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
-            
         print "\nsaved as",ID,"\n"
-
+        
     return
 
 
@@ -134,26 +139,36 @@ def check_experiment(experiment):
     - experiment: Module loaded to be used as experiment in a scan function.
     - dimension: Dimension of scan. You can get this value directly with params.get_dimension().
     """
-    # A very boring function
-    def empty(a, b):
-        """ Will replace missing functions in the experiment module. """
-        return 0 # has to be zero for get_data()
+    ## A very boring function with 2 input arguments
+    def empty2(a, b):
+        return 0 ## has to be zero for get_data()
+    ## A very boring function with 3 input arguments
+    def empty3(a, b, c):
+        return 0
+    ## A very boring function with 5 input arguments
+    def empty5(a, b, c, d, e):
+        return 0
 
-    # Check experiment attributes for needed function names.
+    ## Check experiment attributes for needed function names.
     if not hasattr(experiment, "launch"):
-        print nfu.warn_msg()+experiment.__name__+" has no function named launch. Not very useful."
-        experiment.launch = empty
+        experiment.launch = empty2
     if not hasattr(experiment, "get_data"):
-        experiment.launch = empty
+        experiment.launch = empty2
     if not hasattr(experiment, "sequence"):
-        experiment.sequence = empty
+        experiment.sequence = empty2
     if not hasattr(experiment, "start"):
-        experiment.start = empty
+        experiment.start = empty2
     if not hasattr(experiment, "end"):
-        experiment.end = empty
+        experiment.end = empty2
+    if not hasattr(experiment, "out"):
+        experiment.out = empty3
+    if not hasattr(experiment, "save"):
+        experiment.out = empty5
     if not hasattr(experiment, "create_plot"):
         experiment.create_plot = plotting.create_plot_auto
+        experiment.update_plot = plotting.update_plot_auto
     if not hasattr(experiment, "update_plot"):
+        experiment.create_plot = plotting.create_plot_auto
         experiment.update_plot = plotting.update_plot_auto
     
     return 
