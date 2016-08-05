@@ -24,7 +24,6 @@ params.freq_estimate_max.value = 1.6106*GHz
 ### comment both to plot next data on fig_ref figure
 fig_ref = plt.figure()
 # fig_ref = None
-<<<<<<< HEAD
 
 
 ### cw function ##############################################
@@ -34,7 +33,7 @@ lab.awg.cw()
 
 
 lab.reset_instructions()
-lab.awg.set_trigger_mode(channel_number, modeName)
+lab.awg.set_trigger_mode(channel_number, "auto")
 lab.awg.adjust_trig_latency = False
 lab.awg.set_sample_rate(awg_sample_rate)
 lab.awg.pulse(channelNum, length=pulseLength, freq=awg_freq, phase=awg_phase, amp=awg_amp)
@@ -47,6 +46,7 @@ lab.sig_gen.set_freq(params.freq.value[0])
 time.sleep(200*ms)
 
 freq_at_clock = scan(lab, params, experiment, fig=fig_ref)
+lab.awg.iscontinuous=False
 
 notebook("Clock trans. freq;"+str(freq_at_clock),
          "awg frequency;"+str(awg_freq),

@@ -33,6 +33,7 @@ class Awg_M8190A(Instrument):
         self.channels_to_load = [1]
         self.coupled = False # coupled channels
         self.marker_enable = True
+        self.iscontinuous = False #This gets set to true using the CW method
         # default pulse
         #default values are dictionaries with values defined below in set_default_params
         self.default_delay = {}
@@ -51,6 +52,11 @@ class Awg_M8190A(Instrument):
         self.granularity = 64
         self.tick = (5*self.granularity) # has to be >= 5*granularity and a multiple of granularity
         self.minimum_delay_count = 5*self.granularity + self.tick # 5*granularity to account for minimum idle command, self.tick to account for padding.
+        self.max_sample_rate = 12*GHz
+        """TODO: self.min_sample_rate = """
+        # niquist sampling values
+        self.niquist_threshold_upper = 10 #using a sampling rate 10x frequency
+        self.niquist_threshold_lower = 2  #using a sampling rate  2x frequency
         # Visa type attributes
         self.session = vt.ViSession()
         self.error_code = vt.ViInt32()
@@ -122,30 +128,29 @@ class Awg_M8190A(Instrument):
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
 
-    def check_granularity(self, frequency):
-        if frequency
+    def cw(self, channel, cw_freq, cw_amp, cw_phase, cw_length):
 
-    def cw(self, channel):
-
-        ###Variable Definitions################################################
-            #trigger mode = "auto"
-            #channel      = self.channels_to_load[0]
-            #frequency    = self.default_freq
-            #amplitude    = self.default_amp
-            #phase        = self.default_phase
-            #pulse length = self.default_length
-        #######################################################################
-
+        lab.reset_instructions()
+        self.set_trigger_mode(channel)
         self.set_trigger_mode(self.channels_to_load[0], "auto")
         self.adjust_trig_latency = False
-        self.set_sample_rate =
+        self.set_sample_rate(self.optimal_sample_rate(cw_freq))
+        self.pulse(channel, length=cw_length, freq=cw_freq, amp=cw_amp, phase=cw_phase)
+        self.load_memory()
+        self.iscontinous=True
 
 
-    def cw_sample_rate(self, frequency):
-        #placeholder
-        if self.check_granularity(self.default_freq)
-        self.granularity
-        self.continuous_sample_rate =
+    def optimal_sample_rate(self, frequency):
+        #sample_multiple figures out how many integer multiples of the frequency
+        #fits in the max sampling rate.
+        sample_multiple = int(frequency/self.max_sample_rate)
+        if sample_multiple < self.niquist_threshold_lower:
+            raise ValueError('Input frequency is larger than half the max sampling rate of 12 GHz. Please choose a new frequency because Niquist.')
+        elif sample_multiple < self.niquist_threshold_upper:
+            print "Warning: Input frequency is too high for 10x frequency sampling rate. \nUsing largest possible sampling rate which is "+sample_multiple+"x the frequency"
+            return frequency*sample_multiple
+        else:
+            return frequency*self.niquist_threshold_upper
 
     def force_trigger(self):
         status = self.AgM8190.SendSoftwareTrigger(self.session)
@@ -266,10 +271,13 @@ class Awg_M8190A(Instrument):
         return
 
     def load_memory(self):
+        if self.iscontinuous:
+            return
         # global time_start
         # time_start = time.time()
         for channel in self.channels_to_load:
             channel = str(channel)
+
             ### Abort current awg signal generation
             status = self.abort_generation(channel)
             self.check_error(status)
