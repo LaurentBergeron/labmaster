@@ -137,6 +137,7 @@ class Awg_M8190A(Instrument):
         self.set_sample_rate(self.optimal_sample_rate(cw_freq))
         self.pulse(channel, length=cw_length, freq=cw_freq, amp=cw_amp, phase=cw_phase)
         self.load_memory()
+        self.initiate_generation(1)
         self.iscontinous=True
 
 

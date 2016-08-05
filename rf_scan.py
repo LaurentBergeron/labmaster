@@ -28,18 +28,7 @@ fig_ref = plt.figure()
 
 ### cw function ##############################################
 lab.awg.set_default_params(channel_number, length=pulseLength,freq=awg_freq, phase=awg_phase, amp=awg_amp)
-lab.awg.cw()
-
-
-
-lab.reset_instructions()
-lab.awg.set_trigger_mode(channel_number, "auto")
-lab.awg.adjust_trig_latency = False
-lab.awg.set_sample_rate(awg_sample_rate)
-lab.awg.pulse(channelNum, length=pulseLength, freq=awg_freq, phase=awg_phase, amp=awg_amp)
-lab.awg.load_memory()
-lab.awg.use_memory = False
-lab.awg.initiate_generation(1)
+lab.awg.cw(channel_number, awg_freq, awg_amp, awg_phase, pulseLength)
 ##################################################
 
 lab.sig_gen.set_freq(params.freq.value[0])
