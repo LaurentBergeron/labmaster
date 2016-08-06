@@ -24,17 +24,17 @@ class Awg_M8190A(Instrument):
     I recommend to use the Soft Front Panel to debug.
     """
     def __init__(self, name, parent, resource):
-        Instrument.__init__(self, name, parent, use_memory=True, is_ping_pong=False)
+        Instrument.__init__(self, name, parent, use_memory=True, use_pingpong=False)
         self.AgM8190 = importlib.import_module("mod.instruments.wrappers.dll_AgM8190")
         self.wfmGenLib2 = importlib.import_module("mod.instruments.wrappers.dll_wfmGenLib2")
-        # options
+        ## options
         self.verbose = False
         self.adjust_trig_latency = True # if True, needs a time buffer at the start (2 us should be enough)
         self.channels_to_load = [1]
         self.coupled = False # coupled channels
         self.marker_enable = True
         self.iscontinuous = False #This gets set to true using the CW method
-        # default pulse
+        ## default pulse
         #default values are dictionaries with values defined below in set_default_params
         self.default_delay = {}
         self.default_length = {}
@@ -52,11 +52,8 @@ class Awg_M8190A(Instrument):
         self.granularity = 64
         self.tick = (5*self.granularity) # has to be >= 5*granularity and a multiple of granularity
         self.minimum_delay_count = 5*self.granularity + self.tick # 5*granularity to account for minimum idle command, self.tick to account for padding.
-        self.max_sample_rate = 12*GHz
-        """TODO: self.min_sample_rate = """
-        # niquist sampling values
-        self.niquist_threshold_upper = 10 #using a sampling rate 10x frequency
-        self.niquist_threshold_lower = 2  #using a sampling rate  2x frequency
+        # niquist sampling values for continous waveform (cw)
+        self.niquist_threshold = 4  ## Min factor between frequency and sample rate.
         # Visa type attributes
         self.session = vt.ViSession()
         self.error_code = vt.ViInt32()
@@ -128,30 +125,33 @@ class Awg_M8190A(Instrument):
             raise AgM8190Error, self.error_message.value+" (code "+str(self.error_code.value)+")"
         return
 
-    def cw(self, channel, cw_freq, cw_amp, cw_phase, cw_length):
-
-        lab.reset_instructions()
-        self.set_trigger_mode(channel)
-        self.set_trigger_mode(self.channels_to_load[0], "auto")
+    def cw(self, channel, freq=None, amp=None):
+        if freq==None:
+            freq = self.default_freq[str(channel)]
+        self.lab.reset_instructions()
+        self.set_trigger_mode(channel, "auto")
         self.adjust_trig_latency = False
-        self.set_sample_rate(self.optimal_sample_rate(cw_freq))
-        self.pulse(channel, length=cw_length, freq=cw_freq, amp=cw_amp, phase=cw_phase)
-        self.load_memory()
+        new_sample_rate = self.cw_optimal_sample_rate(freq)
+        self.set_sample_rate(new_sample_rate)
+        self.pulse(channel, length=self.tick/new_sample_rate, freq=freq, amp=amp, phase=0)
+        self.channels_to_load = [channel]
+       
+        self.load_memory(is_cw=True)
         self.initiate_generation(1)
         self.iscontinous=True
 
 
-    def optimal_sample_rate(self, frequency):
-        #sample_multiple figures out how many integer multiples of the frequency
-        #fits in the max sampling rate.
-        sample_multiple = int(frequency/self.max_sample_rate)
-        if sample_multiple < self.niquist_threshold_lower:
-            raise ValueError('Input frequency is larger than half the max sampling rate of 12 GHz. Please choose a new frequency because Niquist.')
-        elif sample_multiple < self.niquist_threshold_upper:
-            print "Warning: Input frequency is too high for 10x frequency sampling rate. \nUsing largest possible sampling rate which is "+sample_multiple+"x the frequency"
-            return frequency*sample_multiple
-        else:
-            return frequency*self.niquist_threshold_upper
+    def cw_optimal_sample_rate(self, frequency):
+        """
+        samples_per_period figures out how many integer multiples of the frequency
+        fits in the max sampling rate.
+        """
+        max_sample_rate = self.get_ViReal64_attribute("", self.AgM8190.ATTR_ARBITRARY_SAMPLE_RATE_MAX)
+        N_periods = int(np.ceil(self.granularity*frequency/max_sample_rate))
+        if N_periods > self.granularity/self.niquist_threshold:
+            raise AgM8190Error, "Input frequency is too large for niquist_threshold. Please choose a new frequency because Niquist."
+        
+        return self.granularity/(N_periods/frequency)
 
     def force_trigger(self):
         status = self.AgM8190.SendSoftwareTrigger(self.session)
@@ -271,9 +271,7 @@ class Awg_M8190A(Instrument):
         time.sleep(2*10240/self.get_sample_rate()) ## needed to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
         return
 
-    def load_memory(self):
-        if self.iscontinuous:
-            return
+    def load_memory(self, is_cw=False):
         # global time_start
         # time_start = time.time()
         for channel in self.channels_to_load:
@@ -285,7 +283,7 @@ class Awg_M8190A(Instrument):
 
             ### Preprocess: Merge pulses and markers into blocks, detect delays.
             segments={}
-            self.preprocess(channel, segments)
+            self.preprocess(channel, segments, is_cw)
             if segments=={}: ## skip the rest of the loop if no instructions are detected.
                 if channel=="1" and self.show_warning_no_inst1:
                     print nfu.warn_msg()+"awg: no instructions for channel1"
@@ -380,8 +378,14 @@ class Awg_M8190A(Instrument):
                 ##################################################################################
 
             ### Choose correct sequencer mode
-            status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ST_SCENARIO)
-            self.check_error(status)
+            if is_cw: 
+                ## In continous waveform, only one segment is played.
+                status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ARBITRARY)
+                self.check_error(status)
+            else:
+                ## Scenario mode for complex sequences (enables internal looping)
+                status = self.AgM8190.SetAttributeViInt32(self.session, channel, self.AgM8190.ATTR_ARBITRARY_SEQUENCING_MODE, self.AgM8190.VAL_SEQUENCING_MODE_ST_SCENARIO)
+                self.check_error(status)
 
             ### Turn Output On
             status = self.AgM8190.SetAttributeViBoolean(self.session, channel, self.AgM8190.ATTR_OUTPUT_ENABLED, True)
@@ -391,7 +395,7 @@ class Awg_M8190A(Instrument):
         # print "time to load awg:", time.time()-time_start
         return
 
-    def load_memory_ping_pong(self):
+    def load_memory_pingpong(self):
         self._current_buffer = (self._current_buffer+1)%2
         return
 
@@ -432,6 +436,8 @@ class Awg_M8190A(Instrument):
 
         ### Update time cursor to account for all the loops.
         for inst in reversed(self.instructions):
+            if inst[2]=="loop_end":
+                raise AgM8190Error, "Nested internal loops are impossible."
             if inst[2]=="loop_start":
                 time_started = inst[0]
                 num_loops = inst[3]
@@ -451,7 +457,7 @@ class Awg_M8190A(Instrument):
         self.instructions.append([self.lab.time_cursor, str(channel), "marker", None])
         return
 
-    def preprocess(self, channel, segments):
+    def preprocess(self, channel, segments, is_cw):
         """
         input segments must be a dictionnary.
         """
@@ -642,7 +648,7 @@ class Awg_M8190A(Instrument):
                     segments["sequence_info"][-2]["is_end"] = True
                 if segments["sequence_info"][-2]["is_end"]:
                     segments["sequence_info"][-1]["is_start"] = True
-
+                
 
             ### Add a delay block if it's not the end.
             if b < len(blocks) - 1:
@@ -663,10 +669,11 @@ class Awg_M8190A(Instrument):
                     _magic_crop = True
                     saved_loop_end = segment_end
 
-        ### Add the tiniest delay to indicate end of last sequence.
-        segments["type"].append("delay")
-        segments["segment_info"].append({"duration":self.tick})
-        segments["sequence_info"].append({"is_start":False, "is_end":True, "loops":1})
+        ### Add the tiniest delay to indicate end of last sequence except if loading a continous waveform (cw)
+        if not is_cw:
+            segments["type"].append("delay")
+            segments["segment_info"].append({"duration":self.tick})
+            segments["sequence_info"].append({"is_start":False, "is_end":True, "loops":1})
 
 
 
@@ -1039,12 +1046,19 @@ class Awg_M8190A(Instrument):
 
     def set_sample_rate(self, rate):
         #sample rate in Hz (samples/second)
+        max_sample_rate = self.get_ViReal64_attribute("", self.AgM8190.ATTR_ARBITRARY_SAMPLE_RATE_MAX)
+        min_sample_rate = self.get_ViReal64_attribute("", self.AgM8190.ATTR_ARBITRARY_SAMPLE_RATE_MIN)
         current_rate = self.get_sample_rate()
         if current_rate == rate:
             print "awg sample rate is "+nfu.auto_unit(rate, "Sa/s")+"."
         else:
-            self.set_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE, rate)
-            print "awg sample rate set to "+nfu.auto_unit(rate, "Sa/s")+"."
+            if rate < min_sample_rate:
+                raise AgM8190Error, "Requested sample rate is lower than minimum allowed, "+nfu.auto_unit(min_sample_rate, "Hz")+"."
+            elif rate > max_sample_rate:
+                raise AgM8190Error, "Requested sample rate is higher than maximum allowed, "+nfu.auto_unit(max_sample_rate, "Hz")+"."
+            else:
+                self.set_ViReal64_attribute("", self.AgM8190.ATTR_ARB_SAMPLE_RATE, rate)
+                print "awg sample rate set to "+nfu.auto_unit(rate, "Sa/s")+"."
         return
 
     def set_sample_clock_source_route(self, channel, query):

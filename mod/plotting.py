@@ -19,7 +19,8 @@ from units import *
 from not_for_user import LabMasterError
 
 
-### automatic plots
+#################################  automatic plotting #################################################
+
 def create_plot_auto(fig, params, data):
     if len(data.shape) == 1:
         xlabel = sorted([x.name for x in params.get_current_sweeps(1)])[0]
@@ -50,7 +51,8 @@ def update_plot_auto(fig, params, data):
 
     
     
-# XY plot
+#################################  XY plot ############################################################
+
 def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
     ax = fig.add_subplot(111)
     ax.get_xaxis().get_major_formatter().set_useOffset(False)
@@ -58,9 +60,13 @@ def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     for i in range(num_lines):
-        #lines, = ax.plot([])
         ax.plot([], *plot_args)
     return
+
+def add_lines(fig, num_lines, *plot_args):
+    ax = fig.axes[0]
+    for i in range(num_lines):
+        ax.plot([], *plot_args)
 
 def updatefig_XY(fig, xdata, ydata, line_index=0):
     ax = fig.axes[0]
@@ -75,7 +81,33 @@ def updatefig_XY(fig, xdata, ydata, line_index=0):
     ax.autoscale()
     return
 
-# surface plot
+def update_curve_fit(fig, fit_func, xdata, ydata, line_index, \
+        nargs=None, initial_guess = None, *fit_args):
+
+    xdata = xdata[np.isfinite(ydata)]
+    ydata = ydata[np.isfinite(ydata)]
+
+    if nargs==None:
+        nargs = len(inspect.getargspec(fit_func).args) - 1
+    
+    if nargs >= xdata.size:
+        updatefig_XY(fig, xdata, ydata, line_index = line_index)
+        return
+
+    try:
+        popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
+        fit_curve = fit_func(xdata, *popt)
+        updatefig_XY(fig, xdata, fit_curve, line_index = line_index)
+    except:
+        print "curve_fit raised "+sys.exc_info()[0].__name__
+        popt = None
+
+    return popt
+    
+    
+    
+################################# surface plot ########################################################
+
 def createfig_surface(fig, xlabel, ylabel, zlabel):
     ax = fig.gca(projection='3d')
     ax.set_xlabel(xlabel)
@@ -98,7 +130,8 @@ def updatefig_surface(fig, xdata, ydata, zdata):
     ax.autoscale()
     return
 
-# image plot
+    
+################################# image plot ##########################################################
 
 def createfig_image(fig, xlabel, xdata, ylabel, ydata):
     ax = fig.gca()
@@ -113,28 +146,4 @@ def updatefig_image(fig, array):
     ax.images[0].set_norm(mpl.colors.Normalize(vmin=np.min(array), vmax=np.max(array)))
     return
 
-# fitting
-    
-def update_curve_fit(fig, fit_func, xdata, ydata,  line_index, \
-        nargs=None, initial_guess = None, *fit_args):
-
-    xdata = xdata[np.isfinite(ydata)]
-    ydata = ydata[np.isfinite(ydata)]
-
-    if nargs==None:
-        nargs = len(inspect.getargspec(fit_func).args) - 1
-    
-    if nargs >= xdata.size:
-        updatefig_XY(fig, xdata, ydata, line_index = line_index)
-        return
-
-    try:
-        popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
-        fit_curve = fit_func(xdata, *popt)
-        updatefig_XY(fig, xdata, fit_curve, line_index = line_index)
-    except:
-        print "curve_fit raised "+sys.exc_info()[0].__name__
-        popt = None
-
-    return popt
 

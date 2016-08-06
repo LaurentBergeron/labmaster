@@ -46,7 +46,7 @@ try:
         params.phase_cycle.value = ""
 
     params.time_axis.sweep_ID = 0
-    params.time_axis.value = np.zeros(params.tau.size()*params.loops.size())
+    params.time_axis.value = np.zeros(params.tau.get_size()*params.loops.get_size())
 
     scan(lab, params, experiment, fig=fig_ref, quiet=True)
     A, T2 = experiment.out(fig, lab, params)

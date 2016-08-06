@@ -59,7 +59,7 @@ def create_plot(fig, params, data):
     else: 
         plotting.createfig_XY(fig, "Free evolution time (s)", "countB - countA", 1, "--o")
         
-    fig.axes[0].plot([], 'k--')
+    plotting.add_lines(1, "k--")
     return
     
 def update_plot(fig, params, data):

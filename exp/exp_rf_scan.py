@@ -14,10 +14,12 @@ def get_data(lab, params):
 
     
 def create_plot(fig, params, data):
-    if len(fig.axes) == 0:
+    if len(fig.axes) == 0: 
+        ## If the figure is empty.
         plotting.createfig_XY(fig, "sig_gen frequency", "lock-in", 1, "--o")
-    else:
-        fig.axes[0].plot([], "-")
+    else: 
+        ## If using a figure which already contains a plot.
+        plotting.add_lines(1, "-")
     return
     
 def update_plot(fig, params, data):

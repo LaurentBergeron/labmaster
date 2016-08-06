@@ -19,7 +19,7 @@ try:
     lab.laser.set_current(params.current.value[0])
     time.sleep(200*ms)
     
-    params.current_meas.value = np.zeros(params.current.size())
+    params.current_meas.value = np.zeros(params.current.get_size())
     
     scan(lab, params, experiment, fig=fig_ref)
     current_at_min = experiment.out(fig, lab, params)

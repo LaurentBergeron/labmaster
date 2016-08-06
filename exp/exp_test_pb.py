@@ -26,14 +26,3 @@ def get_data(lab, params):
     import random
     return random.random()
 
-
-def start(lab, params):
-    return
-    
-    
-    
-def end(lab, params):
-    return
-    
-    
-    

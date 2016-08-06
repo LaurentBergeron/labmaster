@@ -23,7 +23,7 @@ class Drawer():
     The Lab class and the Params class both inherit from the Drawer class.
     Only the attributes corresponding to the specific object type will be considered by methods.
     Though a Drawer can only manage one type of object, any object that inherits from another object is considered to be of that type as well.
-    For example, when calling lab.get_classes(), all Intrument instances from lab will be listed, as well as any instance that inherits from Instrument.
+    For example, when calling lab.get_objects(), all Intrument instances from lab will be listed, as well as any instance that inherits from Instrument.
     """
     def __init__(self, type_str):
         """Initialize the drawer. Specify the type of objects that the drawer is meant to hold."""
@@ -53,20 +53,15 @@ class Drawer():
     
     def get_dict(self):
         return {key:value for key, value in self.__dict__.items() if self.is_object_type(value)}
+        
     def get_names(self):
         return self.get_dict().keys()
-    def get_classes(self):
+        
+    def get_objects(self):
         return self.get_dict().values()
+        
     def get_items(self):
         return self.get_dict().items()
-        
-    def get_arb_class(self):
-        """ Returns an arbitrary class from class drawer. Returns -1 if no class was found. """
-        if self.get_dict()=={}:
-            out = -1;
-        else:
-            out = self.get_dict().itervalues().next()
-        return out
 
     def import_to(self, namespace):
         """ Import classes from drawer in the specified namespace. """
@@ -205,11 +200,11 @@ class Lab(Drawer):
         
     def get_memory_instruments(self):
         """ Return connected instruments which have memory capacity. """
-        return [instr for instr in self.get_classes() if instr.use_memory]
+        return [instr for instr in self.get_objects() if instr.use_memory]
         
     def get_ping_pong_instruments(self):
         """ Return connected instruments which have ping pong (double-buffering) memory capacity. """
-        return [instr for instr in self.get_memory_instruments() if instr.is_ping_pong]
+        return [instr for instr in self.get_memory_instruments() if instr.use_pingpong]
 
         
     def print_connected(self, as_string=False):
@@ -227,23 +222,6 @@ class Lab(Drawer):
         return
         
 
-    def print_loaded_sequence(self):
-        """ 
-        Plot the loaded sequence of memory instruments in a pretty matplotlib figure. 
-        An instrument needs a print_loaded_sequence() method to be shown in the plot.
-        """
-        instruments = [instr for instr in self.get_classes() if hasattr(instr, "print_loaded_sequence")]
-        
-        prefix, c = nfu.time_auto_label(self)
-
-
-            
-        fig, axes = plt.subplots(len(instruments), 1, sharex=True)
-        for ax, instrument in zip(axes, instruments):
-            instrument.print_loaded_sequence(ax=ax)
-        plt.show()
-        return
-        
     def reload(self, name):
         self.close(name)
         self.add_instrument(name)
@@ -299,7 +277,7 @@ class Instrument():
     """
     Instrument class. Every instrument should inherit from this class.
     """
-    def __init__(self, name, parent, use_memory=False, is_ping_pong=False):
+    def __init__(self, name, parent, use_memory=False, use_pingpong=False):
         """ 
         Initialize generic attributes of an instrument.
 
@@ -307,27 +285,17 @@ class Instrument():
         - name: Name of instrument. It has to match lab's attribute for the instrument.
         - parent: A link to the lab instance from which the instrument is a child. Useful to call access lab attributes and call lab methods.
         - use_memory: If True, the instrument needs a load_memory method(), which will be called during an experiment.
-        - is_ping_pong: If True, the instrument needs a load_memory_ping_pong() method, which will be called during an experiment instead of load_memory().
+        - use_pingpong: If True, the instrument needs a load_memory_ping_pong() method, which will be called during an experiment instead of load_memory().
         """
         self.lab = parent
         self.name = name
         self.use_memory = use_memory
-        self.is_ping_pong = is_ping_pong
-        if use_memory:     
-            self.instructions = []
-            if self.is_ping_pong:
-                self._current_buffer = 0   
-            else:
-                self._current_buffer = None
-        else:
-            self.instructions = None
-            self._current_buffer = None
-            if self.is_ping_pong:
-                self.is_ping_pong = False
-                print nfu.warn_msg()+self.name+" is set to ping_pong but has no memory. is_ping_pong attribute set back to False.\n"
-            
+        self.use_pingpong = use_pingpong
+        self.instructions = []
+        if not use_memory and self.use_pingpong:  
+            raise LabMasterError, self.name+" is set to use pingpong but has no memory."
         return
-    
+
     def reload(self):
         self.lab.reload(self.name)
         return
@@ -368,7 +336,7 @@ class Params(Drawer):
         return
         
     def get_constants(self):
-        return [param for param in self.get_classes() if param.is_const()]
+        return [param for param in self.get_objects() if param.is_const()]
         
     def get_current_sweeps(self, current_sweep_ID):
         return [param for param in self.get_sweeps() if param.sweep_ID==current_sweep_ID] 
@@ -384,7 +352,7 @@ class Params(Drawer):
         return max([0]+[param.sweep_ID for param in self.get_sweeps()])
     
     def get_sweeps(self):
-        return [param for param in self.get_classes() if param.is_not_const() and param.sweep_ID > 0]
+        return [param for param in self.get_objects() if param.is_not_const() and param.sweep_ID > 0]
     
     def print_run(self, as_string=False):
         """ 
@@ -471,44 +439,20 @@ class Parameter():
             step = None
         return step
         
-    def scan_with(self, param, *args):
-        if param.is_const():
-            raise nfu.LabMasterError, param.name+" is not currently configured to be swept."
-        if len(args)==2:
-            begin, end = args
-            self.sweep_ID = param.sweep_ID
-            self.value = np.linspace(begin,end,len(param.value))
-        elif len(args)==1:
-            step = args
-            self.sweep_ID = param.sweep_ID
-            self.value = np.linspace(0,step_size*(len(param.value)-1),len(param.value))
-        return
         
-    def set_ith_value(self, new_value):
+    def set_ith_value(self, new_v):
         if self.is_const():
-            self.value = new_value
+            self.value = new_v
         else:
-            self.value[self.i] = new_value
+            self.value[self.i] = new_v
         return
     
-    def size(self):
+    def get_size(self):
         try:
             size = len(self.value)
         except TypeError:
             size = 1
         return size
-
-    def __setattr__(self, key, value):
-        self.__dict__[key] = value
-        if key=="time" and (not isinstance(value, Time_parameter)):
-            raise nfu.LabMasterError, "time attribute is reserved for a Time_parameter instance."
-        else:
-            self.__dict__[key] = value 
-        if key in ("sweep_ID", "value") and hasattr(self, "time"):
-            saved_step = self.time.step
-            self.disable_time()
-            self.enable_time(saved_step)
-        return
         
     def __str__(self):
         string = "name: "+self.name

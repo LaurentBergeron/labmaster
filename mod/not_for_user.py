@@ -6,7 +6,7 @@ __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
 
 class LabMasterError(Exception):
-    """ Error of this type will be raised if Lab-Master detects something wrong. """
+    """ Error of this type will be raised if LabMaster detects something wrong. """
     pass
 
 # Base modules
@@ -77,7 +77,7 @@ def run_experiment(lab, params, experiment, data, fig, show_plot):
     ########################    for instrument in lab.get_ping_pong_instruments():
     ########################        instrument.load_memory_ping_pong()
     # Load memory of instruments who can't ping_pong.
-    for instrument in [x for x in lab.get_memory_instruments() if (not x.is_ping_pong)]:
+    for instrument in [x for x in lab.get_memory_instruments() if (not x.use_pingpong)]:
         instrument.load_memory()
     # The starting pistol.
     experiment.launch(lab, params)
@@ -320,7 +320,7 @@ def positive_answer_Y():
     return positive_answer_N()+[""]
     
 def err_msg():
-    """ Beginning of Lab-Master error message. Unfortunately Windows doesn't support ASCII color commands. """
+    """ Beginning of LabMaster error message. Unfortunately Windows doesn't support ASCII color commands. """
     if os.name=="nt":
         return "---> ERROR: "
     else:
@@ -328,7 +328,7 @@ def err_msg():
 
     
 def warn_msg():
-    """ Beginning of Lab-Master warning message. Unfortunately Windows doesn't support ASCII color commands. """
+    """ Beginning of LabMaster warning message. Unfortunately Windows doesn't support ASCII color commands. """
     if os.name=="nt":
         return "Warning: "
     else:

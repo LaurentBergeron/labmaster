@@ -1,6 +1,6 @@
 from __future__ import division # <--- TRYING TO MAKE THIS WORK. IT DOESNT FOR SOME REASON.
 """
-Lab-Master launcher.
+LabMaster launcher.
 Type 'run launch.ipy' in a Ipython console.
 Be aware that this command will close instrument drivers and reset the Ipython environnement.
 """
@@ -26,14 +26,14 @@ clean_start(globals())
 %reload_ext autoreload
 %autoreload 2
 
-# Import Lab-Master
+# Import LabMaster
 from mod.main import *
 from mod.main import __version__
 
 __LABMASTER__ = True
 
-# Hail the great Lab-Master
-print "\n*** Welcome to the Lab-Master v."+__version__+" "*(13-len(__version__))+"***"
+# Hail the great LabMaster
+print "\n*** Welcome to the LabMaster v."+__version__+" "*(13-len(__version__))+"***"
 print "*** In case of emergency, try help_please(). ***\n" 
 
 plt.ion() # interactive matplotlib ON
@@ -56,7 +56,7 @@ del irun
 # Initialize instruments
 lab = Lab()
 
-lab.add_instrument("pb")
+# lab.add_instrument("pb")
 # lab.add_instrument("awg")
 # lab.add_instrument("usb_counter")
 # lab.add_instrument("laser")

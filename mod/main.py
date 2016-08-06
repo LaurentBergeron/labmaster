@@ -27,6 +27,7 @@ import xlrd # .xlsx read
 import xlwt # .xlsx write
 from pydoc import help # help function for user
 import visa
+import textwrap
 
 
 # Homemade modules
@@ -45,7 +46,7 @@ from units import *
     
 def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     """
-    The holy grail of Lab-Master.
+    The holy grail of LabMaster.
     Scan parameters value attribute in the order imposed by their sweep_ID.
     For each point in scan, run an experiment as dicted by experiment module.
     Saves everything under /saved.
@@ -96,7 +97,7 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         
         try:
             ## Call the end function of experiment module
-            experiment.end(lab, params)
+            experiment.end(lab, params, data, fig, ID)
         except:
             print "end function from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method of each instrument connected to the Lab instance.
@@ -123,6 +124,19 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         
     return
 
+def hack_time():
+    import pygame
+    pygame.init()
+    # screen = pygame.display.set_mode((640, 480))
+    # pygame.display.set_caption('Pygame Keyboard Test')
+    # pygame.mouse.set_visible(0)
+    yes_no = "\t[YES]\tNO"
+    print "\tYOU'RE ABOUT \n\tTO HACK TIME,\n\tARE YOU SURE?\n"
+    print yes_no
+    for event in pygame.event.get():
+      if (event.type == KEYRIGHT) or (event.type == KEYDOWN):
+         print "key pressed"
+         time.sleep(0.1)
 
 
 def check_experiment(experiment):
@@ -159,11 +173,9 @@ def check_experiment(experiment):
     if not hasattr(experiment, "start"):
         experiment.start = empty2
     if not hasattr(experiment, "end"):
-        experiment.end = empty2
+        experiment.end = empty5
     if not hasattr(experiment, "out"):
         experiment.out = empty3
-    if not hasattr(experiment, "save"):
-        experiment.out = empty5
     if not hasattr(experiment, "create_plot"):
         experiment.create_plot = plotting.create_plot_auto
         experiment.update_plot = plotting.update_plot_auto
@@ -186,10 +198,10 @@ def check_lab(lab):
     Input
     - lab: a Lab instance.
     """
-    for instrument in lab.get_classes():
+    for instrument in lab.get_objects():
         if not hasattr(instrument, "load_memory") and instrument.use_memory:
             raise LabMasterError, instrument.name+" needs a load_memory() method."
-        if not hasattr(instrument, "load_memory_ping_pong") and instrument.is_ping_pong:
+        if not hasattr(instrument, "load_memory_ping_pong") and instrument.use_pingpong:
             raise LabMasterError, instrument.name+" needs a load_memory_ping_pong() method."
         if not hasattr(instrument, "close"):
             raise LabMasterError, instrument.name+" needs a close() method."
@@ -220,7 +232,7 @@ def check_params(params):
     Input
     - params: a Params instance.
     """
-    if params.get_classes()==[]:
+    if params.get_objects()==[]:
         raise LabMasterError, "No parameters detected."
         
     # Single parameter attribute checks
@@ -263,7 +275,7 @@ def clean_start(namespace):
             continue
         try:
             if str(value.__class__).split(".")[-1] == "Lab":
-                if len(value.get_classes())>0:
+                if len(value.get_objects())>0:
                     print "-> "+key+".close_all()"
                     number_of_failures = value.close_all()
                     if number_of_failures > 0:
@@ -367,11 +379,12 @@ def export_data(date, IDs, location, output, \
 
 def help_please():
     """
-Use ? after an object to get documentation. With ?? you get source code.
-Python advice: Type help() for interactive help, or help(object) for help about object.
-Lab-Master users manual is located under doc/_Lab-Master_users-manual_
-For a more detailed doc of the source code of Lab-Master, you will find HTML help under doc/_Lab-Master_html_"""
-    print help_please.__doc__
+    Use ? after an object to get documentation. With ?? you get source code.
+    Python advice: Type help() for interactive help, or help(object) for help about object.
+    LabMaster users manual is located under doc/_LabMaster_users-manual_
+    For a more detailed doc of the source code of LabMaster, you will find HTML help under doc/_LabMaster_html_
+    """
+    print textwrap.dedent(help_please.__doc__)
     return
 
 def last_data():

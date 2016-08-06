@@ -37,13 +37,4 @@ def get_data(lab, params):
     return A, B, B-A
 
 
-def start(lab, params):
-    return
-    
-    
-    
-def end(lab, params):
-    return
-    
-    
     
