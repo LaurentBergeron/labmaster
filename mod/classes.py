@@ -410,6 +410,16 @@ class Parameter():
         self._saved_i = None
         return
         
+    def auto_unit(self, i=None):
+        if self.is_const():
+            out = nfu.auto_unit(self.value, self.unit)
+        else:
+            if i==None:
+                out = nfu.auto_unit(self.v, self.unit)
+            else:
+                out = nfu.auto_unit(self.value[i], self.unit)
+        return out
+        
     def is_const(self):
         return not self.is_not_const()
         

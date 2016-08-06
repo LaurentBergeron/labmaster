@@ -102,8 +102,6 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
             print "end function from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method of each instrument connected to the Lab instance.
         lab.abort_all()
-        ## Call a customized saving function from experiment.
-        experiment.save(lab, params, fig, data, ID)
         ## Save a simplified version of traceback to saved/experiment/.
         save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
         ## Save params in saved/params/ folder. 
@@ -123,20 +121,7 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         print "\nsaved as",ID,"\n"
         
     return
-
-def hack_time():
-    import pygame
-    pygame.init()
-    # screen = pygame.display.set_mode((640, 480))
-    # pygame.display.set_caption('Pygame Keyboard Test')
-    # pygame.mouse.set_visible(0)
-    yes_no = "\t[YES]\tNO"
-    print "\tYOU'RE ABOUT \n\tTO HACK TIME,\n\tARE YOU SURE?\n"
-    print yes_no
-    for event in pygame.event.get():
-      if (event.type == KEYRIGHT) or (event.type == KEYDOWN):
-         print "key pressed"
-         time.sleep(0.1)
+                    
 
 
 def check_experiment(experiment):
@@ -155,33 +140,35 @@ def check_experiment(experiment):
     """
     ## A very boring function with 2 input arguments
     def empty2(a, b):
-        return 0 ## has to be zero for get_data()
-    ## A very boring function with 3 input arguments
-    def empty3(a, b, c):
-        return 0
+        return 
     ## A very boring function with 5 input arguments
     def empty5(a, b, c, d, e):
-        return 0
-
-    ## Check experiment attributes for needed function names.
-    if not hasattr(experiment, "launch"):
-        experiment.launch = empty2
-    if not hasattr(experiment, "get_data"):
-        experiment.launch = empty2
-    if not hasattr(experiment, "sequence"):
-        experiment.sequence = empty2
-    if not hasattr(experiment, "start"):
-        experiment.start = empty2
-    if not hasattr(experiment, "end"):
-        experiment.end = empty5
-    if not hasattr(experiment, "out"):
-        experiment.out = empty3
-    if not hasattr(experiment, "create_plot"):
-        experiment.create_plot = plotting.create_plot_auto
-        experiment.update_plot = plotting.update_plot_auto
-    if not hasattr(experiment, "update_plot"):
-        experiment.create_plot = plotting.create_plot_auto
-        experiment.update_plot = plotting.update_plot_auto
+        return 
+    
+    available_functions = {"launch":2,
+                           "get_data":2,
+                           "sequence":2,
+                           "start":2,
+                           "end":5,
+                           "out":5,
+                           "create_plot":3,
+                           "update_plot":3
+                           }
+    
+    for func_name, num_args in available_functions.items():
+        try:
+            if len(inspect.getargspec(experiment.__dict__[func_name]).args) != num_args:
+                raise LabMasterError, "Function "+func_name+" from "+experiment.__name__+" requires "+str(num_args)+" arguments."
+        except KeyError:
+            if func_name=="create_plot" or func_name=="update_plot":
+                experiment.create_plot = plotting.create_plot_auto
+                experiment.update_plot = plotting.update_plot_auto
+            elif num_args==2:
+                experiment.__dict__[func_name] = empty2
+            elif num_args==5:
+                experiment.__dict__[func_name] = empty5
+            else:
+                raise LabMasterError, "Can't replace missing function "+func_name+" from "+experiment.__name__+". The source code needs to be edited."
     
     return 
 
@@ -771,4 +758,7 @@ def show_visa():
     for name, res in rm.list_resources_info().items():
         print name
     return 
+    
+## EASTER EGGS!
+from not_for_user import hack_time, tea
 

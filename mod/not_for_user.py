@@ -340,7 +340,7 @@ def number_suffix(n):
 
 
 def tea():
-    """ Says Eddie the computer. """
+    """Says Eddie the computer."""
     print "You ordered: tea.\nPlease wait will the Nutrimatic Drinks Dispenser prepares your: tea."
     for i in range(3):
         print "."*(i+1)
@@ -351,3 +351,54 @@ def tea():
     raise SystemError, "You are an ignorant monkey."
     return
 
+
+def hack_time():
+    """Hackerman is in control here."""
+    import sys
+    import msvcrt
+    if os.name=="nt":
+        enter = "\r"
+    else:
+        enter = "\n"
+    yes = "\t[YES]\t NO "
+    no = "\t YES \t[NO]"
+    yes_or_no = yes
+    print "\n\n\tYOU'RE ABOUT \n\tTO HACK TIME,\n\tARE YOU SURE?\n"
+    sys.stdout.write("%s\r" % yes )
+    sys.stdout.flush()
+    while True:
+        time.sleep(0.01)
+        if msvcrt.kbhit():
+            pressed = msvcrt.getch()
+            if pressed=='\xe0':
+                keycode = msvcrt.getch()
+                if keycode=='M':
+                    yes_or_no = no
+                    sys.stdout.write("%s\r" % no )
+                    sys.stdout.flush()
+                elif keycode=='K':
+                    yes_or_no = yes
+                    sys.stdout.write("%s\r" % yes )
+                    sys.stdout.flush()
+            elif pressed==enter:
+                if yes_or_no==yes:
+                    print "\n\n"
+                    for i in range(10000):
+                        N = ((i//1000+1)%3+1)
+                        sys.stdout.write("    HACKING TIME"+"."*N+" "*(3-N)+"\t\t\tYEARS HACKED: "+str(int(np.exp(i/800.)))+"\r")
+                        sys.stdout.flush()
+                        time.sleep(0.001)
+                    sys.stdout.write(" "*100+"\r")
+                    sys.stdout.flush()
+                    for i in range(6):
+                        sys.stdout.write("                                 \r")
+                        sys.stdout.flush()
+                        time.sleep(0.5)
+                        sys.stdout.write("    ERROR! HACKING TOO MUCH TIME!\r")
+                        sys.stdout.flush()
+                        time.sleep(0.5)
+                    print "\n\n\n    GOOD LUCK OUT THERE. WATCH OUT FOR THE LASER RAPTORS."
+                    break
+                elif yes_or_no==no:
+                    print "\n\nWHAT?? YOU ARE A CHICKEN."
+                    break

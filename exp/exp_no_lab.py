@@ -8,7 +8,7 @@ from mod.main import *
 
 
 def get_data(lab, params):  
-    return params.x.v, random.random()
+    return 0
 
 def update_plot(fig, lab, params):
     return "test"
