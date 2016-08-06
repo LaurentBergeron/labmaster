@@ -28,10 +28,8 @@ try:
     time.sleep(200*ms) 
     
     scan(lab, params, experiment, fig=fig_ref)
-    lab.awg.iscontinuous=False
     
 except:
-    freq_at_clock = None
     error_manager()
     
 finally:

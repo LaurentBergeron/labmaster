@@ -271,6 +271,13 @@ class Awg_M8190A(Instrument):
         return
 
     def load_memory(self, is_cw=False):
+        ## If trigger mode is automatic, it means we are outputting a continous waveform. In this case, skip load_memory.
+        if self.get_trigger_mode=="auto":
+            if self.show_warning_trig_auto_no_load:
+                print nfu.warn_msg()+"awg trigger is automatic, load_memory will be skipped."
+                self.show_warning_trig_auto_no_load = False
+            return
+        
         for channel in self.channels_to_load:
             channel = str(channel)
 
@@ -283,11 +290,11 @@ class Awg_M8190A(Instrument):
             self.preprocess(channel, segments, is_cw)
             if segments=={}: ## skip the rest of the loop if no instructions are detected.
                 if channel=="1" and self.show_warning_no_inst1:
-                    print nfu.warn_msg()+"awg: no instructions for channel1"
+                    print nfu.warn_msg()+"no instructions for awg channel 1"
                     self.show_warning_no_inst1 = False
                     continue
                 if channel=="2" and self.show_warning_no_inst2:
-                    print nfu.warn_msg()+"awg: no instructions for channel2"
+                    print nfu.warn_msg()+"no instructions for awg channel 2"
                     self.show_warning_no_inst2 = False
                     continue
 
