@@ -1,19 +1,19 @@
 from mod.main import *
 
-def sequence(lab, params):
+def sequence(lab, params, fig, data, ID):
     return
 
-def launch(lab, params):
+def launch(lab, params, fig, data, ID):
     lab.sig_gen.set_freq(params.freq.v)
     time.sleep(params.delay.v)
     return
 
 
-def get_data(lab, params):  
+def get_data(lab, params, fig, data, ID):  
     return lab.lockin.get_X()
 
     
-def create_plot(fig, params, data):
+def create_plot(lab, params, fig, data, ID):
     if len(fig.axes) == 0: 
         ## If the figure is empty.
         plotting.createfig_XY(fig, "sig_gen frequency", "lock-in", 1, "--o")
@@ -22,7 +22,7 @@ def create_plot(fig, params, data):
         plotting.add_lines(1, "-")
     return
     
-def update_plot(fig, params, data):
+def update_plot(lab, params, fig, data, ID):
     ax = fig.axes[0]
     plotting.updatefig_XY(fig, params.freq.value, data, line_index=len(ax.lines)-1)
     
@@ -45,5 +45,5 @@ def update_plot(fig, params, data):
     
     
     
-def out(fig, lab, params):
+def out(lab, params, fig, data, ID):
     return update_plot(fig, params, data)

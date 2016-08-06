@@ -24,7 +24,7 @@ import linecache
 import plotting
 
     
-def sweep(lab, params, experiment, data, fig, current_sweep_ID, show_plot):
+def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, show_plot):
     """ 
     Sweeps through all params the same way as for loops, starting with sweep_ID #1. 
     for ... : (sweep #1)
@@ -36,115 +36,66 @@ def sweep(lab, params, experiment, data, fig, current_sweep_ID, show_plot):
 
 
     if params.get_dimension()==0: # This happens if every parameter is a constant.
-        run_experiment(lab, params, experiment, data, fig, show_plot)
+        run_experiment(lab, params, experiment, data, fig, file_ID, show_plot)
     else:
         current_sweeps = params.get_current_sweeps(current_sweep_ID)
         for i in range(len(current_sweeps[0].value)): # Here goes one 'for loop' corresponding to current sweep_ID
             update_params(current_sweeps, i) # Update the current value in array (_v attribute)
             
             if current_sweep_ID==params.get_dimension():
-                run_experiment(lab, params, experiment, data, fig, show_plot) # If this is the last 'for loop', it's time to run an experiment. End of recursion.
+                run_experiment(lab, params, experiment, data, fig, file_ID, show_plot) # If this is the last 'for loop', it's time to run an experiment. End of recursion.
 
             else:
-                sweep(lab, params, experiment, data, fig, current_sweep_ID+1, show_plot) # Else, go for another 'for loop' at the next sweep_ID.
+                sweep(lab, params, experiment, data, fig, current_sweep_ID+1, file_ID, show_plot) # Else, go for another 'for loop' at the next sweep_ID.
 
     return
     
-def run_experiment(lab, params, experiment, data, fig, show_plot):
+def run_experiment(lab, params, experiment, data, fig, file_ID, show_plot):
     """ 
     Launchs one experiment. This function is called by sweep(), which is called from scan().
     Supports double buffering.
     lab.time_launched has to be zero for the first run of the scan (taken care of if get_ready() was called).
     
     Procedure:
-    1) Execute experiment.sequence()
-    2) Load memory of instruments with double-buffering
-    3) Load memory of instruments without double-buffering
-    4) Wait for time parameters
-    5) Execute experiment.launch()
-    6) Execute experiment.sequence() with next parameter values.
-    7) Load memory of instruments with double-buffering
-    8) Wait for end of experiment
-    9) Store the result of experiment.get_data() in data array.
-    10) Update figure
-    11) On next run_experiment call, start at 3).
-    """
-    # First run only.
-    ########################if lab.time_launched == 0:
-    # Read experiment sequence.
-    read_sequence(lab, params, experiment)
-    ########################    # Load memory of ping pong instruments.
-    ########################    for instrument in lab.get_ping_pong_instruments():
-    ########################        instrument.load_memory_ping_pong()
-    # Load memory of instruments who can't ping_pong.
-    for instrument in [x for x in lab.get_memory_instruments() if (not x.use_pingpong)]:
-        instrument.load_memory()
-    # The starting pistol.
-    experiment.launch(lab, params)
-    # Save time at which the experiment really starts.
-    lab.time_launched = timeit.default_timer()
-    # Read next sequence and load memory of ping_pong instruments while the previous experiment is running.
-    ########################load_future_params(lab, params, experiment)
-    # Wait for the end of experiment. 
-    while (timeit.default_timer() < lab.time_launched + lab.total_duration):
-        pass
-    # Update data array.
-    data[params.get_data_indices()] = experiment.get_data(lab, params)
-    # Update fig.
-    if show_plot and fig != None:
-        experiment.update_plot(fig, params, data)
-        plotting.plt.pause(1e-6)
-    return 
-
-def read_sequence(lab, params, experiment):
-    """
-    First resets everything that is instructions related, then executes experiment.sequence()
+    1) Reset instructions related objects.
+    2) Execute experiment.sequence().
+    3) Append a buffer of lab.end_buffer to the end of sequence.
+    4) Load memory of instruments.
+    5) Execute experiment.launch().
+    6) Wait for end of experiment.
+    7) Store the result of experiment.get_data() in data array.
+    8) Update figure.
     """
     # Reset everything instructions related from lab, as well as the instructions of each memory instrument.
     lab.reset_instructions()
     # Run the sequence function from experiment module (custom function defined by user) which should fill the instructions attribute of instruments with memory.
-    experiment.sequence(lab, params)
+    experiment.sequence(lab, params, fig, data, file_ID)
     # Add a buffer of 20 ms to the experiments (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows.)
     # Second reason for doing this is to let some space for the awg to get its granularity right.
     lab.delay(lab.end_buffer)
-    return
+    # Load memory of instruments who can't ping_pong.
+    for instrument in lab.get_memory_instruments():
+        instrument.load_memory()
+    # The starting pistol.
+    experiment.launch(lab, params, fig, data, file_ID)
+    # Save time at which the experiment starts.
+    lab.time_launched = timeit.default_timer()
+    # Wait for the end of experiment. 
+    while (timeit.default_timer() < lab.time_launched + lab.total_duration):
+        pass
+    # Update data array.
+    data[params.get_data_indices()] = experiment.get_data(lab, params, fig, data, file_ID)
+    # Update figure.
+    if show_plot and fig != None:
+        experiment.update_plot(lab, params, fig, data, file_ID)
+        plotting.plt.pause(1e-6)
+    return 
+
 
 def update_params(swept_params, i):
     """ Updates the attribute _v (current value) of the parameters that are swept to their ith value. """
     for param in swept_params:
         param._update(i)
-    return
-            
-
-    
-def load_future_params(lab, params, experiment):
-    """ 
-    Get the value of parameters for the next time run_experiment will be called, and load memory of ping pong instruments according to those values.
-    Careful here: params values are changed inside this function. params._save_values() has to be called at the start, and params._load_values() has to be called at the end.   
-    """
-    params._save_values() # Here you have to save parameters current values, because they will be updated.
-    current_sweep_ID = params.get_dimension() # this is true because load_future_params() is always called during run_experiment()
-    load_them = False
-    while current_sweep_ID > 0:            
-        current_sweeps = params.get_current_sweeps(current_sweep_ID)
-        i = current_sweeps[0].i # take index from any param, they all share the same.
-        try:
-            for param in current_sweeps:
-                param._update(i+1) # if i+1 is too big for the array, it will raise IndexError.
-            load_them =  True
-            break
-        except IndexError:
-            # since the current loop is finished, reset current_sweeps to beginning of their respective array
-            for param in current_sweeps:
-                param._update(0) 
-            # and decrement current_sweep_ID by one to get to the other loop.
-            current_sweep_ID -= 1
-    
-    if load_them: # if load_them is False, it means that all the arrays are at the end, meaning there is no next parameters in line.
-        read_sequence(lab, params, experiment)
-        for instrument in lab.get_ping_pong_instruments():
-            instrument.load_memory_ping_pong() 
-    params._load_values() # Go back to values that were saved using params._save_values()
     return
 
 def get_ready(lab, params):
@@ -224,7 +175,7 @@ def zeros(params, experiment):
 
 def create_todays_folder():
     """ Create those folders if they don't exist. """
-    for section in ["data", "experiment","data_txt","fig","script","params"]:
+    for section in ["data", "experiment","data_txt","fig","script","params", "custom"]:
         folder_name = saving_folder()+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
@@ -354,12 +305,11 @@ def tea():
 
 def hack_time():
     """Hackerman is in control here."""
-    import sys
-    import msvcrt
-    if os.name=="nt":
-        enter = "\r"
-    else:
-        enter = "\n"
+    try:
+        import msvcrt
+    except ImportError:
+        raise LabMasterError, "Hacking time is not compatible with your system."
+       
     yes = "\t[YES]\t NO "
     no = "\t YES \t[NO]"
     yes_or_no = yes
@@ -380,7 +330,7 @@ def hack_time():
                     yes_or_no = yes
                     sys.stdout.write("%s\r" % yes )
                     sys.stdout.flush()
-            elif pressed==enter:
+            elif pressed=="\r":
                 if yes_or_no==yes:
                     print "\n\n"
                     for i in range(10000):
@@ -402,3 +352,4 @@ def hack_time():
                 elif yes_or_no==no:
                     print "\n\nWHAT?? YOU ARE A CHICKEN."
                     break
+    return

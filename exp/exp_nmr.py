@@ -12,7 +12,7 @@ from mod.main import *
 from _sequences_ import *
 
 
-def sequence(lab, params):
+def sequence(lab, params, fig, data, ID):
     lab.awg.default_delay["1"] = params.tau.v
     START = params.phase_cycle.v+params.phase_start.v+"/2,"
     END = params.phase_start.v+"/2,"
@@ -33,7 +33,7 @@ def sequence(lab, params):
     return 
 
     
-def launch(lab, params):
+def launch(lab, params, fig, data, ID):
     lab.usb_counter.clear(0)
     lab.usb_counter.clear(1)
     lab.awg.initiate_generation(1)
@@ -41,14 +41,14 @@ def launch(lab, params):
     return
 
 
-def get_data(lab, params):     
+def get_data(lab, params, fig, data, ID):     
     A = lab.usb_counter.read(0) 
     B = lab.usb_counter.read(1)
     return B-A
     
 
     
-def create_plot(fig, params, data):
+def create_plot(lab, params, fig, data, ID):
     ### 2D with phase cycling
     if data.ndim == 3 and params.phase_cycle.size()==2: 
         pass
@@ -62,7 +62,7 @@ def create_plot(fig, params, data):
     plotting.add_lines(1, "k--")
     return
     
-def update_plot(fig, params, data):
+def update_plot(lab, params, fig, data, ID):
     out = None, None
     ### 2D with phase cycling
     if data.ndim == 3 and params.phase_cycle.size()==2: 
@@ -98,7 +98,7 @@ def fit_exp(xdata, A, decay_tau):
     
     
     
-def out(fig, lab, params):
+def out(lab, params, fig, data, ID):
     return update_plot(fig, params, data)
     
     

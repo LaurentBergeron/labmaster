@@ -21,7 +21,7 @@ from not_for_user import LabMasterError
 
 #################################  automatic plotting #################################################
 
-def create_plot_auto(fig, params, data):
+def create_plot_auto(lab, params, fig, data, ID):
     if len(data.shape) == 1:
         xlabel = sorted([x.name for x in params.get_current_sweeps(1)])[0]
         createfig_XY(fig, xlabel, "data", 1, "--o")
@@ -33,7 +33,7 @@ def create_plot_auto(fig, params, data):
     return
         
     
-def update_plot_auto(fig, params, data):
+def update_plot_auto(lab, params, fig, data, ID):
     if fig == None:
         return
     if len(data.shape) == 1:

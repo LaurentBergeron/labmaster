@@ -6,13 +6,13 @@ from mod.main import *
 import time as time_module
 
 
-def launch(lab, params):
+def launch(lab, params, fig, data, ID):
     lab.laser.set_current(params.current.v)
     time_module.sleep(params.delay.v)    
     return
 
 
-def get_data(lab, params):
+def get_data(lab, params, fig, data, ID):
     params.current_meas.set_ith_value(lab.laser.quick_measure("curr"))  
     if USE_WAVEMETER:
         wavenumber = lab.wavemeter.measure()
@@ -21,11 +21,11 @@ def get_data(lab, params):
     return lab.lockin.get_X(), wavenumber
 
 
-def create_plot(fig, params, data):
+def create_plot(lab, params, fig, data, ID):
     plotting.createfig_XY(fig, "Current", "lockin", 1, "--o")
     return 
 
-def update_plot(fig, params, data):
+def update_plot(lab, params, fig, data, ID):
     ax = fig.axes[0]
     if USE_WAVEMETER:
         wavenumber = data[params.current.i,1]
@@ -54,5 +54,5 @@ def update_plot(fig, params, data):
     return at_curr
     
     
-def out(fig, lab, params):
+def out(lab, params, fig, data, ID):
     return update_plot(fig, params, data)

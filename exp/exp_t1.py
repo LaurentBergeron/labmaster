@@ -14,7 +14,7 @@ from _sequences_ import *
 
 from exp_nmr import launch, get_data, create_plot, fit_exp
 
-def sequence(lab, params):
+def sequence(lab, params, fig, data, ID):
     lab.awg.default_delay["1"] = params.tau.v
     START = params.phase_cycle.v+params.phase_start.v+"/2,"
     END = params.phase_start.v+"/2,"
@@ -38,7 +38,7 @@ def sequence(lab, params):
     return 
 
 
-def update_plot(fig, params, data):
+def update_plot(lab, params, fig, data, ID):
     out = None
     ### phase cycling
     elif data.ndim == 2 and params.phase_cycle.size()==2: 
@@ -62,7 +62,7 @@ def update_plot(fig, params, data):
 
     return out
     
-def out(fig, lab, params):
+def out(lab, params, fig, data, ID):
     return update_plot(fig, params, data)
     
     

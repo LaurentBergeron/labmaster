@@ -202,11 +202,6 @@ class Lab(Drawer):
         """ Return connected instruments which have memory capacity. """
         return [instr for instr in self.get_objects() if instr.use_memory]
         
-    def get_ping_pong_instruments(self):
-        """ Return connected instruments which have ping pong (double-buffering) memory capacity. """
-        return [instr for instr in self.get_memory_instruments() if instr.use_pingpong]
-
-        
     def print_connected(self, as_string=False):
         """ Print connected instruments. """
         string = ""
@@ -290,25 +285,11 @@ class Instrument():
         self.lab = parent
         self.name = name
         self.use_memory = use_memory
-        self.use_pingpong = use_pingpong
         self.instructions = []
-        if not use_memory and self.use_pingpong:  
-            raise LabMasterError, self.name+" is set to use pingpong but has no memory."
         return
 
     def reload(self):
         self.lab.reload(self.name)
-        return
-    
-    def delay(self, length):
-        """ 
-        Add a delay to instructions for memory loading. Can be called by any Instrument instance or by a Lab instance. 
-        
-        Input
-        - length: Duration of delay.
-        """
-        
-        self.lab.delay(length)
         return
 
 

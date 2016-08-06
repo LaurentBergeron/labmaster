@@ -71,17 +71,17 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
     else:
         if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
             raise KeyboardInterrupt
-
+            
+    ## ID is the number indicated after the date in file names.
+    ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
+    print "ID:",ID,"\n"
     ## data is an array full of zeros matching good dimensions imposed by params. dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
     data = nfu.zeros(params, experiment)
     ## Create folders for today if they don't exist
     nfu.create_todays_folder()
     ## Create a figure object.
     if fig != None:
-        experiment.create_plot(fig, params, data)
-    ## ID is the number indicated after the date in file names.
-    ID = nfu.detect_experiment_ID() # returns the current max ID found in saved/experiment/ folder, plus one (result as a string)
-    print "ID:",ID,"\n"
+        experiment.create_plot(lab, params, fig, data, ID)
 
     try:
         ## Save what we know about the experiment so far in saved/experiment/ folder. 
@@ -89,15 +89,15 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         ## Stuff that needs to be done before the scan.
         nfu.get_ready(lab, params)
         ## Call the start function of experiment module
-        experiment.start(lab, params)
+        experiment.start(lab, params, fig, data, ID)
         ## Start the sweep! data will be filled with science
-        nfu.sweep(lab, params, experiment, data, fig, 1, show_plot)
+        nfu.sweep(lab, params, experiment, data, fig, 1, ID, show_plot)
     finally:
         ################ MAKE SURE EACH STATEMENT HERE IS ERROR PROOF ################
         
         try:
             ## Call the end function of experiment module
-            experiment.end(lab, params, data, fig, ID)
+            experiment.end(lab, params, fig, data, ID)
         except:
             print "end function from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method of each instrument connected to the Lab instance.
@@ -111,11 +111,11 @@ def scan(lab, params, experiment, fig=None, quiet=False, show_plot=True):
         ## Save fig as pdf in saved/fig/ folder
         save_fig(fig, ID)
         ## Save the script that executed scan.
-        save_script()
+        save_script(ID)
         ## Update the figure one last time.
         if fig!= None and show_plot==False:
             try:
-                experiment.update_plot(fig, params, data)
+                experiment.update_plot(lab, params, fig, data, ID)
             except:
                 print "update_plot from "+experiment.__name__+" failed", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         print "\nsaved as",ID,"\n"
@@ -138,37 +138,31 @@ def check_experiment(experiment):
     - experiment: Module loaded to be used as experiment in a scan function.
     - dimension: Dimension of scan. You can get this value directly with params.get_dimension().
     """
-    ## A very boring function with 2 input arguments
-    def empty2(a, b):
+    ## A very boring function
+    def empty(lab, params, fig, data, ID):
         return 
-    ## A very boring function with 5 input arguments
-    def empty5(a, b, c, d, e):
-        return 
+    required_num_args = len(inspect.getargspec(empty).args)
     
-    available_functions = {"launch":2,
-                           "get_data":2,
-                           "sequence":2,
-                           "start":2,
-                           "end":5,
-                           "out":5,
-                           "create_plot":3,
-                           "update_plot":3
-                           }
+    available_functions = ["launch",
+                           "get_data",
+                           "sequence",
+                           "start",
+                           "end",
+                           "out",
+                           "create_plot",
+                           "update_plot"
+                           ]
     
-    for func_name, num_args in available_functions.items():
+    for func_name in available_functions:
         try:
-            if len(inspect.getargspec(experiment.__dict__[func_name]).args) != num_args:
-                raise LabMasterError, "Function "+func_name+" from "+experiment.__name__+" requires "+str(num_args)+" arguments."
+            if len(inspect.getargspec(experiment.__dict__[func_name]).args) != required_num_args:
+                raise LabMasterError, "Function "+func_name+" from "+experiment.__name__+" requires "+str(required_num_args)+" arguments."
         except KeyError:
             if func_name=="create_plot" or func_name=="update_plot":
                 experiment.create_plot = plotting.create_plot_auto
                 experiment.update_plot = plotting.update_plot_auto
-            elif num_args==2:
-                experiment.__dict__[func_name] = empty2
-            elif num_args==5:
-                experiment.__dict__[func_name] = empty5
             else:
-                raise LabMasterError, "Can't replace missing function "+func_name+" from "+experiment.__name__+". The source code needs to be edited."
+                experiment.__dict__[func_name] = empty
     
     return 
 
@@ -188,8 +182,6 @@ def check_lab(lab):
     for instrument in lab.get_objects():
         if not hasattr(instrument, "load_memory") and instrument.use_memory:
             raise LabMasterError, instrument.name+" needs a load_memory() method."
-        if not hasattr(instrument, "load_memory_ping_pong") and instrument.use_pingpong:
-            raise LabMasterError, instrument.name+" needs a load_memory_ping_pong() method."
         if not hasattr(instrument, "close"):
             raise LabMasterError, instrument.name+" needs a close() method."
         if not hasattr(instrument, "abort"):
@@ -685,18 +677,16 @@ def save_params(params, ID):
         print "save_params() failed."
     return
 
-def save_script():
+def save_script(ID):
     """
     Copy script_filename to saved/script/
     Add flaged comments to the header of the copied script file and in notebook.txt
-    The file ID will be maximum ID detected in saved/experiment/ folder.
     
     Input:
         script_filename: Name of the script to save. Use __file__ to get current file name.
     """
     try:
         nfu.create_todays_folder()
-        ID = nfu.pad_ID(int(nfu.detect_experiment_ID())-1)
         new_filename = nfu.saving_folder()+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
         shutil.copy(nfu.get_script_filename(), new_filename)     
     except:

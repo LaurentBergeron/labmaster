@@ -5,7 +5,7 @@ Pulse blaster test.
 import numpy as np 
 from mod.main import *
 
-def sequence(lab, params):
+def sequence(lab, params, fig, data, ID):
     
     lab.pb.turn_on("binA")
     for _ in np.arange(params.countA.v):
@@ -24,14 +24,14 @@ def sequence(lab, params):
  
 
     
-def launch(lab, params):
+def launch(lab, params, fig, data, ID):
     lab.usb_counter.clear(0)
     lab.usb_counter.clear(1)
     lab.pb.start()
     return
 
 
-def get_data(lab, params):      
+def get_data(lab, params, fig, data, ID):      
     A = lab.usb_counter.read(0)
     B = lab.usb_counter.read(1)
     return A, B, B-A

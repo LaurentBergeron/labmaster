@@ -24,7 +24,7 @@ class Awg_M8190A(Instrument):
     I recommend to use the Soft Front Panel to debug.
     """
     def __init__(self, name, parent, resource):
-        Instrument.__init__(self, name, parent, use_memory=True, use_pingpong=False)
+        Instrument.__init__(self, name, parent, use_memory=True)
         self.AgM8190 = importlib.import_module("mod.instruments.wrappers.dll_AgM8190")
         self.wfmGenLib2 = importlib.import_module("mod.instruments.wrappers.dll_wfmGenLib2")
         ## options
@@ -33,7 +33,6 @@ class Awg_M8190A(Instrument):
         self.channels_to_load = [1]
         self.coupled = False # coupled channels
         self.marker_enable = True
-        self.iscontinuous = False #This gets set to true using the CW method
         ## default pulse
         #default values are dictionaries with values defined below in set_default_params
         self.default_delay = {}
@@ -138,7 +137,7 @@ class Awg_M8190A(Instrument):
        
         self.load_memory(is_cw=True)
         self.initiate_generation(1)
-        self.iscontinous=True
+        self.use_memory=False
 
 
     def cw_optimal_sample_rate(self, frequency):
@@ -268,12 +267,10 @@ class Awg_M8190A(Instrument):
     def initiate_generation(self, channel):
         status = self.AgM8190.ChannelInitiateGeneration(self.session, str(channel))
         self.check_error(status)
-        time.sleep(2*10240/self.get_sample_rate()) ## needed to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
+        time.sleep(2*10240/self.get_sample_rate()) ## it's required to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
         return
 
     def load_memory(self, is_cw=False):
-        # global time_start
-        # time_start = time.time()
         for channel in self.channels_to_load:
             channel = str(channel)
 
@@ -392,12 +389,8 @@ class Awg_M8190A(Instrument):
             self.check_error(status)
 
 
-        # print "time to load awg:", time.time()-time_start
         return
 
-    def load_memory_pingpong(self):
-        self._current_buffer = (self._current_buffer+1)%2
-        return
 
     def loop_start(self, channel, num_loops, autopad=True):
         """
@@ -467,8 +460,6 @@ class Awg_M8190A(Instrument):
         segments.update({"type":[], "segment_info":[], "sequence_info":[]})
 
         short_size = (2**16-1)
-        # preprocess_time_start = time.time()
-
 
         ### Unzip user instructions
         channel_instructions = [inst for inst in self.instructions if inst[1]==str(channel)]
@@ -709,7 +700,6 @@ class Awg_M8190A(Instrument):
             segments["segment_info"].append(seg_info)
             segments["sequence_info"].append(seq_info)
         # TODO check segments and assert that there is as many start loops as end loops
-        # print "preprocess duration", time.time() - preprocess_time_start
         return
 
     def preprocess_loops(self, loop_start_times, loop_end_times, loop_nums, segment_start, segment_end):

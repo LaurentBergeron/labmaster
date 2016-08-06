@@ -15,7 +15,7 @@ from exp.exp_nmr import sequence, launch, get_data, create_plot
 import exp.exp_nmr
 exp.exp_nmr.LOADED_SEQUENCE = RAMSEY
 
-def update_plot(fig, params, data):
+def update_plot(lab, params, fig, data, ID):
     out = None
     ### with phase cycling
     if data.ndim == 2 and params.phase_cycle.size()==2: 
@@ -45,7 +45,7 @@ def fit_sin(xdata, A, period):
         
     
     
-def out(fig, lab, params):
+def out(lab, params, fig, data, ID):
     return update_plot(fig, params, data)
     
     
