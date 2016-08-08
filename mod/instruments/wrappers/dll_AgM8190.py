@@ -1,34 +1,25 @@
 """
-Python wrapper for AgM8190.dll.
-To call a function from AgM8190.dll, import dll_AgM8190.py and use the same function name, but without "AgM8190_" prefix.
-To use an attribute from AgM8190.h, import dll_AgM8190.py and use the same attribute name, but without "AGM8190_" prefix.
+Python wrapper for AgM8190.dll and AgM8190.h.
+Required to use Keysight AgM8190a AWG drivers.
+To call a function from AgM8190.dll, import dll_AgM8190.py and use the same function name without "AgM8190_" prefix.
+To use an attribute from AgM8190.h, import dll_AgM8190.py and use the same attribute name without "AGM8190_" prefix.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
  
-# Base modules
+## Base modules
 from ctypes import *
 import CppHeaderParser
 import inspect
 import os 
 
-# Homemade modules
+## Homemade modules
 from visa_types import *
 
-
-dll = WinDLL("mod/instruments/extern/AgM8190")
+## Load AgM8190.dll
+dll = WinDLL("mod/instruments/extern/AgM8190") 
+## Load AgM8190.h
 header = CppHeaderParser.CppHeader("mod/instruments/extern/AgM8190.h")
-        
-def check_args(argtype, input_args):  
-    try:
-        args_size = len(argtype)
-    except TypeError: 
-        args_size = 1
-    if args_size != len(input_args):
-        parent = inspect.stack()[1][3]
-        raise IndexError, "Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(input_args))+")."
-    return 
 
-ARRAY = POINTER
 
 ### ----------------------------------- Control words ---------------------------------- ###
 
@@ -56,7 +47,7 @@ control = {
             
             
 
-### ------------------------------------- #DEFINES ------------------------------------- ###
+### ------------------------------ #defines from AgM8190.h ------------------------------ ###
         
 for define in (header.defines):
     if define[0]=="_":
@@ -69,9 +60,24 @@ for define in (header.defines):
         if define[:8]=="AGM8190_":
             define = define[8:]
         exec define
+        
+### ------------------------------------------------------------------------------------- ###   
 
         
-### ------------------------------------ PROTOTYPES ------------------------------------ ###
+def check_args(argtype, input_args):  
+    """Make sure that the number of arguments is correct."""
+    try:
+        args_size = len(argtype)
+    except TypeError: 
+        args_size = 1
+    if args_size != len(input_args):
+        parent = inspect.stack()[1][3]
+        raise IndexError, "Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(input_args))+")."
+    return 
+
+### ----------------------------- functions from AgM8190.dll ---------------------------- ###
+
+ARRAY = POINTER
 
 
 def AbortGeneration(*args):

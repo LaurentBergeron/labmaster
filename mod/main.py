@@ -4,7 +4,7 @@ Contains all the functions callable from Ipython interface when using '%run _lau
 Please read HTML for more info.
 """
 __author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Camille Bowness <cbowness@sfu.ca>, Adam DeAbreu <adeabreu@sfu.ca>"
-__version__ = "1.3"   
+__version__ = "2.0"   
 
 
 # Base modules
@@ -364,6 +364,31 @@ def help_please():
     For a more detailed doc of the source code of LabMaster, you will find HTML help under doc/_LabMaster_html_
     """
     print textwrap.dedent(help_please.__doc__)
+    print "Available functions:"
+    funcs = [x[0] for x in inspect.getmembers(sys.modules[__name__], inspect.isfunction) if x[0] not in ("hack_time", "tea")]
+    N = len(funcs)
+    first_col = []
+    second_col = []
+    third_col = []
+    for i in range(0,N,3):
+        try:
+            first_col.append(funcs[i])
+        except IndexError:
+            first_col.append("")
+        try:
+            second_col.append(funcs[i+1])
+        except IndexError:
+            second_col.append("")
+        try:
+            third_col.append(funcs[i+2])
+        except IndexError:
+            third_col.append("")
+    first_maxlen = len(max(first_col, key=len))
+    second_maxlen = len(max(second_col, key=len))
+    for i,j,k in zip(first_col, second_col, third_col):
+        print "%s\t%s\t%s" % (i.ljust(first_maxlen, " "), j.ljust(second_maxlen, " "), k)
+        
+        
     return
 
 def last_data():

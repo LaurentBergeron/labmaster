@@ -1,16 +1,22 @@
 """
+Python wrapper for cbw32.dll
+Required to use MCC USB counter CTR04 drivers.
+You can find all the functions from the dll here, however the result/argument types were completed for needed functions only.
+Uncompleted functions are commented. Complete them as the need for them arise.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
-##Base Modules
 from ctypes import *
 import os
 
+## Load cbw32.dll
 dll = WinDLL("mod/instruments/extern/cbw32.dll")
+
 
 ARRAY = POINTER
     
 def cbCConfigScan(*args):
+    """Configures a counter channel. This function only works with counter boards that have counter scan capability."""
     return dll.cbCConfigScan(*args)
 dll.cbCConfigScan.restype = c_int # Error code
 dll.cbCConfigScan.argtype = (c_int, # BoardNum
@@ -25,6 +31,8 @@ dll.cbCConfigScan.argtype = (c_int, # BoardNum
 
                                      
 def cbCClear(*args):
+    """Clears a scan counter value (sets it to zero). This function only works with counter boards that have counter
+scan capability."""
     return dll.cbCClear(*args)
 dll.cbCClear.restype = c_int # Error code
 dll.cbCClear.argtype = (c_int, # BoardNum
@@ -33,6 +41,7 @@ dll.cbCClear.argtype = (c_int, # BoardNum
 
                                 
 def cbCIn32(*args):
+    """Reads the current count from a counter and returns it as a 32-bit integer."""
     return dll.cbCIn32(*args)
 dll.cbCIn32.restype = c_int # Error code
 dll.cbCIn32.argtype = (c_int, # BoardNum
@@ -42,6 +51,11 @@ dll.cbCIn32.argtype = (c_int, # BoardNum
                                
                   
 def cbGetErrMsg(*args):
+    """
+    Returns the error message associated with an error code. Each function returns an error code. An error code
+that is not equal to 0 indicates that an error occurred. Call this function to convert the returned error code to a
+descriptive error message.
+    """
     return dll.cbGetErrMsg(*args)
 dll.cbGetErrMsg.restype = c_int
 dll.cbGetErrMsg.argtype = (c_int,

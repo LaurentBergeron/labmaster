@@ -13,7 +13,7 @@ from _sequences_ import *
 
 
 def sequence(lab, params, fig, data, ID):
-    lab.awg.default_delay["1"] = params.tau.v
+    lab.awg.set_default_params(delay=params.tau.v)
     START = params.phase_cycle.v+params.phase_start.v+"/2,"
     END = params.phase_start.v+"/2,"
      
@@ -22,10 +22,10 @@ def sequence(lab, params, fig, data, ID):
     
     lab.free_evolution_time = 0
     
-    lab.awg.string_sequence(1, START)
+    lab.awg.string_sequence(START)
     for _ in np.arange(params.loops.v):
-        lab.awg.string_sequence(1, LOADED_SEQUENCE)
-    lab.awg.string_sequence(1, END)
+        lab.awg.string_sequence(LOADED_SEQUENCE)
+    lab.awg.string_sequence(END)
     params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
     
     lab.pb.turn_on("scope_trig", time_on=ms, rewind="start")
@@ -36,7 +36,7 @@ def sequence(lab, params, fig, data, ID):
 def launch(lab, params, fig, data, ID):
     lab.usb_counter.clear(0)
     lab.usb_counter.clear(1)
-    lab.awg.initiate_generation(1)
+    lab.awg.initiate_generation()
     lab.pb.start()
     return
 

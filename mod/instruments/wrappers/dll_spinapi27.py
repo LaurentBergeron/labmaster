@@ -1,7 +1,10 @@
 """
-Python wrapper for spinapi64.dll provided by SpinCore Techonologies for DDS Pulse Blaster. 
-Modified to use with PulseBlasterUSB as well (some function prototypes were added).
+Python wrapper for spinapi.dll
+Required to use SpinCore drivers.
+Wrapper base provided by SpinCore Techonologies. 
+Added some functions needed by PulseBlasterUSB! such as pb_inst_pbonly().
 Initial file (spinapi.py) was coded for Python 3, translated here for Python 2.
+Take a look at spinapi.h for more documenation on dll functions.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, starting from an extensive base by SpinCore Technologies <http://www.spincore.com>"
 
@@ -24,20 +27,15 @@ __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, starting from an 
 # misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
-
-# Base Modules
 import ctypes
 
-
+## Code for pb_start_programming mode.
 PULSE_PROGRAM = 0
 FREQ_REGS = 1  
    
-
+## Load spinapi.dll
 spinapi = ctypes.CDLL("mod/instruments/extern/spinapi")
 
-	
-def enum(**enums):
-    return type('Enum', (), enums)
 		
 ns = 1.0
 us = 1000.0
@@ -47,7 +45,11 @@ MHz = 1.0
 kHz = 0.001
 Hz = 0.000001
 		
-#Instruction enum
+## Weird tweak to get enums on Python...
+def enum(**enums):
+    return type('Enum', (), enums)
+
+## Instruction enum
 Inst = enum(
 	CONTINUE = 0,
 	STOP = 1,
@@ -60,6 +62,8 @@ Inst = enum(
 	WAIT = 8,
 	RTI = 9
 )
+
+### ----------------------------------------------- Result types ----------------------------------------------- ###
 spinapi.pb_get_version.restype = (ctypes.c_char_p)
 spinapi.pb_get_error.restype = (ctypes.c_char_p)
 
@@ -92,8 +96,7 @@ spinapi.pb_reset.restype = (ctypes.c_int)
 spinapi.pb_close.restype = (ctypes.c_int)
 
 
-
-
+### ----------------------------------------------- Argument types ----------------------------------------------- ###
 
 spinapi.pb_inst_dds2.argtype = (
 	ctypes.c_int, #Frequency register DDS0
@@ -115,7 +118,6 @@ spinapi.pb_inst_dds2.restype = (ctypes.c_int)
 
 
 
-"Added pb_inst_pbonly."
 spinapi.pb_inst_pbonly.argtype = (
     ctypes.c_int, #Flags
     ctypes.c_int, #inst
@@ -124,7 +126,7 @@ spinapi.pb_inst_pbonly.argtype = (
 )
 spinapi.pb_inst_pbonly.restype = (ctypes.c_int)
 
-"Added pb_inst_pbonly64."
+
 spinapi.pb_inst_pbonly64.argtype = (
     ctypes.c_int, #Flags
     ctypes.c_int, #inst
@@ -135,6 +137,7 @@ spinapi.pb_inst_pbonly64.restype = (ctypes.c_int)
 
 
 
+### ----------------------------------------------- spinapi functions. ----------------------------------------------- ###
 
 
 def pb_get_version():

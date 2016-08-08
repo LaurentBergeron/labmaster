@@ -11,7 +11,7 @@ from mod.main import *
 
 def pb_master_trigger(lab):
     lab.pb.turn_on("master_trig", time_on=us, rewind="start")
-    lab.delay(2*us)
+    lab.delay(20*us) ## Start buffer to allow correction of trigger latency.
 
 def prepare(lab, params):    
     """ Preparation for a RMN experiment. """

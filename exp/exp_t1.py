@@ -15,7 +15,7 @@ from _sequences_ import *
 from exp_nmr import launch, get_data, create_plot, fit_exp
 
 def sequence(lab, params, fig, data, ID):
-    lab.awg.default_delay["1"] = params.tau.v
+    lab.awg.set_default_params(delay=params.tau.v)
     START = params.phase_cycle.v+params.phase_start.v+"/2,"
     END = params.phase_start.v+"/2,"
      
@@ -26,8 +26,8 @@ def sequence(lab, params, fig, data, ID):
     
     if DELAY_BEFORE_PULSE:
         lab.delay(params.tau.v)
-    lab.awg.string_sequence(1, START)
-    lab.awg.string_sequence(1, END)
+    lab.awg.string_sequence(START)
+    lab.awg.string_sequence(END)
     if not DELAY_BEFORE_PULSE:
         lab.delay(params.tau.v)
     

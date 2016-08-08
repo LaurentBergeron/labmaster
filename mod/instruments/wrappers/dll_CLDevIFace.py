@@ -1,16 +1,18 @@
 """
-Python wrapper for Bristol 621 Wavelength Meter .dll
-CLDevIFace.dll
+Python wrapper for CLDevIFace.dll
+Required to use Bristol 621 Wavelength Meter drivers.
+Wrapper base taken from Charlie CHen <cchen@zygo.com>.
 """
-__author__ =  "Adam DeAbreu <adeabreu@sfu.ca>, starting from an extensive base by Charlie CHen <cchen@zygo.com>"
+__author__ =  "Adam DeAbreu <adeabreu@sfu.ca>, Charlie CHen <cchen@zygo.com>"
 __version__ = "1.1"
 
-##Base Modules
 from ctypes import *
 import os
 
-
+## Load CLDevIFace.dll
 dll = CDLL("mod/instruments/extern/CLDevIFace.dll")
+
+
 
 class BristolWaveLengthMeterWrapperException(Exception):
     """

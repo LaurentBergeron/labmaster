@@ -11,6 +11,7 @@ awg_sample_rate = 976*MHz
 pi_len = _defaults_.pi_len
 laser_curr = _defaults_.laser_current
 rf_freq = _defaults_.sig_gen_freq
+lab.awg.default_channel = "1"
 
 params = Params("loops", "tau;s", "phase_cycle", "phase_start", "time_axis;s", "bin_length;s")
 params.phase_start.value = "X"
@@ -34,10 +35,10 @@ try:
     lab.pb.add_slave("binA", 10)
     lab.pb.add_slave("binB", 11)
     lab.pb.add_slave("scope_trig", 17)
-
-    lab.awg.set_default_params("1", length=pi_len, amp=awg_amp, freq=awg_freq)
+    
+    lab.awg.set_default_params(length=pi_len, amp=awg_amp, freq=awg_freq)
     lab.awg.set_sample_clock_rate(awg_sample_rate)
-    lab.awg.set_trigger_mode("1", "trig")
+    lab.awg.set_trigger_mode("trig")
 
     if PHASE_CYCLING:
         params.phase_cycle.sweep_ID = params.get_dimension() + 1

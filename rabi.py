@@ -7,6 +7,7 @@ awg_sample_rate = 976*MHz
 pi_len = _defaults_.pi_len
 laser_curr = _defaults_.laser_current
 rf_freq = _defaults_.sig_gen_freq
+lab.awg.default_channel = "1"
 
 params = Params("pi_len;s", "bin_length;s")
 
@@ -25,9 +26,9 @@ try:
     lab.pb.add_slave("binB", 11)
     lab.pb.add_slave("scope_trig", 17)
     
-    lab.awg.set_default_params("1", amp=awg_amp, freq=awg_freq)
+    lab.awg.set_default_params(amp=awg_amp, freq=awg_freq)
     lab.awg.set_sample_clock_rate(awg_sample_rate)
-    lab.awg.set_trigger_mode("1", "trig")
+    lab.awg.set_trigger_mode("trig")
     
     scan(lab, params, experiment, fig=fig_ref)
     fit_pi_len = experiment.out(fig, lab, params)

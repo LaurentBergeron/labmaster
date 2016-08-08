@@ -17,7 +17,7 @@ def sequence(lab, params, fig, data, ID):
     _shared_.prepare(lab, params)
     lab.pb.turn_on("scope_trig", time_on=us, rewind="start")
 
-    lab.awg.pulse(1, length=params.pi_len.v)
+    lab.awg.pulse(length=params.pi_len.v)
         
     _shared_.readout(lab, params)
     

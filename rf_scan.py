@@ -3,7 +3,7 @@ import exp.exp_rf_scan as experiment
 ### Definition of parameters #################################
 awg_amp   = _defaults_.awg_amp          #pulse
 awg_freq  = _defaults_.awg_freq         #pulse
-channel_number = "1"                    #determines which channel to use
+lab.awg.default_channel = "1"                    #determines which channel to use
 
 params = Params("freq;Hz", "amp;mV", "phase;rad", "freq_estimate_min;Hz", "freq_estimate_max;Hz", "delay;s")
 params.freq.value = orange(1.6093*GHz, 1.613*GHz, 10*kHz)
@@ -22,7 +22,7 @@ fig_ref = plt.figure()
 
 
 try:
-    lab.awg.cw(channel_number, awg_freq, awg_amp)
+    lab.awg.cw(awg_freq, awg_amp)
     
     lab.sig_gen.set_freq(params.freq.value[0])
     time.sleep(200*ms) 

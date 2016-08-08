@@ -1,9 +1,7 @@
 """
-ctypes wrapper for the typedefs in IviVisaType.h.
+Python wrapper IviVisaType.h typedefs.
 """
-
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
-
 
 from ctypes import *
 

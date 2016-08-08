@@ -1,14 +1,18 @@
 """
-Python wrapper for wfmGenLib2.dll, which purpose is to compute a sum of different pulses faster than python would.
-wfmGenLib2.dll inpired from wfmGenLib.dll by Kevin Morse <kjm2@sfu.ca>.
+Python wrapper for wfmGenLib2.dll
+wfmGenLib2 computes the sum of different pulses.
+wfmGenLib2 base was taken from wfmGenLib by Kevin Morse <kjm2@sfu.ca>.
+Edit the shapes_code dictionnaries when including a new enveloppe shape in wfmGenLib2.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
-# Base Modules
 from ctypes import *
 
+## Load wfmGenLib2.dll
 dll = cdll.LoadLibrary("mod/instruments/extern/wfmGenLib2.dll")
 
+
+## Dictionnary that translates the shape string to the number in wfmGenLib2 enum.
 shapes_code = { "square": 0, 
                 "gauss": 1
               }
