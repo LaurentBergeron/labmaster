@@ -16,7 +16,7 @@ try:
     
     lab.awg.default_channel = "1"
     lab.awg.set_default_params(length=100*us, amp=1, freq=100*MHz)
-    lab.awg.set_sample_clock_rate(9*GHz)
+    lab.awg.set_sample_rate(9*GHz)
     lab.awg.set_trigger_mode("trig")
 
     scan(lab, params, experiment, quiet=True)

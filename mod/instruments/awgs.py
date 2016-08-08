@@ -187,7 +187,7 @@ class Awg_M8190A(Instrument):
             out = self.default_channel
         else:
             out = channel
-        return str(channel)
+        return str(out)
     
     def get_channel_coupling(self):
         result = self.get_ViInt32_attribute("", self.AgM8190.ATTR_INSTRUMENT_CHANNEL_COUPLING_ENABLED)

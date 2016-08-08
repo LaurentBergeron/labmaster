@@ -31,7 +31,7 @@ try:
     lab.pb.add_slave("scope_trig", 17)
 
     lab.awg.set_default_params(length=pi_len, amp=awg_amp, freq=awg_freq)
-    lab.awg.set_sample_clock_rate(awg_sample_rate)
+    lab.awg.set_sample_rate(awg_sample_rate)
     lab.awg.set_trigger_mode("trig")
 
     if PHASE_CYCLING:
