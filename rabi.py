@@ -38,7 +38,6 @@ except:
     error_manager()
     
 finally:
-    save_script()
     notebook("fitted pi_len;"+str(fit_pi_len),
              "awg frequency;"+str(awg_freq),
              "awg amplitude;"+str(awg_amp),

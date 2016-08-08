@@ -29,7 +29,6 @@ except:
     error_manager()
 
 finally:
-    save_script()
     notebook("current start;"+str(params.current.get_start()),
              "current end;"+str(params.current.get_end()),
              "current step;"+str(params.current.get_step()),

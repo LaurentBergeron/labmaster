@@ -56,8 +56,8 @@ del irun
 # Initialize instruments
 lab = Lab()
 
-# lab.add_instrument("pb")
-# lab.add_instrument("awg")
+lab.add_instrument("pb")
+lab.add_instrument("awg")
 # lab.add_instrument("usb_counter")
 # lab.add_instrument("laser")
 # lab.add_instrument("lockin")
