@@ -93,7 +93,7 @@ class Awg_M8190A(Instrument):
         return
 
     def abort_generation(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         status = self.AgM8190.ChannelAbortGeneration(self.session, channel)
         self.check_error(status)
         return
@@ -108,6 +108,12 @@ class Awg_M8190A(Instrument):
             print "AgM8190 close status", status
         return status
 
+    def channel_format(self, channel):
+        if channel==None:
+            out = self.default_channel
+        else:
+            out = channel
+        return str(out)
 
     def check_error(self, status):
         if self.verbose:
@@ -118,20 +124,23 @@ class Awg_M8190A(Instrument):
         return
 
     def cw(self, freq=None, amp=None, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         if freq==None:
             freq = self.default_freq[channel]
         self.lab.reset_instructions()
-        self.set_trigger_mode("auto", channel=channel)
-        self.adjust_trig_latency = False
         new_sample_rate = self.cw_optimal_sample_rate(freq)
         self.set_sample_rate(new_sample_rate)
         self.pulse(channel=channel, length=self.tick/new_sample_rate, freq=freq, amp=amp, phase=0)
         self.channels_to_load = [channel]
        
+        self.set_trigger_mode("trig", channel=channel, quiet_for_cw=True)
+        saved_trig_option = self.adjust_trig_latency
+        self.adjust_trig_latency = False
         self.load_memory(is_cw=True)
+        self.adjust_trig_latency = saved_trig_option
+        self.set_trigger_mode("auto", channel=channel)
         self.initiate_generation(channel=channel)
-        self.use_memory=False
+        return
 
 
     def cw_optimal_sample_rate(self, frequency):
@@ -152,7 +161,7 @@ class Awg_M8190A(Instrument):
         return
 
     def get_amplitude(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         channel_route = self.get_channel_route(channel=channel)
         if channel_route=="DAC":
             amp = self.get_ViReal64_attribute(channel, self.AgM8190.ATTR_ARBITRARY_DAC_AMPLITUDE)
@@ -163,7 +172,7 @@ class Awg_M8190A(Instrument):
         return amp
 
     def get_arm_mode(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_ARM_MODE)
         if result==self.AgM8190.VAL_ARM_MODE_SELF:
             mode = "self"
@@ -172,7 +181,7 @@ class Awg_M8190A(Instrument):
         return mode
 
     def get_channel_route(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_OUTPUT_ROUTE)
         if result==self.AgM8190.VAL_OUTPUT_ROUTE_AC:
             route = "AC"
@@ -182,12 +191,6 @@ class Awg_M8190A(Instrument):
             route = "DAC"
         return route
 
-    def get_channel(self, channel):
-        if channel==None:
-            out = self.default_channel
-        else:
-            out = channel
-        return str(channel)
     
     def get_channel_coupling(self):
         result = self.get_ViInt32_attribute("", self.AgM8190.ATTR_INSTRUMENT_CHANNEL_COUPLING_ENABLED)
@@ -198,7 +201,7 @@ class Awg_M8190A(Instrument):
         return coupling
 
     def get_gate_mode(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_GATE_MODE)
         if result==self.AgM8190.VAL_GATE_MODE_GATED:
             mode = "gated"
@@ -207,7 +210,7 @@ class Awg_M8190A(Instrument):
         return mode
 
     def get_offset(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         channel_route = self.get_channel_route(channel=channel)
         if channel_route=="DAC":
             offset = self.get_ViReal64_attribute(channel, self.AgM8190.ATTR_ARBITRARY_DAC_OFFSET)
@@ -241,7 +244,7 @@ class Awg_M8190A(Instrument):
         return sample_rate
 
     def get_sample_clock_source_route(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         result = vt.ViInt32()
         status = self.AgM8190.SampleClockGetSampleClockSource(self.session, channel, ct.byref(result))
         self.check_error(status)
@@ -252,7 +255,7 @@ class Awg_M8190A(Instrument):
         return route
 
     def get_trigger_mode(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         result = self.get_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_MODE)
         if result==self.AgM8190.VAL_TRIGGER_MODE_AUTO:
             mode = "auto"
@@ -273,7 +276,7 @@ class Awg_M8190A(Instrument):
         return result.value
 
     def initiate_generation(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         status = self.AgM8190.ChannelInitiateGeneration(self.session, channel)
         self.check_error(status)
         time.sleep(2*10240/self.get_sample_rate()) ## it's required to let some time to initiate. This time is related to trigger latency according to Keysight. I put 2 times the latency just to be sure.
@@ -412,7 +415,7 @@ class Awg_M8190A(Instrument):
 
 
     def loop_start(self, num_loops, autopad=True, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         """
         autopad=False is at your own risk
         """
@@ -432,7 +435,7 @@ class Awg_M8190A(Instrument):
         return
 
     def loop_end(self, autopad=True, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         """
         autopad=False is at your own risk
         """
@@ -468,7 +471,7 @@ class Awg_M8190A(Instrument):
         return
 
     def marker(self, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         self.instructions.append([self.lab.time_cursor, channel, "marker", None])
         return
 
@@ -761,7 +764,7 @@ class Awg_M8190A(Instrument):
         return is_start_of_a_sequence, is_end_of_a_sequence, loops_count
 
     def plot_loaded_sequence(self, divider=None, ax=None, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         # TODO: have two plots for both channels
         if self.lab.total_duration == 0:
             raise AgM8190Error, "No sequence is loaded."
@@ -814,7 +817,7 @@ class Awg_M8190A(Instrument):
 
 
     def pulse(self, length=None, phase=None, amp=None, freq=None, shape=None, rewind=None, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         # TODO: check if input is OK. Nyquist freq, min pulse length, phase between -360 and 360, shape in valid options.
         if length==None:
             length = self.default_length[channel]
@@ -845,7 +848,7 @@ class Awg_M8190A(Instrument):
         return
 
     def pulse_BB1_pi(self, pi_len=None, phase=None, pi_amp=None, freq=None, shape=None, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         if phase==None:
             phase = self.default_phase[channel]
 
@@ -861,7 +864,7 @@ class Awg_M8190A(Instrument):
         return
 
     def pulse_BB1_piby2(self, pi_len=None, piby2_len=None, phase=None, pi_amp=None, piby2_amp=None, freq=None, shape=None, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         if pi_len==None:
             pi_len = self.default_length[channel]
         if piby2_len==None:
@@ -899,7 +902,7 @@ class Awg_M8190A(Instrument):
 
 
     def set_amplitude(self, amp, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         current_amp = self.get_amplitude(channel=channel)
         if amp==current_amp:
             print "awg channel "+channel+" amplitude is "+nfu.auto_unit(amp, unit="V")+"."
@@ -931,7 +934,7 @@ class Awg_M8190A(Instrument):
 
 
     def set_arm_mode(self, query, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         if self.get_arm_mode(channel=channel)==query:
             print "awg channel "+channel+" arm mode is "+str(query)+"."
         else:
@@ -958,7 +961,7 @@ class Awg_M8190A(Instrument):
         return
 
     def set_channel_route(self, query, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         current_route = self.get_channel_route(channel=channel)
         if query==current_route:
             print "awg channel "+channel+" route is "+str(query)+"."
@@ -975,7 +978,7 @@ class Awg_M8190A(Instrument):
         return
 
     def set_default_params(self, for_channel=None, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
-        channel = self.get_channel(for_channel)
+        channel = self.channel_format(for_channel)
         if delay!=None:
             self.default_delay[channel] = delay
         if length!=None:
@@ -994,7 +997,7 @@ class Awg_M8190A(Instrument):
 
 
     def set_gate_mode(self, query, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         if self.get_gate_mode(channel=channel)==query:
             print "awg channel "+channel+" gate mode is "+str(query)+"."
         else:
@@ -1008,7 +1011,7 @@ class Awg_M8190A(Instrument):
         return
 
     def set_offset(self, offset, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         current_offset = self.get_offset(channel=channel)
         if offset==current_offset:
             print "awg channel "+channel+" offset is "+nfu.auto_unit(offset, unit="V")+"."
@@ -1084,7 +1087,7 @@ class Awg_M8190A(Instrument):
         return
 
     def set_sample_clock_source_route(self, query, channel=None):
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         current_route = self.get_sample_clock_source_route(channel=channel)
         if query==current_route:
             print "awg channel "+channel+" sample clock source route is "+str(query)+"."
@@ -1099,10 +1102,11 @@ class Awg_M8190A(Instrument):
             self.check_error(status)
         return
 
-    def set_trigger_mode(self, query, channel=None):
-        channel = self.get_channel(channel)
+    def set_trigger_mode(self, query, channel=None, quiet_for_cw=False):
+        channel = self.channel_format(channel)
         if self.get_trigger_mode(channel=channel)==query:
-            print "awg channel "+channel+" trigger mode is "+str(query)+"."
+            if not quiet_for_cw:
+                print "awg channel "+channel+" trigger mode is "+str(query)+"."
         else:
             if query=="auto":
                 self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_MODE, self.AgM8190.VAL_TRIGGER_MODE_AUTO)
@@ -1110,7 +1114,8 @@ class Awg_M8190A(Instrument):
                 self.set_ViInt32_attribute(channel, self.AgM8190.ATTR_TRIGGER_MODE, self.AgM8190.VAL_TRIGGER_MODE_TRIGGERED)
             else:
                 raise AgM8190Error, str(query)+" is not a valid input."
-            print "awg channel "+channel+" trigger mode set to "+str(query)+"."
+            if not quiet_for_cw:
+                print "awg channel "+channel+" trigger mode set to "+str(query)+"."
         return
 
     def set_ViInt32_attribute(self, string, attr, value):
@@ -1127,7 +1132,7 @@ class Awg_M8190A(Instrument):
 
     def string_sequence(self, string, loops=1, BB1=False, pulse_factor="length", channel=None):
         """ uses default delay, length, amplitude, freq and shape. not space/enter/tab sensitive"""
-        channel = self.get_channel(channel)
+        channel = self.channel_format(channel)
         clean_string = (string.replace(" ", "").replace("\n", "").replace("\t", "").replace("\r", ""))
         if loops > 1:
             self.loop_start(loops, channel=channel)

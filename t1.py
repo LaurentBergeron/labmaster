@@ -50,7 +50,6 @@ except:
     error_manager()
 
 finally:
-    save_script()
     notebook("T1;"+str(T1),
              "A;"+str(A),
              "awg freq;"+str(awg_freq),

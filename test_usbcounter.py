@@ -1,5 +1,3 @@
-save_script(__file__)
-
 try:
     import exp.exp_test_usbcounter as experiment
     params.add_parameter("countA", "countB")

@@ -1,7 +1,3 @@
-notebook("current; 1.64A", "ND; Red Open, Green 3", "sensitivity; 1e-7")
-
-save_script()
-
 import timeit
 time_1 = timeit.default_timer()
 

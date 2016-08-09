@@ -114,7 +114,8 @@ def get_ready(lab, params):
 def detect_experiment_ID():
     """ Read the maximum ID from files under experiment/. Add one to this result and return it as a string with padded zeros if ID < 10000. """
     date = today()
-    prefix = saving_folder()+"experiment/"+date+"/"+date+"_"
+    main_saving_loc = saving_folders()[0]
+    prefix =main_saving_loc+"experiment/"+date+"/"+date+"_"
     # two purges to get a list of IDs in folder
     first_purge = [filename[len(prefix):].split("_")[0] for filename in glob.glob(prefix+"*.txt")] # 1st purge: get .txt files with correct prefix.
     second_purge = []
@@ -176,9 +177,10 @@ def zeros(params, experiment):
 def create_todays_folder():
     """ Create those folders if they don't exist. """
     for section in ["data", "experiment","data_txt","fig","script","params", "custom"]:
-        folder_name = saving_folder()+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
+        for saving_loc in saving_folders():
+            folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
     return 
     
 
@@ -236,8 +238,9 @@ def get_notebook_line_format(delimiter="\t"):
     
     return lines[i]
 
-def saving_folder():
-    return "saved/"
+def saving_folders():
+    subfolder = str(datetime.datetime.today().year)+"/LabMasterData/"
+    return ["C:/Data/"+subfolder, "C:/Backup/"+subfolder]
     
 def get_script_filename():
     return sys.argv[0]

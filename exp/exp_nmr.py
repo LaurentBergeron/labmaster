@@ -26,7 +26,7 @@ def sequence(lab, params, fig, data, ID):
     for _ in np.arange(params.loops.v):
         lab.awg.string_sequence(LOADED_SEQUENCE)
     lab.awg.string_sequence(END)
-    params.time_axis.value[params.loops.i*params.tau.size()+params.tau.i] = lab.free_evolution_time
+    params.time_axis.value[params.loops.i*params.tau.get_size()+params.tau.i] = lab.free_evolution_time
     
     lab.pb.turn_on("scope_trig", time_on=ms, rewind="start")
     _shared_.readout(lab, params)
@@ -50,25 +50,25 @@ def get_data(lab, params, fig, data, ID):
     
 def create_plot(lab, params, fig, data, ID):
     ### 2D with phase cycling
-    if data.ndim == 3 and params.phase_cycle.size()==2: 
+    if data.ndim == 3 and params.phase_cycle.get_size()==2: 
         pass
     ### 1D with phase cycling
-    elif data.ndim == 2 and params.phase_cycle.size()==2: 
+    elif data.ndim == 2 and params.phase_cycle.get_size()==2: 
         plotting.createfig_XY(fig, "Free evolution time (s)", "countB - countA", 3, "--o")
     ### no phase cycling
     else: 
         plotting.createfig_XY(fig, "Free evolution time (s)", "countB - countA", 1, "--o")
-        
-    plotting.add_lines(1, "k--")
+
+    plotting.add_lines(fig, 1, "k--")
     return
     
 def update_plot(lab, params, fig, data, ID):
     out = None, None
     ### 2D with phase cycling
-    if data.ndim == 3 and params.phase_cycle.size()==2: 
+    if data.ndim == 3 and params.phase_cycle.get_size()==2: 
         pass
     ### 1D with phase cycling
-    elif data.ndim == 2 and params.phase_cycle.size()==2: 
+    elif data.ndim == 2 and params.phase_cycle.get_size()==2: 
         cycle1 = data[:,0]
         cycle2 = data[:,1]
         cyclediff = cycle1-cycle2
@@ -78,7 +78,7 @@ def update_plot(lab, params, fig, data, ID):
         
         popt = plotting.update_curve_fit(fig, fit_exp, params.time_axis.value[1:], cyclediff[1:], line_index = 3, nargs = 2, initial_guess=[cyclediff[1], 10])
         if popt is not None:
-            fig.suptitle("$T_2$ = "+auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
+            fig.suptitle("$T_2$ = "+auto_unit(popt[1], "s", decimal=3)+"\t\t $A$ = %3.0f"%popt[0], fontsize=20)
             out = popt[0], popt[1]
             
     ### no phase cycling

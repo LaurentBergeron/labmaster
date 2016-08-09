@@ -34,11 +34,10 @@ class Laser_ITC4001(Default_visa):
         
         self.MAX_CURR = 200*mA
         self.MIN_CURR = 0
-        self.MAX_TEMP = 40 # Celcius
-        self.MIN_TEMP = 30 # Celcius
+        self.MAX_TEMP = 40 ## Celcius
+        self.MIN_TEMP = 30 ## Celcius
         
         return 
-        
         
     def check_temperature(self, temp):
         """Check if input temperature satisfies minimum and maximum values."""
@@ -61,29 +60,28 @@ class Laser_ITC4001(Default_visa):
         return
     
     def get_temp(self):
-        """Read temperature from the temperature controller (Celcius)."""
+        """Read temperature Celcius)."""
         return float(self.device_handle.query("meas:temp?"))
     
     def get_current(self):
-        """Read current from the laser diode (A)."""
+        """Read current (A)."""
         return float(self.device_handle.query("meas:curr?"))
     
         
     def set_temp(self, temp):
-        """Set temperature of the temperature controller (Celcius)."""
+        """Set temperature (Celcius)."""
         self.check_temperature(temp)
         self.temp = temp
-        self.device_handle.write("source2:temp "+str(temp))
+        self.device_handle.write("source2:temp "+str(temp)) ## the suffix 2 is required for ITC4001 instruments.
         return
         
     def set_current(self, curr):
-        """Set current of the laser diode (A)."""
+        """Set current (A)."""
         self.check_current(curr)
         self.curr = curr
         self.device_handle.write("source:curr "+str(curr))
         return
         
-    
     def beep(self):
         """Self-explanatory."""
         retval = self.device_handle.write("SYST:BEEP:IMM")

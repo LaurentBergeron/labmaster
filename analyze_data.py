@@ -10,6 +10,7 @@ Will output fitting parameters as well as saving the data and param files
 as .npy (thus not needing all of LabMaster to manipulate) in the location
 directory
 """
+__author__="Adam DeAbreu <adeabreu@sfu.ca>"
 import numpy as np
 import os
 from mod.main import * 

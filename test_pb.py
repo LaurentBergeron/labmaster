@@ -17,5 +17,3 @@ try:
 except:
     error_manager()
 
-finally:
-    save_script()

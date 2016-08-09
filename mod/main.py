@@ -403,6 +403,9 @@ def last_params(output=None):
 def last_plot(experiment_name=None):
     return load_plot(today(), lastID(), experiment_name=experiment_name)
     
+def last_out(experiment_name=None):
+    return load_out(today(), lastID(), experiment_name=experiment_name)
+    
 def load_data(date, ID):
     """
     Load data from a .npy file in saved/data/ folder. 
@@ -419,8 +422,9 @@ def load_data(date, ID):
     - the loaded numpy array.
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
+    main_saving_loc = nfu.saving_folders()[0]
     try:
-        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"data/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(main_saving_loc+"data/"+date+"/*") if file_format in filename][0]
     except IndexError:
         raise LabMasterError, "Date or ID does not match any existing file."
     return np.load(matching_file)
@@ -441,8 +445,9 @@ def load_datatxt(date, ID):
     - the loaded numpy array.
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
+    main_saving_loc = nfu.saving_folders()[0]
     try:
-        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"datatxt/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(main_saving_loc+"datatxt/"+date+"/*") if file_format in filename][0]
     except IndexError:
         try:
             size_of_data = load_data(date, ID).size
@@ -473,8 +478,9 @@ def load_params(date, ID, output=None):
     - Either a Params instance or the specified Parameter instance, depending on output value.
     """
     file_format = nfu.filename_format(date, ID, script_name=False)
+    main_saving_loc = nfu.saving_folders()[0]
     try:
-        matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"params/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(main_saving_loc+"params/"+date+"/*") if file_format in filename][0]
     except IndexError:
         raise LabMasterError, "Date or ID does not match any existing file."
     with open(matching_file, "rb") as f:
@@ -490,10 +496,11 @@ def load_params(date, ID, output=None):
     
 
 def load_plot(date, ID, experiment_name=None, fig=None):
+    main_saving_loc = nfu.saving_folders()[0]
     try:
         if experiment_name==None:
             file_format = nfu.filename_format(date, ID, script_name=False)
-            matching_file = [filename for filename in glob.glob(nfu.saving_folder()+"experiment/"+date+"/*") if file_format in filename][0]
+            matching_file = [filename for filename in glob.glob(main_saving_loc+"experiment/"+date+"/*") if file_format in filename][0]
             "Date or ID does not match any existing experiment file."
             with open(matching_file) as f:
                 experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
@@ -503,16 +510,40 @@ def load_plot(date, ID, experiment_name=None, fig=None):
         experiment = None
     if fig==None:
         fig = plt.figure()
+    lab = Lab() ## fake lab to input to create_plot and update_plot. 
     params = load_params(date, ID)
     data = load_data(date, ID)
+    if experiment==None:
+        plotting.create_plot_auto(lab, params, fig, data, ID)
+        plotting.update_plot_auto(lab, params, fig, data, ID)
+    else:
+        experiment.create_plot(lab, params, fig, data, ID)
+        experiment.update_plot(lab, params, fig, data, ID)
+    return fig
+    
+def load_out(date, ID, experiment_name=None):
+    main_saving_loc = nfu.saving_folders()[0]
     try:
-        experiment.create_plot(fig, params, data)
-        scan_out = experiment.update_plot(fig, params, data)
+        if experiment_name==None:
+            file_format = nfu.filename_format(date, ID, script_name=False)
+            matching_file = [filename for filename in glob.glob(main_saving_loc+"experiment/"+date+"/*") if file_format in filename][0]
+            "Date or ID does not match any existing experiment file."
+            with open(matching_file) as f:
+                experiment_name = f.read().split("### Experiment: ")[-1].split("\n")[0][:-3]
+        experiment = importlib.import_module(experiment_name)
+    except ImportError, IndexError:
+        raise LabMasterError, "Could not import experiment."
+    fig = plt.figure()
+    lab = Lab() ## fake lab to input to create_plot and update_plot. 
+    params = load_params(date, ID)
+    data = load_data(date, ID)
+    try: 
+        out = experiment.out(lab, params, fig, data, ID)
     except AttributeError:
-        plotting.create_plot_auto(fig, params, data)
-        plotting.update_plot_auto(fig, params, data)
-        scan_out = None
-    return fig, data, params, scan_out
+        print experiment.__name__+" has no out function."
+        out = None
+    return out
+    
     
 def notebook(*args):
     delimiter = ";"
@@ -575,13 +606,13 @@ def pickle_save(filename, thing):
     """
     if isinstance(thing, classes.Lab):
         raise LabMasterError, "Can't save instrument connexion in the pickle file. It's thus pointless to save a Lab instance."
-    if not os.path.exists(nfu.saving_folder()+"pickle"):
-        os.makedirs(nfu.saving_folder()+"pickle")
-    if os.path.isfile(nfu.saving_folder()+"pickle/"+filename+".pickle"):
+    if not os.path.exists("pickle"):
+        os.makedirs("pickle")
+    if os.path.isfile("pickle/"+filename+".pickle"):
         if raw_input(nfu.warn_msg()+"Overwriting "+filename+".pickle? [y/N]") not in nfu.positive_answer_N():
             print "not saved\n"
             return
-    with open(nfu.saving_folder()+"pickle/"+filename+".pickle", "wb") as f:
+    with open("pickle/"+filename+".pickle", "wb") as f:
         pickle.dump(thing, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
         print "saved to saved/pickle/"+filename+".pickle\n"
     return
@@ -595,7 +626,7 @@ def pickle_load(filename):
     - filename: Name of the file to load. The "pickle/" folder and ".pickle" extension are added automatically.
     """
     try:
-        with open(nfu.saving_folder()+"pickle/"+filename+".pickle", "rb") as f:
+        with open("pickle/"+filename+".pickle", "rb") as f:
             thing = pickle.load(f)
             print "loaded from "+filename+".pickle"
     except IOError:
@@ -622,21 +653,22 @@ def save_data(data, ID):
     
     """
     try:
-        filename = nfu.saving_folder()+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
-        filenametxt = nfu.saving_folder()+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
-        if isinstance(data, np.ndarray):
-            np.save(filename, data) # always save a .npy file
-            if data.ndim < 3:
-                # if dimension of data is not higher than 2, save a .txt file
-                np.savetxt(filenametxt, data)
+        for saving_loc in nfu.saving_folders():
+            filename = saving_loc+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
+            filenametxt = saving_loc+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
+            if isinstance(data, np.ndarray):
+                np.save(filename, data) # always save a .npy file
+                if data.ndim < 3:
+                    # if dimension of data is not higher than 2, save a .txt file
+                    np.savetxt(filenametxt, data)
+                else:
+                    # if dimension of data is higher than 2, leave a message in the .txt file
+                    with open(filenametxt,"w") as f:
+                        f.write("# Array dimension is > 2 thus numpy can't save it as a .txt file.")
+            elif data==None:
+                pass
             else:
-                # if dimension of data is higher than 2, leave a message in the .txt file
-                with open(filenametxt,"w") as f:
-                    f.write("# Array dimension is > 2 thus numpy can't save it as a .txt file.")
-        elif data==None:
-            pass
-        else:
-             raise LabMasterError, "data is not a numpy array."
+                 raise LabMasterError, "data is not a numpy array."
     except:
         print "save_data() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
@@ -661,26 +693,27 @@ def save_experiment(lab, params, experiment, ID, error_string):
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
     try:
-        filename = nfu.saving_folder()+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
-        time_launched_string = "Time launched:  "
-        time_ended_string    = "Time ended:     "
-        datetime_format = "%Y-%b-%d %H:%M:%S"
-        with open(filename, "a") as f:    
-            if error_string == "first_time":
-                f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-            else:
-                f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-        if error_string != "first_time":
-            with open(filename, "r") as f:    
-                contents = f.read()
-                time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
-                time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
-            with open(filename, "a") as f:     
-                f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
-                f.write(error_string+"\n\n")
-                f.write("### "+str(lab)+"\n\n")
-                f.write("### Scheduled run \n"+str(params)+"\n")
-                f.write("### Experiment: "+experiment.__name__+".py\n"+inspect.getsource(experiment))
+        for saving_loc in nfu.saving_folders():
+            filename = saving_loc+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
+            time_launched_string = "Time launched:  "
+            time_ended_string    = "Time ended:     "
+            datetime_format = "%Y-%b-%d %H:%M:%S"
+            with open(filename, "a") as f:    
+                if error_string == "first_time":
+                    f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
+                else:
+                    f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
+            if error_string != "first_time":
+                with open(filename, "r") as f:    
+                    contents = f.read()
+                    time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
+                    time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
+                with open(filename, "a") as f:     
+                    f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
+                    f.write(error_string+"\n\n")
+                    f.write("### "+str(lab)+"\n\n")
+                    f.write("### Scheduled run \n"+str(params)+"\n")
+                    f.write("### Experiment: "+experiment.__name__+".py\n"+inspect.getsource(experiment))
     except:
         print "save_experiment() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
@@ -695,9 +728,10 @@ def save_params(params, ID):
     - ID: Number indicated after the date in file name.
     """
     try:
-        filename = nfu.saving_folder()+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
-        with open(filename, "wb") as f:
-            pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
+        for saving_loc in nfu.saving_folders():
+            filename = saving_loc+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
+            with open(filename, "wb") as f:
+                pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
     except:
         print "save_params() failed."
     return
@@ -711,9 +745,9 @@ def save_script(ID):
         script_filename: Name of the script to save. Use __file__ to get current file name.
     """
     try:
-        nfu.create_todays_folder()
-        new_filename = nfu.saving_folder()+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
-        shutil.copy(nfu.get_script_filename(), new_filename)     
+        for saving_loc in nfu.saving_folders():
+            new_filename = saving_loc+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
+            shutil.copy(nfu.get_script_filename(), new_filename)     
     except:
         print "save_script() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
@@ -727,11 +761,12 @@ def save_fig(fig, ID, ext="pdf"):
     - ID: Number indicated after the date in file name.
     - ext: Extension of the file to save. Supported formats: emf, eps, pdf, png, ps, raw, rgba, svg, svgz.
     """
-    try:
-        if fig != None:
-            fig.savefig(nfu.saving_folder()+"fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
-    except:
-        print "save_fig() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+    if fig != None:
+        try:
+            for saving_loc in nfu.saving_folders():
+                fig.savefig(saving_loc+"fig/"+today()+"/"+nfu.filename_format(today(), ID)+"."+ext)
+        except:
+            print "save_fig() failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return 
     
 

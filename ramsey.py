@@ -53,7 +53,6 @@ except:
     period = None
     error_manager()
 finally:
-    save_script()
     notebook("period;"+str(period),
              "awg freq;"+str(awg_freq),
              "awg ampl;"+str(awg_amp),

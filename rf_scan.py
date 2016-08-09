@@ -33,7 +33,6 @@ except:
     error_manager()
     
 finally:
-    save_script()
     notebook("Clock trans. freq;"+str(freq_at_clock),
              "awg frequency;"+str(awg_freq),
              "awg amplitude;"+str(awg_amp),

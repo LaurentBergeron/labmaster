@@ -28,43 +28,62 @@ class Lockin_5210(Default_visa):
         Default_visa.__init__(self, name, parent) 
         rm = vi.ResourceManager()
         self.device_handle = rm.open_resource(visa_ID)
+        
+        ### Options ###
+        self.convert_reading = True
         return
     
         
     def auto_phase(self):
-        """TODO"""
+        """Change the phase to maximise X signal."""
         self.device_handle.write('AQN')
         return
 
     def get_X(self):
-        """Read X component (V)."""
-        retval = self.device_handle.query('X')
-        return float(retval)
+        """Read X component (volts if self.convert_reading=True)."""
+        X = float(self.device_handle.query('X'))
+        if self.convert_reading:
+            X *= self.get_sensitivity()/10000.0
+        return X
         
     def get_Y(self):
-        """Read Y component (V)."""
-        retval = self.device_handle.query('Y')
-        return float(retval)
+        """Read Y component (volts if self.convert_reading=True)."""
+        Y = float(self.device_handle.query('Y'))
+        if self.convert_reading:
+            Y *= self.get_sensitivity()/10000.0
+        return Y
         
     def get_XY(self):
         """Read voltage from both X and Y at the same time."""
         X, Y = self.device_handle.query('XY').split(",")
-        return float(X), float(Y)
+        X, Y = float(X), float(Y)
+        if self.convert_reading:
+            X *= self.get_sensitivity()/10000.0
+            Y *= self.get_sensitivity()/10000.0
+        return X, Y
         
     def get_magnitude(self):
-        """Read voltage magnitude (V)."""
-        retval = self.device_handle.query('MAG')
-        return float(retval)
+        """Read voltage magnitude (volts if self.convert_reading=True)."""
+        mag = float(self.device_handle.query('MAG'))
+        if self.convert_reading:
+            mag *= self.get_sensitivity()/10000.0
+        return mag
         
     def get_phase(self):
-        """Read phase (deg)."""
-        retval = self.device_handle.query('PHA')
-        return float(retval)
+        """Read phase (deg if self.convert_reading=True)."""
+        phase = float(self.device_handle.query('PHA'))
+        if self.convert_reading:
+            mag *= self.get_sensitivity()/10000.0
+            phase /= 1000.0
+        return phase
         
     def get_magnitude_and_phase(self):
         """Read both voltage magnitude and phase at the same time."""
         mag, phase = self.device_handle.query('MP').split(",")
-        return float(mag), float(phase)/1000.0
+        mag, phase = float(mag), float(phase)
+        if self.convert_reading:
+            phase /= 1000.0
+        return mag, phase
 
     def get_time_constant(self):
         """Read currently selected time_constant."""

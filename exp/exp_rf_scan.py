@@ -19,7 +19,7 @@ def create_plot(lab, params, fig, data, ID):
         plotting.createfig_XY(fig, "sig_gen frequency", "lock-in", 1, "--o")
     else: 
         ## If using a figure which already contains a plot.
-        plotting.add_lines(1, "-")
+        plotting.add_lines(fig, 1, "-")
     return
     
 def update_plot(lab, params, fig, data, ID):

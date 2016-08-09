@@ -56,7 +56,6 @@ except:
     A, T2 = None, None
     error_manager()
 finally:
-    save_script()
     notebook("sequence;"+str([key for key, value in _sequences_.__dict__.items() if value==experiment.LOADED_SEQUENCE][0]),
              "T2;"+str(T2),
              "A;"+str(A),

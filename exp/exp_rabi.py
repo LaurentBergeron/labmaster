@@ -25,7 +25,7 @@ def sequence(lab, params, fig, data, ID):
     
 def create_plot(lab, params, fig, data, ID):
     plotting.createfig_XY(fig, "$\pi$", "data", 1, "--o")
-    plotting.add_lines(1, "k--")
+    plotting.add_lines(fig, 1, "k--")
     return 
     
 def update_plot(lab, params, fig, data, ID):
