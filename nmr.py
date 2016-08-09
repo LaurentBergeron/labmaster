@@ -50,7 +50,7 @@ try:
     params.time_axis.value = np.zeros(params.tau.get_size()*params.loops.get_size())
 
     scan(lab, params, experiment, fig=fig_ref, quiet=True)
-    A, T2 = experiment.out(fig, lab, params)
+    A, T2 = experiment.out(lab, params, fig, data, None)
 
 except:
     A, T2 = None, None

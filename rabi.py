@@ -31,7 +31,7 @@ try:
     lab.awg.set_trigger_mode("trig")
     
     scan(lab, params, experiment, fig=fig_ref)
-    fit_pi_len = experiment.out(fig, lab, params)
+    fit_pi_len = experiment.out(lab, params, fig, data, None)
 
 except:
     fit_pi_len = None

@@ -24,7 +24,7 @@ import linecache
 import plotting
 
     
-def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, show_plot):
+def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, update_plot):
     """ 
     Sweeps through all params the same way as for loops, starting with sweep_ID #1. 
     for ... : (sweep #1)
@@ -35,22 +35,22 @@ def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, show_pl
     """
 
 
-    if params.get_dimension()==0: # This happens if every parameter is a constant.
-        run_experiment(lab, params, experiment, data, fig, file_ID, show_plot)
+    if params.get_dimension()==0: ## This happens if every parameter is a constant.
+        run_experiment(lab, params, experiment, data, fig, file_ID, update_plot)
     else:
         current_sweeps = params.get_current_sweeps(current_sweep_ID)
-        for i in range(len(current_sweeps[0].value)): # Here goes one 'for loop' corresponding to current sweep_ID
-            update_params(current_sweeps, i) # Update the current value in array (_v attribute)
+        for i in range(len(current_sweeps[0].value)): ## Here goes one 'for loop' corresponding to current sweep_ID
+            update_params(current_sweeps, i) ## Update the current value in array (_v attribute)
             
             if current_sweep_ID==params.get_dimension():
-                run_experiment(lab, params, experiment, data, fig, file_ID, show_plot) # If this is the last 'for loop', it's time to run an experiment. End of recursion.
+                run_experiment(lab, params, experiment, data, fig, file_ID, update_plot) ## If this is the last 'for loop', it's time to run an experiment. End of recursion.
 
             else:
-                sweep(lab, params, experiment, data, fig, current_sweep_ID+1, file_ID, show_plot) # Else, go for another 'for loop' at the next sweep_ID.
+                sweep(lab, params, experiment, data, fig, current_sweep_ID+1, file_ID, update_plot) ## Else, go for another 'for loop' at the next sweep_ID.
 
     return
     
-def run_experiment(lab, params, experiment, data, fig, file_ID, show_plot):
+def run_experiment(lab, params, experiment, data, fig, file_ID, update_plot):
     """ 
     Launchs one experiment. This function is called by sweep(), which is called from scan().
     Supports double buffering.
@@ -66,27 +66,27 @@ def run_experiment(lab, params, experiment, data, fig, file_ID, show_plot):
     7) Store the result of experiment.get_data() in data array.
     8) Update figure.
     """
-    # Reset everything instructions related from lab, as well as the instructions of each memory instrument.
+    ## Reset everything instructions related from lab, as well as the instructions of each memory instrument.
     lab.reset_instructions()
-    # Run the sequence function from experiment module (custom function defined by user) which should fill the instructions attribute of instruments with memory.
+    ## Run the sequence function from experiment module (custom function defined by user) which should fill the instructions attribute of instruments with memory.
     experiment.sequence(lab, params, fig, data, file_ID)
-    # Add a buffer of 20 ms to the experiments (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows.)
-    # Second reason for doing this is to let some space for the awg to get its granularity right.
+    ## Add a buffer of 20 ms to the experiments (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows.)
+    ## Second reason for doing this is to let some space for the awg to get its granularity right.
     lab.delay(lab.end_buffer)
-    # Load memory of instruments who can't ping_pong.
+    ## Load memory of instruments who can't ping_pong.
     for instrument in lab.get_memory_instruments():
         instrument.load_memory()
-    # The starting pistol.
+    ## The starting pistol.
     experiment.launch(lab, params, fig, data, file_ID)
-    # Save time at which the experiment starts.
+    ## Save time at which the experiment starts.
     lab.time_launched = timeit.default_timer()
-    # Wait for the end of experiment. 
+    ## Wait for the end of experiment. 
     while (timeit.default_timer() < lab.time_launched + lab.total_duration):
         pass
-    # Update data array.
+    ## Update data array.
     data[params.get_data_indices()] = experiment.get_data(lab, params, fig, data, file_ID)
-    # Update figure.
-    if show_plot and fig != None:
+    ## Update figure.
+    if update_plot and fig != None:
         experiment.update_plot(lab, params, fig, data, file_ID)
         plotting.plt.pause(1e-6)
     return 
@@ -106,8 +106,9 @@ def get_ready(lab, params):
         param.i = 0
     for param in params.get_sweeps():
         param._update(0)
-    if "awg" in lab.get_names():
-        lab.awg.reset_warnings()
+    for instrument in lab.get_objects():    
+        if hasattr(instrument, "reset_warnings"):
+            instrument.reset_warnings()
     return
 
     
@@ -116,15 +117,15 @@ def detect_experiment_ID():
     date = today()
     main_saving_loc = saving_folders()[0]
     prefix =main_saving_loc+"experiment/"+date+"/"+date+"_"
-    # two purges to get a list of IDs in folder
-    first_purge = [filename[len(prefix):].split("_")[0] for filename in glob.glob(prefix+"*.txt")] # 1st purge: get .txt files with correct prefix.
+    ## two purges to get a list of IDs in folder
+    first_purge = [filename[len(prefix):].split("_")[0] for filename in glob.glob(prefix+"*.txt")] ## 1st purge: get .txt files with correct prefix.
     second_purge = []
     for x in first_purge:
         try:
-            second_purge.append(int(x)) # 2nd purge: thing between prefix and .txt has to be castable into an int.
+            second_purge.append(int(x)) ## 2nd purge: thing between prefix and .txt has to be castable into an int.
         except:
             pass
-    if second_purge == []: # if no files survived the purge
+    if second_purge == []: ## if no files survived the purge
         ID = "0000"
     else:
         ID = pad_ID(max(second_purge)+1)
@@ -246,7 +247,7 @@ def get_script_filename():
     return sys.argv[0]
     
 def filename_format(date, ID, script_name=True):
-    return date+"_"+ID+"_"+script_name*get_script_filename()[:-3]
+    return date+"_"+ID#+"_"+script_name*get_script_filename()[:-3]
     
 def today():
     return datetime.date.today().strftime("%Y_%m_%d")

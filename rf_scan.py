@@ -28,8 +28,9 @@ try:
     time.sleep(200*ms) 
     
     scan(lab, params, experiment, fig=fig_ref)
-    
+    freq_at_clock = experiment.out(lab, params, fig, data, None)
 except:
+    freq_at_clock = None
     error_manager()
     
 finally:

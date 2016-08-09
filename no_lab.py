@@ -10,11 +10,10 @@ try:
     # params.y.value = np.linspace(0,3,3)
     # params.y.sweep_ID = 2
     
-    scan(lab, params, experiment, quiet=True)
-    
-
+    scan(lab, params, experiment, fig=plt.figure(), quiet=True, update_plot=False)
 except:
     error_manager()
+
 finally:
     time_2 = timeit.default_timer()
     print "time spent: %3.3f" % (time_2-time_1)

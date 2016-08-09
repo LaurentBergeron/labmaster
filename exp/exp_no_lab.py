@@ -1,5 +1,5 @@
 """ 
-When the lab is far away...
+When the lab is far away.
 """
 
 import numpy as np 

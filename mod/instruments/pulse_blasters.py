@@ -34,6 +34,7 @@ class Pulse_blaster_USB(Instrument):
         self.adjust_trig_latency = False ## adjust first duration to remove the 8 clock cycles trigger latency.
         self.ref_freq = 99.999637*MHz ## Recommended to run at 100 MHz
         ###################
+        self.reset_warnings()
         self.spinapi = importlib.import_module("mod.instruments.wrappers.dll_spinapi27") ## dll wrapper
         self.slaves = {} ## dict with slave names as keys and their respective channel as values.
         status = self.spinapi.pb_init()
@@ -167,7 +168,9 @@ class Pulse_blaster_USB(Instrument):
         The result from self.preprocess() is loaded, then all channels are looped to zero ad infinitum.
         """
         if self.instructions==[]:
-            print nfu.warn_msg()+"No instructions for pulse blaster. Set the use_memory attribute to False."
+            if self.show_warning_no_inst:
+                print nfu.warn_msg()+"No instructions for pulse blaster. Set the use_memory attribute to False."
+                self.show_warning_no_inst = False
             return
         ### Stop previous generation.
         status = self.spinapi.pb_stop() 
@@ -425,7 +428,11 @@ class Pulse_blaster_USB(Instrument):
             self.lab.update_time_cursor(duration, rewind)
             self.keep_going()
         return
-        
+    
+    def reset_warnings(self):
+        self.show_warning_no_inst = True
+        return
+    
     def RTS(self, duration=0, ref="", rewind=None):
         """WARNING: Time cursor won't update. Do not use in combinaison with other instruments if timing is important."""
         self.opcode("RTS", 0, duration=duration, ref=ref, rewind=rewind)

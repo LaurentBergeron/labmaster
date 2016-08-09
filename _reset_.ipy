@@ -1,4 +1,4 @@
-from __future__ import division # <--- TRYING TO MAKE THIS WORK. IT DOESNT FOR SOME REASON.
+from __future__ import division ## <--- TRYING TO MAKE THIS WORK. IT DOESNT FOR SOME REASON.
 """
 LabMaster launcher.
 Type 'run launch.ipy' in a Ipython console.
@@ -7,7 +7,7 @@ Be aware that this command will close instrument drivers and reset the Ipython e
 
 
 import os, glob
-# clean existing .pyc files (don't worry they will come back!)
+## clean existing .pyc files (don't worry they will come back!)
 for filename in glob.glob("*.pyc")+glob.glob("exp/*.pyc")+glob.glob("mod/*.pyc"):
     os.remove(filename)
 
@@ -15,36 +15,35 @@ os.system("attrib +H *.pyc /S")  # ---> hide .pyc files in directory
 # os.system("attrib -H *.pyc /S")  # ---> to view .pyc again
 
 
-# Safe start calls the close_all method of every Lab instance in Ipython's namespace.
-from mod.main import clean_start
-clean_start(globals())
+## Safe start calls the close_all method of every Lab instance in Ipython's namespace.
+from mod.main import clean_reset
+clean_reset(globals())
 
 
-### Launch
-# Reset Ipython environnement
+## Reset Ipython environnement
 %reset -f
 %reload_ext autoreload
 %autoreload 2
 
-# Import LabMaster
+## Import LabMaster
 from mod.main import *
 from mod.main import __version__
 
 __LABMASTER__ = True
 
-# Hail the great LabMaster
+## Hail the great LabMaster
 print "\n*** Welcome to the LabMaster v."+__version__+" "*(13-len(__version__))+"***"
 print "*** In case of emergency, try help_please(). ***\n" 
 
-plt.ion() # interactive matplotlib ON
-plt.close("all") # close matplotlib figures
+plt.ion() ## interactive matplotlib ON
+plt.close("all") ## close matplotlib figures
 
-# Disable annoying matplotlib warning for deprecated pause() function.
+## Disable annoying matplotlib warning for deprecated pause() function.
 import warnings
 import matplotlib.cbook
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
-# Make some Ipython magic
+## Make some Ipython magic
 from IPython.core.magic import register_line_magic
 @register_line_magic
 def irun(line):
@@ -53,7 +52,7 @@ def irun(line):
 del irun
 
 
-# Initialize instruments
+## Initialize those instruments on start up.
 lab = Lab()
 
 # lab.add_instrument("pb")

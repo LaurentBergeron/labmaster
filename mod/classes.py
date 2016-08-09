@@ -387,8 +387,6 @@ class Parameter():
         self.unit = unit
         self.v = None
         self.i = None
-        self._saved_v = None
-        self._saved_i = None
         return
         
     def auto_unit(self, i=None):

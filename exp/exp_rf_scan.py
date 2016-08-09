@@ -26,24 +26,20 @@ def update_plot(lab, params, fig, data, ID):
     ax = fig.axes[0]
     plotting.updatefig_XY(fig, params.freq.value, data, line_index=len(ax.lines)-1)
     
-    nonan = data[np.logical_not(np.isnan(data))]
-    
-    freq_min_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_min.v))
-    freq_max_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_max.v))
-    
-    try:
-        peak_min = "%0.0f"%np.min(nonan[curr_min_idx:curr_max_idx+1])
-        at_freq = " at freq "+auto_unit(params.current.value[np.argmin(nonan[curr_min_idx:curr_max_idx+1])+curr_min_idx], "Hz", decimal=6)
-    except ValueError:
-        peak_min = "unknown"
-        at_freq = ""
-        
+    peak_min, at_freq = out(lab, params, fig, data, ID)
     fig.suptitle("peak min = "+peak_min+at_freq, fontsize=15)
-        
-
-    return at_freq
-    
+    return
     
     
 def out(lab, params, fig, data, ID):
-    return update_plot(fig, params, data)
+    nonan = data[np.logical_not(np.isnan(data))]
+    freq_min_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_min.v))
+    freq_max_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_max.v))
+    try:
+        peak_min = "%0.0f"%np.min(nonan[freq_min_idx:freq_max_idx+1])
+        at_freq = " at freq "+auto_unit(params.freq.value[np.argmin(nonan[freq_min_idx:freq_max_idx+1])+freq_min_idx], "Hz", decimal=6)
+    except ValueError:
+        peak_min = "unknown"
+        at_freq = ""
+    return peak_min, at_freq
+    

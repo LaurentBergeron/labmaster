@@ -22,7 +22,7 @@ try:
     params.current_meas.value = np.zeros(params.current.get_size())
     
     scan(lab, params, experiment, fig=fig_ref)
-    current_at_min = experiment.out(fig, lab, params)
+    current_at_min = experiment.out(lab, params, fig, data, None)
     
 except:
     current_at_min = None

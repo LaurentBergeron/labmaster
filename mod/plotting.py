@@ -19,7 +19,7 @@ from units import *
 from not_for_user import LabMasterError
 
 
-#################################  automatic plotting #################################################
+##-------------------------------  automatic plotting -----------------------------------------------##
 
 def create_plot_auto(lab, params, fig, data, ID):
     if len(data.shape) == 1:
@@ -49,9 +49,31 @@ def update_plot_auto(lab, params, fig, data, ID):
             updatefig_XY(fig, xparam.value, data[:,i], line_index=i)
     return
 
+
+##------------------------------- fitting functions ------------------------------------------------------##
+    
+def fit(fit_func, xdata, ydata,  \
+        nargs=None, initial_guess = None, *fit_args):
+        
+    xdata = xdata[np.isfinite(ydata)]
+    ydata = ydata[np.isfinite(ydata)]
+    
+    if nargs==None:
+        nargs = len(inspect.getargspec(fit_func).args) - 1
+    
+    if nargs >= xdata.size:
+        return
+
+    try:
+        popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
+    except:
+        print "curve_fit raised "+sys.exc_info()[0].__name__
+        popt = None
+    return popt
     
     
-#################################  XY plot ############################################################
+    
+##-------------------------------  XY plot ----------------------------------------------------------##
 
 def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
     ax = fig.add_subplot(111)
@@ -81,32 +103,7 @@ def updatefig_XY(fig, xdata, ydata, line_index=0):
     ax.autoscale()
     return
 
-def update_curve_fit(fig, fit_func, xdata, ydata, line_index, \
-        nargs=None, initial_guess = None, *fit_args):
-
-    xdata = xdata[np.isfinite(ydata)]
-    ydata = ydata[np.isfinite(ydata)]
-
-    if nargs==None:
-        nargs = len(inspect.getargspec(fit_func).args) - 1
-    
-    if nargs >= xdata.size:
-        updatefig_XY(fig, xdata, ydata, line_index = line_index)
-        return
-
-    try:
-        popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
-        fit_curve = fit_func(xdata, *popt)
-        updatefig_XY(fig, xdata, fit_curve, line_index = line_index)
-    except:
-        print "curve_fit raised "+sys.exc_info()[0].__name__
-        popt = None
-
-    return popt
-    
-    
-    
-################################# surface plot ########################################################
+##------------------------------- surface plot ------------------------------------------------------##
 
 def createfig_surface(fig, xlabel, ylabel, zlabel):
     ax = fig.gca(projection='3d')
@@ -131,7 +128,7 @@ def updatefig_surface(fig, xdata, ydata, zdata):
     return
 
     
-################################# image plot ##########################################################
+##------------------------------- image plot --------------------------------------------------------##
 
 def createfig_image(fig, xlabel, xdata, ylabel, ydata):
     ax = fig.gca()

@@ -1,8 +1,6 @@
 """
 Contains an example file for analyzing data
 
-Must be run after running _launch_.ipy in an ipython environment
-
 Requires functions on how to manipulate the data and the param files
 as well as a function on how to create fitting parameters if desired.
 
@@ -15,6 +13,8 @@ import numpy as np
 import os
 from mod.main import * 
 
+    
+    
 ## Define all IDs and dates for the files to be exported
 acpmg = [66, 67, 68]
 lvl0 = [126] + range(152,164)

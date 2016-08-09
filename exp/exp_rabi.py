@@ -1,12 +1,7 @@
-""" 
-Rabi experiment.
-"""
-
-# Base modules
+## Base modules
 import numpy as np 
-import scipy.constants as cst
 
-# Home modules
+## Home modules
 import _shared_ 
 from mod.main import *
 
@@ -30,14 +25,12 @@ def create_plot(lab, params, fig, data, ID):
     
 def update_plot(lab, params, fig, data, ID):
     plotting.updatefig_XY(fig, params.pi_len.value, data, line_index=0)
-    out = None
-    popt = plotting.update_curve_fit(fig, fit_sin, params.pi_len.value[1:], data[1:], nargs = 2, line_index = 1)
+    popt = out(lab, params, fig, data, ID)
     if popt is not None:
+        updatefig_XY(fig, params.pi_len.value[1:], fit_sin(params.pi_len.value[1:], *popt), line_index=1)
         fig.suptitle("$T$ = "+auto_unit(popt[1], "s", decimal=3)+"\n $A$ = %3.0f"%popt[0])
 
-        out = popt[1]
-
-    return out
+    return
 
     
 
@@ -48,4 +41,7 @@ def fit_sin(xdata, A, period):
 
     
 def out(lab, params, fig, data, ID):
-    return update_plot(fig, params, data)
+    return plotting.fit(fit_sin, params.pi_len.value[1:], data[:1])
+    
+    
+    

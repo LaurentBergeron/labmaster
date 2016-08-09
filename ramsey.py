@@ -47,7 +47,7 @@ try:
 
     
     scan(lab, params, experiment, fig=fig_ref, quiet=True)
-    period = experiment.out(fig, lab, params)
+    period = experiment.out(lab, params, fig, data, None)
 
 except:
     period = None
