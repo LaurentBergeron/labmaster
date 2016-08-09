@@ -9,7 +9,7 @@ class LabMasterError(Exception):
     """ Error of this type will be raised if LabMaster detects something wrong. """
     pass
 
-# Base modules
+## Base modules
 import sys
 import os 
 import glob
@@ -20,7 +20,7 @@ import inspect
 import datetime
 import types
 import linecache
-# Homemade modules
+## Homemade modules
 import plotting
 
     
