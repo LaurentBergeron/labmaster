@@ -47,8 +47,10 @@ warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 from IPython.core.magic import register_line_magic
 @register_line_magic
 def irun(line):
+    """Interactive run combined with autoreload."""
     get_ipython().run_line_magic('autoreload', '')
     get_ipython().run_line_magic('run', ' -i ' + line)
+    return
 del irun
 
 

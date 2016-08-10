@@ -102,10 +102,8 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
             print "end function from "+experiment.__name__+" failed.", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method from every instrument connected to the Lab instance.
         lab.abort_all()
-        ## Save params in params/ folder. 
-        save_params(params, ID)
-        ## Save data as numpy array in data/ folder, and as text in datatxt/ if dimension of scan < 2.
-        save_data(data, ID)
+        ## Save parameters values and data in sweep/ folder. 
+        save_sweep(params, data, ID)
         ## Save fig as pdf in fig/ folder
         save_fig(fig, ID)
         ## Save the script which was started by the %irun magic.
@@ -367,21 +365,14 @@ def help_please():
         print "%s\t%s\t%s" % (i.ljust(first_maxlen, " "), j.ljust(second_maxlen, " "), k)
     return
 
+    ## TODO : last_sweep, load_sweep
+    
 def last_data():
     """
     Load data from the last scan.
     Is the same as load_data(today(), lastID()).
     """
     return load_data(today(), lastID())
-    
-def last_params(output=None):
-    """
-    Load params from the last scan.
-    Is the same as load_params(today(), lastID()).
-    
-    - output: If None, will return the whole params instance.
-              If a string, will return the parameter from params with that name.    """
-    return load_params(today(), lastID(), output=output)
     
 def last_plot(experiment_name=None):
     """
@@ -401,7 +392,7 @@ def last_out(experiment_name=None):
     """
     return load_out(today(), lastID(), experiment_name=experiment_name)
     
-def load_data(date, ID):
+def load_data(date, ID): ## TODO: load from sweep.
     """
     Load data from a .npy file in data/ folder. 
     
@@ -424,43 +415,7 @@ def load_data(date, ID):
         
     return np.load(matching_file)
     
-    
-def load_params(date, ID, output=None):
-    """
-    Load params from a .pickle file in params/ folder.
-    
-    - date: Date from file name. Has to follow this datetime format: %Y_%m_%d
-            %Y is year in four characters.
-            %m is month in two characters.
-            %d is day in two characters.
-            Good format example: 2016_06_24
-    - ID: Number indicated after the date in file name.
-    - output: If None, will return the whole params instance.
-              If a string, will return the parameter from params with that name.
-
-    """
-    ID = str(ID).zfill(4) ## Convert ID to correct format.
-    file_format = nfu.filename_format(date, ID, script_name=False)
-    main_saving_loc = saving_folders()[0] ## Load from the first element of saving_folders()
-    
-    try:
-        ## Find the file matching date and ID
-        matching_file = [filename for filename in glob.glob(main_saving_loc+"params/"+date+"/*") if file_format in filename][0]
-    except IndexError:
-        raise LabMasterError, "Date or ID does not match any existing file."
-        
-    with open(matching_file, "rb") as f:
-        params = pickle.load(f)
-
-    if output==None:
-        return params
-    else:
-        ## Try to return requested param.
-        try:
-            return params.__dict__[output]
-        except KeyError:
-            raise nfu.LabMasterError, "Requested output not found in params attributes."
-    return
+  
     
 
 def load_plot(date, ID, experiment_name=None, fig=None):
@@ -568,7 +523,7 @@ def notebook(*args):
         notebook_to_xlsx()
     return
        
-def notebook_to_xlsx(filename="notebook"):
+def notebook_to_xls(filename="notebook"):
     boldblue_fmt = xlwt.easyxf('font: color-index blue, bold on')
     bold_fmt = xlwt.easyxf('font: bold on')
     with open(filename+".txt", 'r+') as f:
@@ -589,9 +544,9 @@ def notebook_to_xlsx(filename="notebook"):
                 worksheet.write(i, j, item, fmt)
                 
     try:
-        workbook.save(filename + '.xlsx')
+        workbook.save(filename + '.xls')
     except IOError:
-        print "Close notebook.xlsx to update."
+        print "Close notebook.xls to update."
     return
 
 
@@ -607,7 +562,6 @@ def pickle_save(filename, thing):
     Save a python object to filename.pickle under saved/pickle/ folder. Useful to save params. 
     Do not save lab with this, because instruments will not connect when calling pickle_load().
 
-    Input
     - filename: string to be used as file name. The "pickle/" folder and ".pickle" extension are added automatically. Avoid spaces (as always).
     - thing: python object to be saved.
     """
@@ -629,7 +583,6 @@ def pickle_load(filename):
     Return a python object from filename.pickle under saved/pickle/ folder. Useful to load previously saved params.
     Do not load lab with this, because instruments will not connect.
     
-    Input
     - filename: Name of the file to load. The "pickle/" folder and ".pickle" extension are added automatically.
     """
     try:
@@ -650,48 +603,15 @@ def require_comments(*args):
     return
     
     
-def save_data(data, ID):
-    """
-    Save precious data to a numpy file under saved/data/. If dimension of data is one or two, also save data to a txt file.
-    
-    Input
-    - data: Numpy array to be saved.
-    - ID: Number indicated after the date in file name.
-    
-    """
-    try:
-        for saving_loc in saving_folders():
-            filename = saving_loc+"data/"+today()+"/"+nfu.filename_format(today(), ID) # for the .npy file
-            filenametxt = saving_loc+"data_txt/"+today()+"/"+nfu.filename_format(today(), ID)+".txt" # for the .txt file
-            if isinstance(data, np.ndarray):
-                np.save(filename, data) ## always save a .npy file
-                if data.ndim < 3:
-                    ## if dimension of data is not higher than 2, save a .txt file
-                    np.savetxt(filenametxt, data)
-                else:
-                    ## if dimension of data is higher than 2, leave a message in the .txt file
-                    with open(filenametxt,"w") as f:
-                        f.write("# Array dimension is > 2 thus numpy can't save it as a .txt file.")
-            elif data==None:
-                pass
-            else:
-                 raise LabMasterError, "data is not a numpy array."
-    except:
-        print "save_data() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
-    return
-    
-    
 def save_experiment(lab, params, experiment, ID, error_string):
     """
     Save info about scan under saved/experiment/, such as:
-    - Time launched
-    - Errors raised during sweep if any
-    - Time ended
-    - Connected instruments
-    - Parameters
-    - experiment .py file
+    * Time launched, time ended, total duration
+    * Errors raised during sweep if any
+    * Connected instruments
+    * Parameters
+    * Experiment module source code.
     
-    Input
     - lab: Lab instance used in scan.
     - params: Params instance used in scan.
     - experiment: Module from experiments folder used in scan.
@@ -699,12 +619,12 @@ def save_experiment(lab, params, experiment, ID, error_string):
     - error_string: Error message to save.
                     If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
     """
+    time_launched_string = "Time launched:  "
+    time_ended_string    = "Time ended:     "
+    datetime_format = "%Y-%b-%d %H:%M:%S"
     try:
         for saving_loc in saving_folders():
             filename = saving_loc+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
-            time_launched_string = "Time launched:  "
-            time_ended_string    = "Time ended:     "
-            datetime_format = "%Y-%b-%d %H:%M:%S"
             with open(filename, "a") as f:    
                 if error_string == "first_time":
                     f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
@@ -725,31 +645,12 @@ def save_experiment(lab, params, experiment, ID, error_string):
         print "save_experiment() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
 
-def save_params(params, ID):
-    """ 
-    Save params instance with pickle under saved/params/ folder.
-    Extract them with ease using the load_params() function.
-    
-    Input
-    - params: Params instance.
-    - ID: Number indicated after the date in file name.
-    """
-    try:
-        for saving_loc in saving_folders():
-            filename = saving_loc+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
-            with open(filename, "wb") as f:
-                pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) ## Pickle using the highest protocol available.
-    except:
-        print "save_params() failed."
-    return
 
 def save_script(ID):
     """
-    Copy script_filename to saved/script/
-    Add flaged comments to the header of the copied script file and in notebook.txt
+    Copy the script launched by %irun to saved/script/
     
-    Input:
-        script_filename: Name of the script to save. Use __file__ to get current file name.
+    - ID: Number indicated after the date in file name.
     """
     try:
         for saving_loc in saving_folders():
@@ -758,12 +659,42 @@ def save_script(ID):
     except:
         print "save_script() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
+    
+def save_sweep(params, data, ID):
+    """
+    Save parameter values and data array into a numpy dtype array.
+    
+    - data: Numpy array to be saved.
+    - params: Params instance.
+    - ID: Number indicated after the date in file name.
+    """
+    try:
+        for saving_loc in saving_folders():
+            filename = saving_loc+"sweep/"+today()+"/"+nfu.filename_format(today(), ID)
+            array_contents = [data]
+            dtype_list = [("DATA", ("float64", data.shape))]
+            for param in params.get_sweeps():
+                name = param.name+";"+str(param.sweep_ID)
+                type_ = "float64"
+                dtype_list.append((name, (type_, param.get_size())))
+                array_contents.append(param.value)
+            for param in params.get_constants():
+                name = param.name
+                type_ = "float64"
+                dtype_list.append((name, type_))
+                array_contents.append(np.array([param.value]))
+            sweep = np.array([tuple(array_contents)], dtype=np.dtype(dtype_list))
+            np.save(filename, sweep)
+            
+    except:
+        raise
+        print "save_sweep() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]   
+    return
 
 def save_fig(fig, ID, ext="pdf"):
     """
     Save matplotlib figure to saved/fig
     
-    Input
     - fig: Matplotlib figure instance.
     - ID: Number indicated after the date in file name.
     - ext: Extension of the file to save. Supported formats: emf, eps, pdf, png, ps, raw, rgba, svg, svgz.

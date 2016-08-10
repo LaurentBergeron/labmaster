@@ -118,7 +118,7 @@ def detect_experiment_ID():
     main_saving_loc = saving_folders()[0]
     prefix =main_saving_loc+"experiment/"+date+"/"+date+"_"
     ## two purges to get a list of IDs in folder
-    first_purge = [filename[len(prefix):].split("_")[0] for filename in glob.glob(prefix+"*.txt")] ## 1st purge: get .txt files with correct prefix.
+    first_purge = [filename[len(prefix):-4].split("_")[0] for filename in glob.glob(prefix+"*.txt")] ## 1st purge: get .txt files with correct prefix.
     second_purge = []
     for x in first_purge:
         try:
@@ -177,8 +177,8 @@ def zeros(params, experiment):
 
 def create_todays_folder():
     """ Create those folders if they don't exist. """
-    for section in ["data", "experiment","data_txt","fig","script","params", "custom"]:
-        for saving_loc in saving_folders():
+    for saving_loc in saving_folders():
+        for section in ["data", "experiment","data_txt","fig","script","params","sweep","custom"]:
             folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
