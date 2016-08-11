@@ -682,18 +682,7 @@ class Awg_M8190A(Instrument):
             if self.adjust_trig_latency:
                 raise AgM8190Error, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
 
-        _magic_crop = False
-        _blabla= True
         for b, block in enumerate(blocks):
-            if _magic_crop:
-                if _blabla:
-                    _blabla = False
-                    continue
-                lag = (saved_loop_end - saved_loop_start)*(saved_loop_nums - 1)
-                for i in range(len(block["wfm_starts"])):
-                    block["wfm_starts"][i] -= lag
-                    block["wfm_ends"][i] -= lag
-                _magic_crop = False
             ## Find block min and max for padding
             block_start = int(np.min(block["wfm_starts"]))
             block_end = int(np.max(block["wfm_ends"]))
@@ -720,15 +709,16 @@ class Awg_M8190A(Instrument):
             self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16)
 
             ## Clip block amplitude if to high.
-            if np.max(C_arrOut_int16) > short_size: ## TODO: error because C_arrOut_int16 is limited to short. needs to be in C code.
-                if self.show_clipping_warning:
-                    print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
-                for i, item in enumerate(C_arrOut_int16):
-                    if item > 0:
-                        C_arrOut_int16[i] = min(item, short_size)
-                    else:
-                        C_arrOut_int16[i] = max(item, -short_size)
-
+            ##### TODO: Since C_arrOut_int16 is a short, the following statement is never True. No warning will be raised for clipping. #####
+            # if np.max(C_arrOut_int16) > short_size: 
+                # if self.show_clipping_warning:
+                    # print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
+                # for i, item in enumerate(C_arrOut_int16):
+                    # if item > 0:
+                        # C_arrOut_int16[i] = min(item, short_size)
+                    # else:
+                        # C_arrOut_int16[i] = max(item, -short_size)
+            #################################################################################################################################
 
             ## Add markers
             for time_ in marker_times:
@@ -767,7 +757,6 @@ class Awg_M8190A(Instrument):
                     saved_loop_start = segment_start
                     saved_loop_nums = loops_count
                 if is_end_of_a_sequence:
-                    _magic_crop = True
                     saved_loop_end = segment_end
 
         ## Add the tiniest delay to indicate end of last sequence except if loading a continous waveform (cw)
@@ -1020,7 +1009,7 @@ class Awg_M8190A(Instrument):
         Reset show_warnings attributes to True. 
         Is called at the beginning of the scan function.
         """
-        self.show_warning_amp_clipping = True
+        self.show_warning_amp_clipping = True ## Never shown. See preprocess.
         self.show_warning_freqrangeAC = True
         self.show_warning_loop_start = True
         self.show_warning_loop_end = True

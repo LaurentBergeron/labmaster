@@ -2,7 +2,7 @@
 Definition of wavemeter Instrument classes.
 
 Current classes: 
-- Wavemeter TODO change name...
+- Wavemeter_Bristol621
 """
 __authors__ =  "Adam DeAbreu <adeabreu@sfu.ca>, Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
@@ -18,8 +18,8 @@ from ..units import *
 from .. import not_for_user     
 nfu = not_for_user 
 
-class Wavemeter(Instrument):
-    """Class allowing to control a Bristol TODO wavemeter."""
+class Wavemeter_Bristol621(Instrument):
+    """Class allowing to control a Bristol 621 wavemeter."""
     def __init__(self, name, parent, com_number):
         """
         Inherit from Instrument class.
@@ -40,13 +40,16 @@ class Wavemeter(Instrument):
         return
 
     def set_lambda_units(self, lambda_units):
-        """TODO ADAM"""
+        """Choose if the reading if given in wavenumber or nanometer ('GHz', '1/cm' or 'nm')."""
         self.lambda_units = lambda_units
         retval = self.CLDevIFace.CLSetLambdaUnits(self.device_handle, self.lambda_units)
         return retval
 
     def measure(self):
-        """TODO ADAM"""
+        """
+        Read the wavemeter.
+        The result will be in the units given by self.lambda_units.
+        """
         wavelength = self.CLDevIFace.CLGetLambdaReading(self.device_handle)
         return wavelength
 
@@ -54,5 +57,4 @@ class Wavemeter(Instrument):
         """Close the device handle."""
         return self.CLDevIFace.CLCloseDevice(self.device_handle)
 
-        
         

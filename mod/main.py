@@ -202,10 +202,13 @@ def check_params(params):
             ## Convert lists to numpy arrays.
             if isinstance(param.value, list):
                 param.value = np.array(param.value)
-            ## If value is an array, its length can't be zero.
+            ## The length can't be zero.
             if len(param.value) < 1:
                 raise LabMasterError, key+".value is an array or list with length zero."
-            ## If value is an array, its length is restricted to 10^8. 
+            ## The dimension must be one.
+            if param.value.ndim > 1:
+                raise LabMasterError, key+".value has a dimension higher than 1."                
+            ## The length is restricted to 10^8. 
             if len(param.value) > 1e8:
                 print nfu.warn_msg()+param.name+" array is very large and takes a lot of memory. Consider using a smaller array."
 
