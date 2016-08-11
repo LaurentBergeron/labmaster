@@ -65,7 +65,7 @@ def out(lab, params, fig, data, ID):
     cycle1 = data[:,0]
     cycle2 = data[:,1]
     cyclediff = cycle1-cycle2
-    return plotting.fit(fit_exp, params.time_axis.value[1:], cyclediff[1:], initial_guess=[cyclediff[1], 10])
+    return fitting.fit(fit_exp, params.time_axis.value[1:], cyclediff[1:], initial_guess=[cyclediff[1], 10])
     
     
     

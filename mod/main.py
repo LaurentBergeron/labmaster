@@ -179,7 +179,8 @@ def check_lab(lab):
 
 def check_params(params):
     """
-    Checks if every parameter is conform to the rules.
+    Checks if every parameter is conform to the rules. 
+    Convert lists to numpy arrays.
     
     - params: a Params instance.    
     """
@@ -194,6 +195,9 @@ def check_params(params):
         if param.sweep_ID < 0:
             raise LabMasterError, key+".sweep_ID is < 0."
         if param.is_not_const():
+            ## Convert lists to numpy arrays.
+            if isinstance(param.value, list):
+                param.value = np.array(param.value)
             ## If value is an array, its length can't be zero.
             if len(param.value) < 1:
                 raise LabMasterError, key+".value is an array or list with length zero."
@@ -248,9 +252,9 @@ def error_manager(as_string=False, all=True):
     """
     ## Get last raised error from sys module.
     error_type, error_value, error_traceback = sys.exc_info()
-
-    if error_type == None:
-        ## No errors detected.
+    print error_type.__name__+ '['+str(error_value)+']'
+    if error_type==None or (error_type.__name__=="EOFError" and str(error_value)==""):
+        ## No errors detected. EOFError are sometimes internally raised by Ipython but that does not concern us.
         return "Scan successful."
 
     ## Select the message to print.
@@ -300,7 +304,7 @@ def export_data(date, IDs, location, output, \
     popts_ar = None 
     for i, ID in enumerate(IDs):
         print "currently processing: ", ID
-        ID = str(ID).zfill(4) ## Convert ID to correct format.
+        ID = nfu.pad_ID(ID) ## Convert ID to correct format.
         data = load_data(date, ID)
         params = load_params(date, ID)
         popts = load_out(date, ID, experiment=experiment)
@@ -374,6 +378,13 @@ def last_data():
     """
     return load_data(today(), lastID())
     
+def last_sweep():
+    """
+    Load full sweep from the last scan.
+    Is the same as load_sweep(today(), lastID()).
+    """
+    return load_sweep(today(), lastID())
+    
 def last_plot(experiment_name=None):
     """
     Show figure from the last scan.
@@ -391,8 +402,8 @@ def last_out(experiment_name=None):
     - experiment_name: Use a specific experiment module.
     """
     return load_out(today(), lastID(), experiment_name=experiment_name)
-    
-def load_data(date, ID): ## TODO: load from sweep.
+
+def load_data(date, ID):
     """
     Load data from a .npy file in data/ folder. 
     
@@ -403,13 +414,26 @@ def load_data(date, ID): ## TODO: load from sweep.
             Good format example: 2016_06_24
     - ID: Number indicated after the date in file name.
     """
-    ID = str(ID).zfill(4) ## Convert ID to correct format.
+    return load_sweep(date, ID)['DATA']
+    
+def load_sweep(date, ID):
+    """
+    Load sweep from a .npy file in sweep/ folder. 
+    
+    - date: Date from file name. Has to follow this datetime format: %Y_%m_%d
+            %Y is year in four characters.
+            %m is month in two characters.
+            %d is day in two characters.
+            Good format example: 2016_06_24
+    - ID: Number indicated after the date in file name.
+    """
+    ID = nfu.pad_ID(ID) ## Convert ID to correct format.
     file_format = nfu.filename_format(date, ID, script_name=False)
     main_saving_loc = saving_folders()[0] ## Load from the first element of saving_folders()
     
     try:
         ## Find the file matching date and ID
-        matching_file = [filename for filename in glob.glob(main_saving_loc+"data/"+date+"/*") if file_format in filename][0]
+        matching_file = [filename for filename in glob.glob(main_saving_loc+"sweep/"+date+"/*") if file_format in filename][0]
     except IndexError:
         raise LabMasterError, "Date or ID does not match any existing file."
         
@@ -431,7 +455,7 @@ def load_plot(date, ID, experiment_name=None, fig=None):
     - experiment_name: Use create_plot and update_plot from this experiment instead.
     - fig: Plot the result on the given figure.
     """
-    ID = str(ID).zfill(4) ## Convert ID to correct format.
+    ID = nfu.pad_ID(ID) ## Convert ID to correct format.
     main_saving_loc = saving_folders()[0] ## Load from the first element of saving_folders()
     
     try:
@@ -475,7 +499,7 @@ def load_out(date, ID, experiment_name=None):
     - ID: Number indicated after the date in file name.
     - experiment_name: Use a specific experiment module.
     """
-    ID = str(ID).zfill(4) ## Convert ID to correct format.
+    ID = nfu.pad_ID(ID) ## Convert ID to correct format.
     main_saving_loc = saving_folders()[0] ## Load from the first element of saving_folders()
 
     try:
@@ -505,7 +529,14 @@ def load_out(date, ID, experiment_name=None):
     
     
 def notebook(*args):
-    delimiter = ";"
+    """
+    Update the notebook.txt file according to input arguments.
+    Arguments should be strings that respect this format: 'column_name;column_value'. 
+    If the column name format matchs the previous one, only the values will be written to notebook.txt.
+    Script name, date and ID are automatically written, as well as flags arguments from the %irun magic.
+    """
+    filename="notebook" ## Name under which to save the .txt file (default is 'notebook')
+    delimiter=';' ## The delimiter must match notebook_to_xls().
     date = nfu.today()
     ID = nfu.detect_experiment_ID()
     script_name = nfu.get_script_filename()
@@ -514,22 +545,28 @@ def notebook(*args):
     for i, arg in enumerate(args):
         column_name[i+3], entry[i+3] = arg.split(delimiter)
     line_format = delimiter.join(column_name)+delimiter
-    with open("notebook.txt", "a") as f:
+    with open(filename+".txt", "a") as f:
         if line_format==nfu.get_notebook_line_format(delimiter=delimiter):
             pass
         else:
             f.write("\n"+line_format+"\n")
         f.write(delimiter.join(entry)+"\n")
-        notebook_to_xlsx()
+        notebook_to_xls(filename=filename)
     return
        
-def notebook_to_xls(filename="notebook"):
+def notebook_to_xls(filename="notebook", delimiter = ';'):
+    """
+    Convert a .txt file to a .xls spreadsheet file.
+    
+    - filename: Name of the .txt file to convert.
+    - delimiter: The delimiter must match notebook().
+    """
     boldblue_fmt = xlwt.easyxf('font: color-index blue, bold on')
     bold_fmt = xlwt.easyxf('font: bold on')
     with open(filename+".txt", 'r+') as f:
         row_list = []
         for row in f:
-            row_list.append(row.split(';'))
+            row_list.append(row.split(delimiter))
         workbook = xlwt.Workbook()
         worksheet = workbook.add_sheet('Sheet1')
         for i, row in enumerate(row_list):
@@ -556,46 +593,14 @@ def orange(start, stop, step):
     orange stands for optimal range. 
     """
     return np.arange(start, stop+step, step)
-
-def pickle_save(filename, thing):
-    """
-    Save a python object to filename.pickle under saved/pickle/ folder. Useful to save params. 
-    Do not save lab with this, because instruments will not connect when calling pickle_load().
-
-    - filename: string to be used as file name. The "pickle/" folder and ".pickle" extension are added automatically. Avoid spaces (as always).
-    - thing: python object to be saved.
-    """
-    if isinstance(thing, classes.Lab):
-        raise LabMasterError, "Can't save instrument connexion in the pickle file. It's thus pointless to save a Lab instance."
-    if not os.path.exists("pickle"):
-        os.makedirs("pickle")
-    if os.path.isfile("pickle/"+filename+".pickle"):
-        if raw_input(nfu.warn_msg()+"Overwriting "+filename+".pickle? [y/N]") not in nfu.positive_answer_N():
-            print "not saved\n"
-            return
-    with open("pickle/"+filename+".pickle", "wb") as f:
-        pickle.dump(thing, f, pickle.HIGHEST_PROTOCOL) ## Pickle using the highest protocol available.
-        print "saved to saved/pickle/"+filename+".pickle\n"
-    return
-
-def pickle_load(filename):
-    """
-    Return a python object from filename.pickle under saved/pickle/ folder. Useful to load previously saved params.
-    Do not load lab with this, because instruments will not connect.
-    
-    - filename: Name of the file to load. The "pickle/" folder and ".pickle" extension are added automatically.
-    """
-    try:
-        with open("pickle/"+filename+".pickle", "rb") as f:
-            thing = pickle.load(f)
-            print "loaded from "+filename+".pickle"
-    except IOError:
-        raise LabMasterError, filename+".pickle does not exist in the saved/pickle/ folder."
-    return thing
-    
   
 
 def require_comments(*args):
+    """
+    Force user to flag a comment when using %irun.
+    An error will be raised if one of the arguments is not found in the flags.
+    The whole process will be skipped if 'skip' is in the arguments.
+    """
     if "skip" not in sys.argv:
         for required_comment in args:
             if required_comment not in " ".join(sys.argv):
@@ -605,11 +610,11 @@ def require_comments(*args):
     
 def save_experiment(lab, params, experiment, ID, error_string):
     """
-    Save info about scan under saved/experiment/, such as:
-    * Time launched, time ended, total duration
-    * Errors raised during sweep if any
-    * Connected instruments
-    * Parameters
+    Save info about scan under experiment/, such as:
+    * Time launched, time ended, total duration.
+    * Errors raised during sweep if any.
+    * Connected instruments.
+    * Description of the sweep.
     * Experiment module source code.
     
     - lab: Lab instance used in scan.
@@ -617,25 +622,28 @@ def save_experiment(lab, params, experiment, ID, error_string):
     - experiment: Module from experiments folder used in scan.
     - ID: Number indicated after the date in file name.
     - error_string: Error message to save.
-                    If error_string is "first_time", will create a new file, save the launch time and then skip the rest.
+                    If error_string is 'first_time', will create a new file, save the launch time only.
     """
     time_launched_string = "Time launched:  "
-    time_ended_string    = "Time ended:     "
     datetime_format = "%Y-%b-%d %H:%M:%S"
     try:
         for saving_loc in saving_folders():
             filename = saving_loc+"experiment/"+today()+"/"+nfu.filename_format(today(), ID)+".txt"
-            with open(filename, "a") as f:    
-                if error_string == "first_time":
+            if error_string == "first_time":
+                ## This is the first call to save_experiment().
+                with open(filename, "a") as f:    
+                    ## Write time launched.
                     f.write(time_launched_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-                else:
-                    f.write(time_ended_string+datetime.datetime.now().strftime(datetime_format)+"\n")
-            if error_string != "first_time":
+            else:
+                ## This is the second (and last) call to save_experiment(). 
                 with open(filename, "r") as f:    
+                    ## Get time launched from the heading of the file.
                     contents = f.read()
                     time_launched = datetime.datetime.strptime(contents.split(time_launched_string)[-1].split("\n")[0], datetime_format)
-                    time_ended = datetime.datetime.strptime(contents.split(time_ended_string)[-1].split("\n")[0], datetime_format)
                 with open(filename, "a") as f:     
+                    ## Write a whole bunch of useful stuff here.
+                    time_ended = datetime.datetime.now().replace(microsecond=0)
+                    f.write("Time ended:     "+time_ended.strftime(datetime_format)+"\n")
                     f.write("Total duration: "+str(time_ended-time_launched)+"\n\n")
                     f.write(error_string+"\n\n")
                     f.write("### "+str(lab)+"\n\n")
@@ -648,13 +656,14 @@ def save_experiment(lab, params, experiment, ID, error_string):
 
 def save_script(ID):
     """
-    Copy the script launched by %irun to saved/script/
+    Copy the script launched by %irun to script/
     
     - ID: Number indicated after the date in file name.
     """
     try:
         for saving_loc in saving_folders():
             new_filename = saving_loc+"script/"+today()+"/"+nfu.filename_format(today(), ID)+".py"
+            ## Copy a file.
             shutil.copy(nfu.get_script_filename(), new_filename)     
     except:
         print "save_script() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
@@ -662,7 +671,7 @@ def save_script(ID):
     
 def save_sweep(params, data, ID):
     """
-    Save parameter values and data array into a numpy dtype array.
+    Convert parameter values and data array into a numpy dtype array. Saved to sweep/ folder.
     
     - data: Numpy array to be saved.
     - params: Params instance.
@@ -671,29 +680,38 @@ def save_sweep(params, data, ID):
     try:
         for saving_loc in saving_folders():
             filename = saving_loc+"sweep/"+today()+"/"+nfu.filename_format(today(), ID)
-            array_contents = [data]
-            dtype_list = [("DATA", ("float64", data.shape))]
-            for param in params.get_sweeps():
-                name = param.name+";"+str(param.sweep_ID)
-                type_ = "float64"
-                dtype_list.append((name, (type_, param.get_size())))
-                array_contents.append(param.value)
+            ## An entry in the output array is dedicated to data. Access using 'DATA'.
+            sweep_contents = [data]
+            dtype_list = [('DATA', (data.dtype, data.shape))]
+            ## An entry in the output array is dedicated to sweep IDs. Access using 'IDs'.
+            sweep_IDs = np.array([param.name+'='+str(param.sweep_ID) for param in params.get_sweeps()])
+            sweep_contents += [sweep_IDs]
+            dtype_list += [('IDs', (sweep_IDs.dtype,sweep_IDs.shape))]
+            for param in params.get_sweeps(): 
+                if not isinstance(param.value, np.ndarray): 
+                    ## Convert lists to numpy arrays.
+                    param.value = np.array(param.value)
+                type_ = param.value.dtype
+                dtype_list += [(param.name, (param.value.dtype, param.value.shape))]
+                sweep_contents += [param.value]
             for param in params.get_constants():
-                name = param.name
-                type_ = "float64"
-                dtype_list.append((name, type_))
-                array_contents.append(np.array([param.value]))
-            sweep = np.array([tuple(array_contents)], dtype=np.dtype(dtype_list))
+                ## Convert constants to numpy format.
+                param.value = np.array([param.value])
+                dtype_list += [(param.name, param.value.dtype)]
+                sweep_contents += [param.value]
+            ## Declare the sweep numpy dtype array.
+            sweep = np.array([tuple(sweep_contents)], dtype=np.dtype(dtype_list))
+            ## Get rid of an extra useless dimension.
+            sweep = np.squeeze(sweep) 
+            ## Save the result.
             np.save(filename, sweep)
-            
     except:
-        raise
         print "save_sweep() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]   
     return
 
 def save_fig(fig, ID, ext="pdf"):
     """
-    Save matplotlib figure to saved/fig
+    Save matplotlib figure to fig/
     
     - fig: Matplotlib figure instance.
     - ID: Number indicated after the date in file name.
@@ -709,6 +727,13 @@ def save_fig(fig, ID, ext="pdf"):
     
 
 def send_email(recipient, add_subject="", add_msg=""):
+    """
+    Send an email message.
+    
+    - recipient: Email addresses of recipients (can be a list of emails)
+    - add_subject: Text to append to the email subject.
+    - add_msg: Text to append to the message.
+    """
     try:
         user = 'my.goto.remote.email.2016@gmail.com'
         pwd = 'useless_password_here'
@@ -742,11 +767,52 @@ def send_email(recipient, add_subject="", add_msg=""):
 
 
 def show_visa():
+    """
+    Print a list of connected VISA instruments.
+    """
     rm = visa.ResourceManager()
     for name, res in rm.list_resources_info().items():
         print name
     return 
     
+    
+    
+    
+    
+    
+    
+    
+    
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
 ## EASTER EGGS!
 from not_for_user import hack_time, tea
 

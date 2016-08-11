@@ -2,15 +2,14 @@
 Namespace with all available instruments. Can differ from station to station.
 
 An entry must be written as shown below:
-name = [list of arguments] 
+name = [module, class, (optional arguments,), {optional key arguments}]
 
-name is the same that will be used for the instrument as a Lab attribute
-[list of arguments] is [module, class, (optional arguments,), {optional key arguments}]
-
-module: name of the module from the instruments package
-class: name of the instrument class located in module.
-(optional arguments,): has to be a tuple, so don't forget the coma before closing the parenthesis. 
-{optional key arguments}: has to be a dictionnary. 
+where:
+    - name is the same that will be used for the instrument as a Lab attribute.
+    - module: name of the module from the instruments package.
+    - class: name of the instrument class located in module.
+    - (optional arguments,): has to be a tuple, so don't forget the coma before closing the parenthesis. 
+    - {optional key arguments}: has to be a dictionnary. 
 
 When attributing an instrument to a lab instance, something like this is called: lab.name = mod.instruments.module.class(..., (optional_arguments, ), {optional_key_arguments})
 

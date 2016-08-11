@@ -1,20 +1,18 @@
 """
 Contains functions used for plotting with the wonderful module which is matplotlib.
 """
-__author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, Adam DeAbreu <adeabreu@sfu.ca>"
+__author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
-# Base modules
+## Base modules
 import numpy as np
-import datetime
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as plt3d
-import pylab
 import inspect
 import sys
 from scipy.optimize import curve_fit
 
-# Homemade modules
+## Homemade modules
 from units import *
 from not_for_user import LabMasterError
 
@@ -22,6 +20,10 @@ from not_for_user import LabMasterError
 ##-------------------------------  automatic plotting -----------------------------------------------##
 
 def create_plot_auto(lab, params, fig, data, ID):
+    """
+    If one of create_plot or update_plot function is omitted from the experimented module, this function will be used instead.
+    Create a simple XY plot based on parameter arrays and sweep IDs.
+    """
     if len(data.shape) == 1:
         xlabel = sorted([x.name for x in params.get_current_sweeps(1)])[0]
         createfig_XY(fig, xlabel, "data", 1, "--o")
@@ -34,6 +36,10 @@ def create_plot_auto(lab, params, fig, data, ID):
         
     
 def update_plot_auto(lab, params, fig, data, ID):
+    """
+    If one of create_plot or update_plot function is omitted from the experimented module, this function will be used instead.
+    Update a plot created using create_plot_auto().
+    """
     if fig == None:
         return
     if len(data.shape) == 1:
@@ -49,33 +55,20 @@ def update_plot_auto(lab, params, fig, data, ID):
             updatefig_XY(fig, xparam.value, data[:,i], line_index=i)
     return
 
-
-##------------------------------- fitting functions ------------------------------------------------------##
-    
-def fit(fit_func, xdata, ydata,  \
-        nargs=None, initial_guess = None, *fit_args):
-        
-    xdata = xdata[np.isfinite(ydata)]
-    ydata = ydata[np.isfinite(ydata)]
-    
-    if nargs==None:
-        nargs = len(inspect.getargspec(fit_func).args) - 1
-    
-    if nargs >= xdata.size:
-        return
-
-    try:
-        popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
-    except:
-        print "curve_fit raised "+sys.exc_info()[0].__name__
-        popt = None
-    return popt
-    
     
     
 ##-------------------------------  XY plot ----------------------------------------------------------##
 
 def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
+    """
+    Create a simple plot.
+    
+    - fig: A figure object.
+    - xlabel: X label to the plot.
+    - ylabel: Y label to the plot.
+    - num_lines: Number of lines to be plotted.
+    - *plot_args: Additional arguments will be sent to the plot function.
+    """
     ax = fig.add_subplot(111)
     ax.get_xaxis().get_major_formatter().set_useOffset(False)
     ax.get_yaxis().get_major_formatter().set_useOffset(False)
@@ -86,11 +79,26 @@ def createfig_XY(fig, xlabel, ylabel, num_lines, *plot_args):
     return
 
 def add_lines(fig, num_lines, *plot_args):
+    """
+    Add lines to a plot created using createfig_XY().
+    
+    - fig: A figure object.
+    - num_lines: Number of lines to be plotted.
+    - *plot_args: Additional arguments will be sent to the plot function.
+    """
     ax = fig.axes[0]
     for i in range(num_lines):
         ax.plot([], *plot_args)
 
 def updatefig_XY(fig, xdata, ydata, line_index=0):
+    """
+    Update a plot created using createfig_XY().
+    
+    - fig: A figure object.
+    - xdata: X array.
+    - ydata: Y array.
+    - line_index: index of the line to update.
+    """
     ax = fig.axes[0]
     for child in [x for x in ax.get_children() if isinstance(x, mpl.text.Text)]:
         try:
@@ -106,13 +114,30 @@ def updatefig_XY(fig, xdata, ydata, line_index=0):
 ##------------------------------- surface plot ------------------------------------------------------##
 
 def createfig_surface(fig, xlabel, ylabel, zlabel):
+    """
+    Create a surface plot.
+    
+    - fig: A figure object.
+    - xlabel: X label to the plot.
+    - ylabel: Y label to the plot.
+    - zlabel: Z label to the plot.
+    """
     ax = fig.gca(projection='3d')
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_zlabel(zlabel)
     return 
 
-def updatefig_surface(fig, xdata, ydata, zdata):
+def updatefig_surface(fig, xdata, ydata, zdata, *plot_args):
+    """
+    Update a plot created using createfig_surface().
+    
+    - fig: A figure object.
+    - xdata: X array (size M).
+    - ydata: Y array (size N).
+    - zdata: Z array (size MxN).
+    - *plot_args: Additional arguments will be sent to the plot_surface function.
+    """
     ax = fig.axes[0]
     for child in [x for x in ax.get_children() if type(x)==plt3d.art3d.Poly3DCollection]:
         child.remove()
@@ -122,7 +147,7 @@ def updatefig_surface(fig, xdata, ydata, zdata):
         except NotImplementedError:
             pass
     Y, X = np.meshgrid(ydata, xdata)
-    ax.plot_surface(X, Y, np.nan_to_num(zdata), rstride=1, cstride=1)
+    ax.plot_surface(X, Y, np.nan_to_num(zdata), rstride=1, cstride=1, *plot_args)
     ax.relim()
     ax.autoscale()
     return
@@ -131,6 +156,15 @@ def updatefig_surface(fig, xdata, ydata, zdata):
 ##------------------------------- image plot --------------------------------------------------------##
 
 def createfig_image(fig, xlabel, xdata, ylabel, ydata):
+    """
+    Create an image plot.
+    
+    - fig: A figure object.
+    - xlabel: X label to the plot.
+    - xdata: X array (size M).
+    - ylabel: Y label to the plot.
+    - ydata: Y array (size N).
+    """
     ax = fig.gca()
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -138,6 +172,12 @@ def createfig_image(fig, xlabel, xdata, ylabel, ydata):
     return 
 
 def updatefig_image(fig, array):
+    """
+    Create an image plot.
+    
+    - fig: A figure object.
+    - array: Z array (size MxN).
+    """
     ax = fig.axes[0]
     ax.images[0].set_data(np.nan_to_num(array.T))            
     ax.images[0].set_norm(mpl.colors.Normalize(vmin=np.min(array), vmax=np.max(array)))

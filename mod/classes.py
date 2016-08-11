@@ -1,18 +1,19 @@
 """
-Defines the Parameter class.
-Parameter is a Locked class (look for Locked documentation in not_for_user module).
-Every parameter used in lab experiments should be a Parameter instance, except time which is a Time_parameter and has a few more properties. Time_parameter inherits from Parameter.
+Definition of LabMaster generic classes: Drawer, Lab, Instrument, Params, Parameter.
+Lab and Params both inherit from the Drawer class.
+Lab classe is designed to hold Instrument classes.
+Params class is designed to hold Parameter classes. 
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
-# Base modules
+## Base modules
 import numpy as np
 import timeit
 import types
 import sys
 import importlib
 
-# Homemade modules
+## Homemade modules
 import not_for_user as nfu
 from units import *
 import available_instruments
@@ -31,19 +32,21 @@ class Drawer():
         return
 
     def __setattr__(self, key, value):
-        if key=="object_type":
-            self.__dict__[key] = value
-        else:
-            if key in self.__dict__.keys(): 
-                if self.is_object_type(self.__dict__[key]):
-                    raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."
-                else:
-                    self.__dict__[key] = value 
-            else:
-                self.__dict__[key] = value 
+        """ 
+        Revamped the __setattr__ method to forbid overwritting an attribute (you don't want to overwrite instrument classes while they are connected). 
+        To overwrite an attribute, delete it first using 'del'.
+        """
+        ## Raise an error is a vilain is trying to overwrite a protected object.
+        if (key!="object_type") and (key in self.__dict__.keys()):
+            if self.is_object_type(self.__dict__[key]):
+                raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."
+                
+        ## This is the classic way to set attributes.
+        self.__dict__[key] = value 
         return
         
     def is_object_type(self, value):
+        """Will return True if input argument is the same type as self.object_type, False if not."""
         try:
             classes = [str(x).split(".")[-1] for x in list(value.__class__.__bases__)+[value.__class__]]
             out = self.object_type in classes
@@ -52,19 +55,23 @@ class Drawer():
         return out
     
     def get_dict(self):
+        """Return a dictionary with all attributes matching self.object_type."""
         return {key:value for key, value in self.__dict__.items() if self.is_object_type(value)}
         
     def get_names(self):
+        """Return a list of names of attributes matching self.object_type."""
         return self.get_dict().keys()
         
     def get_objects(self):
+        """Return a list of attributes matching self.object_type."""
         return self.get_dict().values()
         
     def get_items(self):
+        """Return attributes along with their name if they match self.object_type."""
         return self.get_dict().items()
 
     def import_to(self, namespace):
-        """ Import classes from drawer in the specified namespace. """
+        """Import objects matching self.object_type from drawer in the specified namespace."""
         if isinstance(namespace, types.ModuleType):
             namespace = namespace.__dict__   
         namespace.update(self.get_dict())
@@ -79,18 +86,27 @@ class Lab(Drawer):
     The second purpose of this class is to manage timing during instruction commands and during experiment execution.
     """
     def __init__(self, *names):
-        """ Initialize a Lab instance. """
-        Drawer.__init__(self, "Instrument")
-        self.time_cursor = 0 ## Keeps track of current time when loading instructions
-        self.total_duration = 0 ## The time at which the experiment ends, aka the duration of experiment.
-        self.time_launched = 0 ## The time at which last experiment was launched. Must be initialized to zero.
-        self.end_buffer = 20*ms ## Add a delay to the end of each experiment (suggested 20 ms). (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows, but still, better be safe.) Second reason for doing this is to let some space for the awg to get its granularity right (so in any case the time buffer should be higher than granularity/sample_rate).
-        self.add_instrument(*names)
+        """ Initialize a Lab instance. Connect to instruments specified in arguments."""
+        ## Inherit from the Drawer class.
+        Drawer.__init__(self, "Instrument") 
+        ## Keeps track of current time when loading instructions
+        self.time_cursor = 0 
+        ## The time at which the experiment ends, aka the duration of experiment.
+        self.total_duration = 0 
+        ## The time at which last experiment was launched. Must be initialized to zero.
+        self.time_launched = 0
+        ## Add a delay to the end of each experiment (suggested 20 ms). (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows, but still, better be safe.) 
+        ## Second reason for doing this is to let some space for the awg to get its granularity right (so in any case the time buffer should be higher than granularity/sample_rate).
+        self.end_buffer = 20*ms 
+        ## each time the delay() function is called, this variable += the duration of delay.
+        self.free_evolution_time = 0 
         
-        self.free_evolution_time = 0 ## each time the delay() function is called, this variable += the duration of delay.
+        ## Connect to instruments specified in arguments.
+        self.add_instrument(*names)
         return
         
     def abort(self, name):
+        """Call the abort method of specified instrument. Errors will be printed, not raised."""
         try: 
             self.__dict__[name].abort()
         except:
@@ -98,6 +114,7 @@ class Lab(Drawer):
         return
             
     def abort_all(self):
+        """Call the abort method of all connected instruments. Errors will be printed, not raised."""
         for name in self.get_names():
             self.abort(name)
         return
@@ -105,14 +122,12 @@ class Lab(Drawer):
         
     def add_instrument(self, *names):
         """
-        Connect to the specified instruments and add them as attributes to Lab.
-        
-        Input
-        - *names: As many instrument names as you want. The name has to match a key in available_instruments() dictionnary.
-                  You can connect to a generic VISA instrument by starting the name with VISA, following with custom name and VISA connexion ID, all separated by comas (not space sensitive).
-                      ex: "VISA, death_ray, GPIB0::12::INSTR"
+        Connect to the specified instruments and add them as attributes to Lab. Errors will be printed, not raised.
+        The name has to match an object from available_instruments.py module.
+        ex: lab.add_instrument("awg", "lockin")
+        You can connect to a generic VISA instrument by starting the name with VISA, following with custom name and VISA connexion ID, all separated by comas (not space sensitive).
+        ex: lab.add_instrument("VISA, death_ray, GPIB0::12::INSTR")
         """
-        
         for name in names:
             try:
                 ## Be sure instrument is not to be overwritten.
@@ -130,37 +145,45 @@ class Lab(Drawer):
                     opt_args = (visa_ID,)
                     opt_keyargs = {}
                 else:
-                    ## look if requested instrument is available
+                    ## Look if requested instrument is available.
                     if name not in available_instruments.__dict__:
                         raise nfu.LabMasterError, "Requested instrument "+name+" not found in available_instruments module."
-                    module_name = available_instruments.__dict__[name][0]
-                    class_name = available_instruments.__dict__[name][1]
-                    opt_args = available_instruments.__dict__[name][2]
-                    opt_keyargs = available_instruments.__dict__[name][3]
-
+                    instrument_specs = available_instruments.__dict__[name]
+                    module_name = instrument_specs[0]
+                    class_name = instrument_specs[1]
+                    opt_args = instrument_specs[2]
+                    opt_keyargs = instrument_specs[3]
+                
+                ## Import module where the class is located. 
                 module = importlib.import_module("mod.instruments."+module_name)
+                ## Import the class.
                 class_ = module.__dict__[class_name]
             
+                if not isinstance(opt_args, tuple):
+                    ## opt_args has to be a tuple.
+                    raise LabMasterError, "Optional arguments to "+name+" must be a tuple." 
+                    
+                if not isinstance(opt_keyargs, dict):
+                    ## opt_keyargs has to be a dict
+                    raise LabMasterError, "Optional key-arguments to "+name+" must be a dict."
+                    
                 ## init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
             except:
-                raise
                 print "Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1])
                 
                 
         return
     
     def __str__(self):
+        """ String representation of a Lab class."""
         return self.print_connected(as_string=True)
     
     def close(self, name):
         """ 
-        Close one instrument.
-        
-        Input
-        - name: Name of instrument to close.
+        Call the close method of specified instrument. Errors will be printed, not raised.
 
-        Output
+        Output:
         - 0 if instrument was succesfully closed, else 1.
         """
         try:
@@ -171,15 +194,15 @@ class Lab(Drawer):
         except KeyError:
             raise nfu.LabMasterError, name+" was not found in lab's instruments."
         except:
-            print  name+" failed to close; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+            print  name+" failed to close. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
             return 1 
             
     def close_all(self):
         """
-        Call the close() method of each connected instrument. 
-        Lab-Master authors take no responsibilty for anything that could happen if the close_all() method is not called before leaving the Ipython console.
+        Call the close() method of each connected instrument. Errors will be printed, not raised.
+        LabMaster authors take no responsibilty for anything that could happen if the close_all() method is not called before leaving the Ipython console.
         
-        Output
+        Output:
         - The number of instruments who failed to close. 0 if everything when all right.
         """
         failed = 0
@@ -187,23 +210,18 @@ class Lab(Drawer):
             failed += self.close(name)
         return failed
     
-    def delay(self, length):
-        """ 
-        Add a delay to an instructions for memory loading.
-        
-        Input
-        - length: Duration of delay.
-        """
-        self.free_evolution_time += length
-        self.update_time_cursor(length, None)
+    def delay(self, duration):
+        """Update the time cursor by the specified duration (s). Updates self.free_evolution_time."""
+        self.free_evolution_time += duration
+        self.update_time_cursor(duration, None)
         return
         
     def get_memory_instruments(self):
-        """ Return connected instruments which have memory capacity. """
+        """Return connected instruments which have memory capacity."""
         return [instr for instr in self.get_objects() if instr.use_memory]
         
     def print_connected(self, as_string=False):
-        """ Print connected instruments. """
+        """Print connected instruments to the console."""
         string = ""
         string+= "intruments connected:\n"
         if self.get_names()==[]:
@@ -218,25 +236,25 @@ class Lab(Drawer):
         
 
     def reload(self, name):
+        """
+        Close and reinitialize the instrument. 
+        Avoids to restart the Ipython console on UnboundLocalError class autoreload bug.
+        """
         self.close(name)
         self.add_instrument(name)
         return
         
     def reset_instructions(self):
-        """ Reset everything instructions related from lab, as well as the instructions of each memory instrument. """
+        """ Reset everything instructions-related from the Lab instance, as well as the instructions of each memory instrument. """
         for instrument in self.get_memory_instruments():
             instrument.instructions = []
         self.time_cursor = 0
         self.total_duration = 0
+        return
         
-    def rewind(self, length):
-        """ 
-        Add a negative delay to an instructions for memory loading.
-        
-        Input
-        - length: Duration of rewind.
-        """
-        self.delay(-length)
+    def rewind(self, duration):
+        """A backwards delay (s)."""
+        self.delay(-duration)
         return
 
     def update_time_cursor(self, instruction_duration, rewind):
@@ -244,22 +262,23 @@ class Lab(Drawer):
         Add current instruction duration to self.time_cursor. 
         It has to be called after each time an instruction is appended.
         
-        Input
-        - instruction_duration: duration of currently loaded instruction.
-        - rewind: After updating time_cursor, call the rewind method with rewind as input.
-               If rewind is "start", do not update time cursor.
+        - instruction_duration: duration to add to the time cursor (s).
+        - rewind: After updating time_cursor, go back in time by 'rewind' seconds.
+                  If rewind is "start", go back to initial time cursor position. This will update self.total_duration but keep self.time_cursor the same.
         """
+        ## Update time cursor.
         self.time_cursor += instruction_duration
 
-        ### The time for current instruction is higher than the final time we have stored, set the final time to current instruction time.
+        ### If the time cursor is higher than the last recorded total_duration, set the self.total_duration = self.time_cursor
         if self.time_cursor > self.total_duration:
             self.total_duration = self.time_cursor
 
         if rewind == "start":
+            ## Go back to initial time cursor position.
             self.time_cursor -= instruction_duration
         elif rewind:
+            ## Go back in time by 'rewind' seconds.
             self.time_cursor -= rewind
-
             
         if self.time_cursor < 0:
             raise nfu.LabMasterError, "Instructions led to a negative time. Going back in time is not implemented (todo list)."
@@ -270,25 +289,28 @@ class Lab(Drawer):
         
 class Instrument():
     """
-    Instrument class. Every instrument should inherit from this class.
+    Contains general attributes and methods that every instrument should have.
     """
-    def __init__(self, name, parent, use_memory=False, use_pingpong=False):
+    def __init__(self, name, parent, use_memory=False):
         """ 
         Initialize generic attributes of an instrument.
-
-        Input
         - name: Name of instrument. It has to match lab's attribute for the instrument.
-        - parent: A link to the lab instance from which the instrument is a child. Useful to call access lab attributes and call lab methods.
+        - parent: A link to the lab instance from which the instrument is a child. Useful to call access lab attributes and call lab methods. Beware of infinite loopholes!
         - use_memory: If True, the instrument needs a load_memory method(), which will be called during an experiment.
-        - use_pingpong: If True, the instrument needs a load_memory_ping_pong() method, which will be called during an experiment instead of load_memory().
         """
         self.lab = parent
         self.name = name
         self.use_memory = use_memory
-        self.instructions = []
+        if self.use_memory:
+            ## A list of instructions to fill during experiment.sequence().
+            self.instructions = []
         return
 
     def reload(self):
+        """
+        Close and reinitialize the instrument. 
+        Avoids to restart the Ipython console on UnboundLocalError class autoreload bug.
+        """
         self.lab.reload(self.name)
         return
 
@@ -298,31 +320,42 @@ class Params(Drawer):
     The main purpose of this class is to keep track of every parameter. It's a Drawer class with "Parameter" as type.
     """
     def __init__(self, *args):
+        """Initialize a Params instance. Arguments will be passed on to Parameter declarations."""
         Drawer.__init__(self, "Parameter")
         self.add_parameter(*args)
         return 
 
     def __str__(self):
+        """String representation of the sweep."""
         return self.print_run(as_string=True)
 
         
     def add_parameter(self, *args):
+        """
+        Add a parameter for each argument. 
+        An argument must be the name and unit of the parameter, separated by a semi-column. Not space/tab/enter sensitive. Unit is optional.
+        ex: params.add_parameter("tau;s", "loops")
+        """
         for arg in args:
             arg_list = arg.replace(" ","").replace("\t","").replace("\n","").split(";")
             name = arg_list[0]
             try:
-                self.__dict__[name] = Parameter(name, unit=arg_list[1])
+                unit=arg_list[1]
             except IndexError:
-                self.__dict__[name] = Parameter(name)
+                unit = ""
+            self.__dict__[name] = Parameter(name, unit)
         return
         
     def get_constants(self):
+        """Return parameters with a constant as their value attribute."""
         return [param for param in self.get_objects() if param.is_const()]
         
     def get_current_sweeps(self, current_sweep_ID):
+        """Return list/array parameters that match current_sweep_ID."""
         return [param for param in self.get_sweeps() if param.sweep_ID==current_sweep_ID] 
     
     def get_data_indices(self):
+        """Return a list of indices to place the current point in the data array."""
         indices = []
         for i in range(1, self.get_dimension()+1):
             select_params = [y for y in self.get_sweeps() if y.sweep_ID==i]
@@ -330,30 +363,28 @@ class Params(Drawer):
         return tuple(indices)
             
     def get_dimension(self):
+        """Return the maximum sweep_ID."""
         return max([0]+[param.sweep_ID for param in self.get_sweeps()])
     
     def get_sweeps(self):
+        """Return parameters with a list or array as their value attribute."""
         return [param for param in self.get_objects() if param.is_not_const() and param.sweep_ID > 0]
     
     def print_run(self, as_string=False):
         """ 
         Print the scheduled run in the most human readable way. 
         
-        Input
         - as_string: If as_string is True, return the scheduled run as a string.
                      If as_string is False, just print it to console.
-
-        Output
-        - The scheduled run as a string, if as_string is True
         """
         string = ""
-        # print constants
+        ## Print constants.
         if self.get_constants() != []:
             string +=  "Constants:\n"
             for param in self.get_constants():
                 string +=  param.name+" = "+nfu.auto_unit(param.value,param.unit)+"\n"
             string +=  "\n"
-        # print sweeps
+        ## Print sweeps.
         for i in range(1, self.get_dimension()+1):
             string +=  str(i)+nfu.number_suffix(i)+" sweep:\n"
             for param in self.get_current_sweeps(i):
@@ -365,31 +396,39 @@ class Params(Drawer):
             out = ""
             print string
         return out
-        
-    def _save_values(self):
-        for param in self.get_sweeps():
-            param._saved_v = param.v
-            param._saved_i = param.i
-        
-    def _load_values(self):
-        for param in self.get_sweeps():
-            param.v = param._saved_v
-            param.i = param._saved_i
-
     
     
             
 class Parameter():
+    """
+    The Parameter class holds information about a parameter (that's right).
+    Important attributes:
+    - value: Constant or array. Arrays will be swept according to their sweep_ID
+    - i: Current index in the swept array. 
+    - v: Current element of the array being swept. v = value[i] (v = value for a constant)
+    - sweep_ID: Dimension of the scan on which to sweep the parameter. If sweep_ID=0, the parameter will not be swept.
+    """
     def __init__(self, name, unit=""):
-        self.name = name 
+        """
+        Initialize a Parameter instance.
+        - name: name of the parameter, same as params' attribute to access it.
+        - unit: unit of the parameter, optional.
+        """
+        self.name = name
         self.value = 0
-        self.sweep_ID = 1
+        self.sweep_ID = 1 ## Dimension of the scan on which to sweep the parameter. If sweep_ID=0, the parameter will not be swept.
         self.unit = unit
-        self.v = None
-        self.i = None
+        self.v = None ## Current element of the array being swept. v = value[i] (v = value for a constant)
+        self.i = None ## Current index in the swept array. 
         return
         
     def auto_unit(self, i=None):
+        """
+        Automatic unit format.
+        If parameter is a constant, use its '.value' attribute.
+        If parameter is an array, use its '.v' attribute, or a specified index (opt argument).
+        """
+        
         if self.is_const():
             out = nfu.auto_unit(self.value, self.unit)
         else:
@@ -400,12 +439,20 @@ class Parameter():
         return out
         
     def is_const(self):
+        """Return True if the '.value' attribute is not indexable, False instead."""
         return not self.is_not_const()
         
     def is_not_const(self):
-        return isinstance(self.value, (list, np.ndarray))
+        """Return True if the '.value' attribute is indexable, False instead."""
+        try:
+            self.value[0]
+            out = True
+        except IndexError:
+            out = False
+        return out
     
     def get_end(self):
+        """Return last element of array."""
         try:
             end = self.value[-1]
         except (IndexError, TypeError):
@@ -414,6 +461,7 @@ class Parameter():
         
     
     def get_start(self):
+        """Return first element of array."""
         try:
             start = self.value[0]
         except (IndexError, TypeError):
@@ -422,6 +470,7 @@ class Parameter():
     
     
     def get_step(self):
+        """Return step size of array (assuming it's constant)."""
         try:
             step = self.value[1]-self.value[0]
         except (IndexError, TypeError):
@@ -430,6 +479,10 @@ class Parameter():
         
         
     def set_ith_value(self, new_v):
+        """
+        Equivalent to self.value[self.i] = new_v.
+        For a constant, self.value = new_v.
+        """
         if self.is_const():
             self.value = new_v
         else:
@@ -437,6 +490,10 @@ class Parameter():
         return
     
     def get_size(self):
+        """
+        Return length of array.
+        For a constant, return 1.
+        """
         try:
             size = len(self.value)
         except TypeError:
@@ -444,6 +501,7 @@ class Parameter():
         return size
         
     def __str__(self):
+        """String representation of a Parameter instance."""
         string = "name: "+self.name
         string += "\nvalue type: "+str(type(self.value))
         string += "\nvalue: "
@@ -455,57 +513,15 @@ class Parameter():
         return string
     
     def _update(self, i):
+        """
+        Update '.i' and '.v' attributes according to specified index.
+        The function is skipped for constants.
+        """
         if self.is_not_const():
             self.i = i
             self.v = self.value[i]
             if hasattr(self, "time"):
                 self.time.v = self.time.value[i]
         return 
-    
-
-class Locked:
-    """ deprecated """
-    """
-    This class is designed to provide locking features to another class. 
-    The attribute _locked can be accessed at all times. 
-    When _locked is False:
-        Everything will behave as normal.
-    When _locked is True:
-        1) It won't be possible to create new attributes anymore. 
-            Ex: "tau.bachibouzouk=0" will generate an error.
-        2) Attributes starting with an underscore (_) can't be set. They can still be accessed.
-            Ex: "tau.v=0" will generate an error, but "print tau.v" will work.
-    There is no reason for user to create a new attribute, if it happens it's probably an error, thus the error message. 
-    If really for some reason the user wants to create a new attribute, or change an attribute starting with _ to a new value, set _locked to False. 
-        Ex: tau._locked=False
-    """
-    def __init__(self):
-        return
-
-    def __setattr__(self, key, value):
-        if key=="_locked": 
-            # Changing the lock is always priority.
-            self.__dict__[key] = value
-        else:
-            if self._locked:  
-                # If locked
-                if not hasattr(self, key):
-                    # If attribute is not in the class, deny change.
-                    raise nfu.LabMasterError, "."+key+" declaration denied. "+key+" is not a valid attribute."
-                elif key[:1]=="_":
-                    # If attribute begins with _, deny change.
-                    raise nfu.LabMasterError, "Access to ."+key+" denied."
-                else:
-                    # Attribute is not concerned by lock, change it as usual.
-                    self.__dict__[key] = value
-            else:
-                # If unlocked, change the value as usual.
-                self.__dict__[key] = value 
-        return 
-    
-    def alohomora(self):
-        self._locked = False
-    def colloportus(self):
-        self._locked = True
-        
+           
         

@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+"""
+Prevent interference with KeyboardInterrupt on Windows due to Fortran libraries.
+See stackoverflow for explanation: http://stackoverflow.com/questions/15457786/ctrl-c-crashes-python-after-importing-scipy-stats
+Import this module before launching Ipython.
+"""
+__author__ = "Christian Lupien, <christian.lupien@usherbrooke.ca>"
 
 # KeyboardInterrupt fixes from:
 #   https://github.com/scipy/scipy/pull/3880
@@ -9,9 +15,9 @@
 # See stackoverflow for explanation:
 # http://stackoverflow.com/questions/15457786/ctrl-c-crashes-python-after-importing-scipy-stats
 
-from __future__ import absolute_import
 
-import imp
+
+import imp  
 import ctypes
 import os
 

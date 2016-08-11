@@ -1,17 +1,19 @@
 import timeit
 time_1 = timeit.default_timer()
 
-try:
-    import exp.exp_no_lab as experiment
-    params = Params("x", "y")
+import exp.exp_no_lab as experiment
+params = Params("x", "y")
 
-    params.x.value = np.linspace(0,6,6)
-    params.x.sweep_ID = 1
-    # params.y.value = np.linspace(0,3,3)
-    # params.y.sweep_ID = 2
+params.x.value = np.linspace(0,6,6)
+params.x.sweep_ID = 1
+params.y.value = ['a','b']
+params.y.sweep_ID = 2
     
-    scan(lab, params, experiment, fig=plt.figure(), quiet=True, update_plot=False)
+try:
+    scan(lab, params, experiment, fig=plt.figure(), quiet=True)
+
 except:
+    raise
     error_manager()
 
 finally:

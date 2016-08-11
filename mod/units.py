@@ -1,7 +1,4 @@
-# for prefix, value in (("G", 1e9), ("M", 1e6), ("k", 1e3), ("m", 1e-3), ("u", 1e-6), ("n", 1e-9) ):
-    # for unit in ("", "s", "Hz", "m", "g", "V", "A", "Ohm"):
-        # if prefix+unit != "":
-            # exec(prefix+unit+"="+str(value))  
+"""Definition of units."""
 
 atto = 1e-18
 femto = 1e-15

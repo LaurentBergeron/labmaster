@@ -41,7 +41,7 @@ def fit_sin(xdata, A, period):
 
     
 def out(lab, params, fig, data, ID):
-    return plotting.fit(fit_sin, params.pi_len.value[1:], data[:1])
+    return fitting.fit(fit_sin, params.pi_len.value[1:], data[:1])
     
     
     
