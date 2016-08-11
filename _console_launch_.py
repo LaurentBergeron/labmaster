@@ -14,5 +14,5 @@ if os.name == 'nt':
 
 import IPython
 print "Ipython starting...\n"
-IPython.start_ipython(argv=['--InteractiveShellApp.exec_lines=%s'%['print ""', 'print "---> run _reset_.ipy"',"run _reset_.ipy"]])
+IPython.start_ipython(argv=['--InteractiveShellApp.exec_lines=%s'%['from __future__ import division','print ""', 'print "---> run _reset_.ipy"',"run _reset_.ipy"]])
 

@@ -34,6 +34,8 @@ class Pulse_blaster_USB(Instrument):
         Inherit from Instrument. 
         Import wrapper and initialize instrument drivers.
         Set all channels to 0 V.
+        - name: Name to give to the instrument.
+        - parent: A reference to the lab instance hosting the instrument.
         """
         ##-------------------------------------------- OPTIONS --------------------------------------------##
         self.verbose = False                    ## Print the status of each driver function call.
@@ -369,9 +371,7 @@ class Pulse_blaster_USB(Instrument):
         - ax: Specify an ax on which to plot the loaded sequence. 
               If None, each channel will get its own new ax, on a new figure.
         """
-        if self.lab.total_duration ==0 :
-            return
-
+            
         ## Select channels to plot.
         if show_channel=="all":
             channels = {}
@@ -387,10 +387,7 @@ class Pulse_blaster_USB(Instrument):
             channels = {key: self.channels[key] for key in show_channel}
                 
         ## For a nicer looking time axis (x axis).
-        try:
-            prefix, c = nfu.plot_loaded_sequence_auto_label(self.lab)
-        except OverflowError:
-            raise PulseBlasterUSBError, "Tried to trim lab.end_buffer from lab.total_duration. Failed."
+        prefix, c = nfu.plot_loaded_sequence_auto_label(self.lab)
 
         ## If ax is not specified, create a figure.
         if ax==None:

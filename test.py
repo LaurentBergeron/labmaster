@@ -1,5 +1,1 @@
-lab.add_instruments('awg', 'pb', 'usb_counter')
-lab.awg.cw()
-lab.close('awg')
-lab.close_all()
-lab = Lab()
+print 6/7

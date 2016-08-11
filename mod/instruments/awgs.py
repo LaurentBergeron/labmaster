@@ -38,6 +38,9 @@ class Awg_M8190A(Instrument):
         Inherit from Instrument. 
         Import wrappers and initialize instrument drivers.
         Set AWG initial parameters.
+        - name: Name to give to the instrument.
+        - parent: A reference to the lab instance hosting the instrument.
+        - resource: Connection address.
         """
         ##------------------------------------------------ OPTIONS ------------------------------------------------##
         self.verbose = False                ## Print the status of each driver function call.
@@ -385,6 +388,9 @@ class Awg_M8190A(Instrument):
                     self.show_warning_no_inst2 = False
                     continue
 
+            if sum([seq_info["is_start"] for seq_info in segments["sequence_info"]]) != sum([seq_info["is_end"] for seq_info in segments["sequence_info"]]):
+                raise AgM8190Error, "The number of 'New sequence' segments doesn't match the number of 'End Sequence' segments."
+            
             ## Reset the sequence table
             self.AgM8190.SequenceTableReset(self.session, channel)
             self.check_error(status)
@@ -803,7 +809,8 @@ class Awg_M8190A(Instrument):
             segments["type"].append(seg_type)
             segments["segment_info"].append(seg_info)
             segments["sequence_info"].append(seq_info)
-        ## TODO check segments and assert that there is as many start loops as end loops
+        
+        
         return
 
     def preprocess_loops(self, loop_start_times, loop_end_times, loop_nums, segment_start, segment_end):
@@ -847,20 +854,24 @@ class Awg_M8190A(Instrument):
 
     def plot_loaded_sequence(self, divider=None, ax=None, channel=None):
         """
+        Show the sequence computed from the preprocess in a matplotlib figure. WARNING: internal loops are not implemented.
         
+        - divider: Factor between the number of plotted points and the number of points loaded in the AWG.
+                   If omitted, an optimal divider will be used.
+        - ax: Specify an ax on which to plot the loaded sequence. 
+        
+        TODO: Instead of using the preprocess for the input waveforms, read the AWG tables and plot that directly. 
+              It will be more representative of what is really loaded, and internal looping will be easy to process.
         """
         channel = self.channel_format(channel)
-        ## TODO: have two plots for both channels
-        if self.lab.total_duration == 0:
-            raise AgM8190Error, "No sequence is loaded."
 
         sample_rate = self.get_sample_rate()
 
         segments = {}
-        self.preprocess("1", segments)
-
+        self.preprocess("1", segments, False)
+        
         prefix, c = nfu.plot_loaded_sequence_auto_label(self.lab)
-
+    
         if ax==None:
             fig = plt.figure()
             ax = fig.add_subplot(111)

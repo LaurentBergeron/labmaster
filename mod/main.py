@@ -1,3 +1,4 @@
+from __future__ import division
 """
 Holds all the functions useful for the user. Use 'python _console_launch_.py' to launch LabMaster.
 """
@@ -91,10 +92,13 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
         experiment.start(lab, params, fig, data, ID)
         ## Start the sweep! data will be filled with science
         nfu.sweep(lab, params, experiment, data, fig, 1, ID, update_plot)
+        error_message = "Scan completed."
+    except:        
+        error_message = error_manager(as_string=True)
     finally:
         ##-------------------------------- All executions in the finally statement should be fail-proof. --------------------------------##
         ## Save experiment info, as well as experiment source code.
-        save_experiment(lab, params, experiment, ID, error_manager(as_string=True)+"\n")
+        save_experiment(lab, params, experiment, ID, error_message+"\n")
         try:
             ## Call the end function of experiment module
             experiment.end(lab, params, fig, data, ID)
@@ -252,10 +256,11 @@ def error_manager(as_string=False, all=True):
     """
     ## Get last raised error from sys module.
     error_type, error_value, error_traceback = sys.exc_info()
-    print error_type.__name__+ '['+str(error_value)+']'
-    if error_type==None or (error_type.__name__=="EOFError" and str(error_value)==""):
-        ## No errors detected. EOFError are sometimes internally raised by Ipython but that does not concern us.
-        return "Scan successful."
+
+    if error_type==None:
+        ## No errors found in sys.exc_info().
+        ## It's not because an error was found that an error was raised, because try/except statements will save errors to sys.exc_info().
+        return ""
 
     ## Select the message to print.
     if error_type is LabMasterError:
@@ -369,7 +374,6 @@ def help_please():
         print "%s\t%s\t%s" % (i.ljust(first_maxlen, " "), j.ljust(second_maxlen, " "), k)
     return
 
-    ## TODO : last_sweep, load_sweep
     
 def last_data():
     """

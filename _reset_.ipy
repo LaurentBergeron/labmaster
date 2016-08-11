@@ -1,4 +1,3 @@
-from __future__ import division ## <--- TRYING TO MAKE THIS WORK. IT DOESNT FOR SOME REASON.
 """
 LabMaster launcher.
 Type 'run launch.ipy' in a Ipython console.

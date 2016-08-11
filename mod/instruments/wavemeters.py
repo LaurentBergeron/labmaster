@@ -1,21 +1,33 @@
+"""
+Definition of wavemeter Instrument classes.
+
+Current classes: 
+- Wavemeter TODO change name...
+"""
 __authors__ =  "Adam DeAbreu <adeabreu@sfu.ca>, Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
-# Base modules
+## Base modules
 import numpy as np
 import visa as vi
 import ctypes as ct
 import importlib
 
-# Homemade modules
+## Homemade modules
 from ..classes import Instrument
 from ..units import *
 from .. import not_for_user     
 nfu = not_for_user 
 
 class Wavemeter(Instrument):
-    """
-    """
+    """Class allowing to control a Bristol TODO wavemeter."""
     def __init__(self, name, parent, com_number):
+        """
+        Inherit from Instrument class.
+        Import wrapper and initialize device handle.
+        - name: Name to give to the instrument.
+        - parent: A reference to the lab instance hosting the instrument.
+        - com_number: Serial port connection number.
+        """
         Instrument.__init__(self, name, parent)
         self.CLDevIFace = importlib.import_module("mod.instruments.wrappers.dll_CLDevIFace")
         self.com_number = com_number
@@ -24,18 +36,22 @@ class Wavemeter(Instrument):
         return
     
     def abort(self):
+        """To be executed when scan raises on error (Ctrl-C included)."""
         return
 
     def set_lambda_units(self, lambda_units):
+        """TODO ADAM"""
         self.lambda_units = lambda_units
         retval = self.CLDevIFace.CLSetLambdaUnits(self.device_handle, self.lambda_units)
         return retval
 
     def measure(self):
+        """TODO ADAM"""
         wavelength = self.CLDevIFace.CLGetLambdaReading(self.device_handle)
         return wavelength
 
     def close(self):
+        """Close the device handle."""
         return self.CLDevIFace.CLCloseDevice(self.device_handle)
 
         

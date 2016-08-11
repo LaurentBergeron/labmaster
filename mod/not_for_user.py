@@ -36,9 +36,9 @@ def auto_unit(value, unit, decimal=None):
         return "0 "+unit 
     try:
         ## exponent of value (scientific notation) rounded down to a multiple of 3.
-        exp = int(np.floor(np.log10(abs(value))/3.))*3 
+        exp = int(np.floor(np.log10(abs(value))/3.0))*3 
         ## index in prefix list.
-        index = exp/3+3
+        index = exp//3+3
         
         if 0 <= index < 7:
             prefix = ["n", "u", "m", "", "k", "M", "G"][index]
@@ -182,7 +182,12 @@ def pad_ID(ID):
     
 def plot_loaded_sequence_auto_label(lab):
     """Automatic prefix and multiplier for time labels in plot_loaded_sequence methods."""
-    index=int(np.floor(np.log10(lab.total_duration - lab.end_buffer)/3))
+    try:
+        index=int(np.floor(np.log10(lab.total_duration - lab.end_buffer)//3))
+        print "lab.end_buffer trimmed from time axis."
+    except:
+        index=int(np.floor(np.log10(lab.total_duration)//3))
+        
     if 0 <= (index+3) < 3:
         prefix = ["n", "u", "m"][index+3]
         c = 10**(-3*(index))
@@ -391,7 +396,7 @@ def hack_time():
                     print "\n\n"
                     for i in range(10000):
                         N = ((i//1000+1)%3+1)
-                        sys.stdout.write("    HACKING TIME"+"."*N+" "*(3-N)+"\t\t\tYEARS HACKED: "+str(int(np.exp(i/800.)))+"\r")
+                        sys.stdout.write("    HACKING TIME"+"."*N+" "*(3-N)+"\t\t\tYEARS HACKED: "+str(int(np.exp(i/800.0)))+"\r")
                         sys.stdout.flush()
                         time.sleep(0.001)
                     sys.stdout.write(" "*100+"\r")
