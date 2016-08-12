@@ -17,7 +17,14 @@ import importlib
 import not_for_user as nfu
 from units import *
 import available_instruments
-    
+
+def all_bases(cls):
+    """Return all the parent classes from specified class."""
+    c = list(cls.__bases__)
+    for base in c:
+        c.extend(all_bases(base))
+    return c
+
 class Drawer():
     """ 
     The purpose of the Drawer class is to regroup a specific type of object under the same name.
@@ -39,7 +46,11 @@ class Drawer():
         ## Raise an error is a vilain is trying to overwrite a protected object.
         if (key!="object_type") and (key in self.__dict__.keys()):
             if self.is_object_type(self.__dict__[key]):
-                raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."
+                if self.object_type=='Parameter':
+                    add_msg = " Use the value attribute."
+                else:
+                    add_msg = ""
+                raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."+add_msg
                 
         ## This is the classic way to set attributes.
         self.__dict__[key] = value 
@@ -48,7 +59,7 @@ class Drawer():
     def is_object_type(self, value):
         """Will return True if input argument is the same type as self.object_type, False if not."""
         try:
-            classes = [str(x).split(".")[-1] for x in list(value.__class__.__bases__)+[value.__class__]]
+            classes = [str(x).split(".")[-1] for x in list(all_bases(value.__class__))+[value.__class__]]
             out = self.object_type in classes
         except:
             out = False
@@ -95,9 +106,6 @@ class Lab(Drawer):
         self.total_duration = 0 
         ## The time at which last experiment was launched. Must be initialized to zero.
         self.time_launched = 0
-        ## Add a delay to the end of each experiment (suggested 20 ms). (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows, but still, better be safe.) 
-        ## Second reason for doing this is to let some space for the awg to get its granularity right (so in any case the time buffer should be higher than granularity/sample_rate).
-        self.end_buffer = 20*ms 
         ## each time the delay() function is called, this variable += the duration of delay.
         self.free_evolution_time = 0 
         
@@ -263,8 +271,7 @@ class Lab(Drawer):
         It has to be called after each time an instruction is appended.
         
         - instruction_duration: duration to add to the time cursor (s).
-        - rewind: After updating time_cursor, go back in time by 'rewind' seconds.
-                  If rewind is "start", go back to initial time cursor position. This will update self.total_duration but keep self.time_cursor the same.
+        - rewind: If rewind is True, go back to initial time cursor position. This will update self.total_duration but keep self.time_cursor the same.
         """
         ## Update time cursor.
         self.time_cursor += instruction_duration
@@ -273,12 +280,9 @@ class Lab(Drawer):
         if self.time_cursor > self.total_duration:
             self.total_duration = self.time_cursor
 
-        if rewind == "start":
+        if rewind:
             ## Go back to initial time cursor position.
             self.time_cursor -= instruction_duration
-        elif rewind:
-            ## Go back in time by 'rewind' seconds.
-            self.time_cursor -= rewind
             
         if self.time_cursor < 0:
             raise nfu.LabMasterError, "Instructions led to a negative time. Going back in time is not implemented (todo list)."
@@ -327,7 +331,7 @@ class Params(Drawer):
 
     def __str__(self):
         """String representation of the sweep."""
-        return self.print_run(as_string=True)
+        return self.print_sweep(as_string=True)
 
         
     def add_parameter(self, *args):
@@ -350,27 +354,27 @@ class Params(Drawer):
         """Return parameters with a constant as their value attribute."""
         return [param for param in self.get_objects() if param.is_const()]
         
-    def get_current_sweeps(self, current_sweep_ID):
-        """Return list/array parameters that match current_sweep_ID."""
-        return [param for param in self.get_sweeps() if param.sweep_ID==current_sweep_ID] 
+    def get_current_sweeps(self, current_sweep_dim):
+        """Return list/array parameters that match current_sweep_dim."""
+        return [param for param in self.get_sweeps() if param.sweep_dim==current_sweep_dim] 
     
     def get_data_indices(self):
         """Return a list of indices to place the current point in the data array."""
         indices = []
         for i in range(1, self.get_dimension()+1):
-            select_params = [y for y in self.get_sweeps() if y.sweep_ID==i]
+            select_params = [y for y in self.get_sweeps() if y.sweep_dim==i]
             indices.append(select_params[0].i)
         return tuple(indices)
             
     def get_dimension(self):
-        """Return the maximum sweep_ID."""
-        return max([0]+[param.sweep_ID for param in self.get_sweeps()])
+        """Return the maximum sweep_dim."""
+        return max([0]+[param.sweep_dim for param in self.get_sweeps()])
     
     def get_sweeps(self):
         """Return parameters with a list or array as their value attribute."""
-        return [param for param in self.get_objects() if param.is_not_const() and param.sweep_ID > 0]
+        return [param for param in self.get_objects() if param.is_not_const() and param.sweep_dim > 0]
     
-    def print_run(self, as_string=False):
+    def print_sweep(self, as_string=False):
         """ 
         Print the scheduled run in the most human readable way. 
         
@@ -381,15 +385,18 @@ class Params(Drawer):
         ## Print constants.
         if self.get_constants() != []:
             string +=  "Constants:\n"
-            for param in self.get_constants():
-                string +=  param.name+" = "+nfu.auto_unit(param.value,param.unit)+"\n"
+            for _, param in sorted([(x.name, x) for x in self.get_constants()]):
+                string +=  "   "+param.name+" = "+nfu.auto_unit(param.value,param.unit)+"\n"
             string +=  "\n"
         ## Print sweeps.
         for i in range(1, self.get_dimension()+1):
             string +=  str(i)+nfu.number_suffix(i)+" sweep:\n"
-            for param in self.get_current_sweeps(i):
-                string +=  param.name+" from "+nfu.auto_unit(param.value[0],param.unit)+" to "+nfu.auto_unit(param.value[-1],param.unit)+" with "+nfu.auto_unit(param.get_step(), param.unit)+" step size.\n"
+            for _, param in sorted([(x.name, x) for x in self.get_current_sweeps(i)]):
+                string +=  "   "+param.name+" from "+nfu.auto_unit(param.value[0],param.unit)+" to "+nfu.auto_unit(param.value[-1],param.unit)+" with "+nfu.auto_unit(param.get_step(), param.unit)+" step size.\n"
             string +=  "\n"
+        
+        if string=="":
+            string = "No parameters detected."
         if as_string:
             out = string
         else:
@@ -403,10 +410,10 @@ class Parameter():
     """
     The Parameter class holds information about a parameter (that's right).
     Important attributes:
-    - value: Constant or array. Arrays will be swept according to their sweep_ID
+    - value: Constant or array. Arrays will be swept according to their sweep_dim
     - i: Current index in the swept array. 
     - v: Current element of the array being swept. v = value[i] (v = value for a constant)
-    - sweep_ID: Dimension of the scan on which to sweep the parameter. If sweep_ID=0, the parameter will not be swept.
+    - sweep_dim: Dimension of the scan on which to sweep the parameter. If sweep_dim=0, the parameter will not be swept.
     """
     def __init__(self, name, unit=""):
         """
@@ -416,7 +423,7 @@ class Parameter():
         """
         self.name = name
         self.value = 0
-        self.sweep_ID = 1 ## Dimension of the scan on which to sweep the parameter. If sweep_ID=0, the parameter will not be swept.
+        self.sweep_dim = 1 ## Dimension of the scan on which to sweep the parameter. If sweep_dim=0, the parameter will not be swept.
         self.unit = unit
         self.v = None ## Current element of the array being swept. v = value[i] (v = value for a constant)
         self.i = None ## Current index in the swept array. 
@@ -444,10 +451,9 @@ class Parameter():
         
     def is_not_const(self):
         """Return True if the '.value' attribute is indexable, False instead."""
-        try:
-            self.value[0]
+        if isinstance(self.value, (list, np.ndarray)):
             out = True
-        except IndexError:
+        else:
             out = False
         return out
     
@@ -509,7 +515,7 @@ class Parameter():
             string += nfu.auto_unit(self.value,self.unit)
         else:
             string += nfu.auto_unit(self.value[0],self.unit)+" to "+nfu.auto_unit(self.value[-1],self.unit)+" in "+str(len(self.value))+" steps."
-        string += "\nsweep ID #"+str(self.sweep_ID)    
+        string += "\nsweep on dimension #"+str(self.sweep_dim)    
         return string
     
     def _update(self, i):

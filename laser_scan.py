@@ -1,39 +1,35 @@
 import exp.exp_laser_scan as experiment
+import exp._defaults_ as _defaults_
 
-experiment.USE_WAVEMETER = False
+experiment.USE_WAVEMETER = False ## USE_WAVEMETER=True not tested on LabMaster v.2 release.
 
-params = Params("current;A", "current_meas;A", "curr_estimate_min;A", "curr_estimate_max;A", "wavelength;m", "delay;s")
+params = Params('current;A', 'current_meas;A', 'curr_estimate_min;A', 'curr_estimate_max;A', 'wavelength;m', 'delay;s')
 
 params.delay.value = 100*ms
 params.current.value = orange(.14,.16,.0001)
 
-### Min and max current for fitting
+## Min and max current for finding min.
 params.curr_estimate_min.value = 0.146
 params.curr_estimate_max.value = 0.149
 
 fig_ref = plt.figure()
 # fig_ref = None
 
-    
 try:
-    lab.laser.set_current(params.current.value[0])
-    time.sleep(200*ms)
-    
-    params.current_meas.value = np.zeros(params.current.get_size())
-    
     scan(lab, params, experiment, fig=fig_ref)
-    current_at_min = experiment.out(lab, params, fig, data, None)
-    
 except:
-    current_at_min = None
     error_manager()
-
 finally:
-    notebook("current start;"+str(params.current.get_start()),
-             "current end;"+str(params.current.get_end()),
-             "current step;"+str(params.current.get_step()),
-             "delay;"+str(params.delay.value),
-             "ND filters;"+_defaults_.ND_filters, 
-             "sensitivity;"+str(_defaults_.amp_sensitivity), 
-             "error;"+error_manager(as_string=True),
+    try:
+        peak_min, at_curr = experiment.out(None, params, None, last_data(), None)
+    except:
+        print "Couldn't calculate current at peak minimum."
+        peak_min, at_freq = None, None
+    notebook('current at min;'+str(at_curr),
+             'current start;'+str(params.current.get_start()),
+             'current end;'+str(params.current.get_end()),
+             'current step;'+str(params.current.get_step()),
+             'delay;'+str(params.delay.value),
+             'ND filters;'+_defaults_.ND_filters, 
+             'sensitivity;'+str(_defaults_.amp_sensitivity)
              )

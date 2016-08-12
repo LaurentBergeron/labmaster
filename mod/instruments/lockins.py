@@ -25,12 +25,10 @@ class Lockin_5210(Default_visa):
         - parent: A reference to the lab instance hosting the instrument.
         - visa_ID: Connection address. 
         """
-        Default_visa.__init__(self, name, parent) 
-        rm = vi.ResourceManager()
-        self.device_handle = rm.open_resource(visa_ID)
-        
+        Default_visa.__init__(self, name, parent, visa_ID) 
         ### Options ###
-        self.convert_reading = True
+        self.convert_reading = False ## True is not fully tested.
+        print 'connected to lock-in model 5210.'
         return
     
         

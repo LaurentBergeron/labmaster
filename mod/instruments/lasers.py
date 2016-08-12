@@ -26,17 +26,13 @@ class Laser_ITC4001(Default_visa):
         - parent: A reference to the lab instance hosting the instrument.
         - visa_ID: Connection address. 
         """
-        Default_visa.__init__(self, name, parent) 
-        rm = vi.ResourceManager()
-        self.device_handle = rm.open_resource(visa_ID)
-        self.temp    = float(self.device_handle.query("source2:temp?"))
-        self.curr    = float(self.device_handle.query("source:current?"))
+        Default_visa.__init__(self, name, parent, visa_ID) 
         
         self.MAX_CURR = 200*mA
         self.MIN_CURR = 0
         self.MAX_TEMP = 40 ## Celcius
         self.MIN_TEMP = 30 ## Celcius
-        
+        print 'connected ITC4001 laser.'
         return 
         
     def check_temperature(self, temp):
@@ -71,14 +67,12 @@ class Laser_ITC4001(Default_visa):
     def set_temp(self, temp):
         """Set temperature (Celcius)."""
         self.check_temperature(temp)
-        self.temp = temp
         self.device_handle.write("source2:temp "+str(temp)) ## the suffix 2 is required for ITC4001 instruments.
         return
         
     def set_current(self, curr):
         """Set current (A)."""
         self.check_current(curr)
-        self.curr = curr
         self.device_handle.write("source:curr "+str(curr))
         return
         

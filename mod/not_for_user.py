@@ -12,6 +12,7 @@ class LabMasterError(Exception):
 import sys
 import os 
 import numpy as np
+import matplotlib.pyplot as plt
 import glob             ## Use * in file handling
 import time             ## Pause script with time.sleep
 import timeit           ## Better timer than time
@@ -21,6 +22,7 @@ import datetime         ## Includes datetime objects to handle dates.
 import types            ## better type handling
 ## Homemade modules
 import plotting
+from units import *
 
   
 def auto_unit(value, unit, decimal=None):
@@ -31,6 +33,15 @@ def auto_unit(value, unit, decimal=None):
     - Unit: Unit of the value.
     - decimal: Force a number of decimals.
     """
+    ## Case if value is a string.
+    if isinstance(value, str):
+        return "'"+str(value)+"'"
+        
+    ## Case if value is None.
+    if isinstance(value, types.NoneType):
+        return "N/A"
+
+    value = float(str(value)) ## Gets rid of awful Python decimals.
     if value == 0:
         ## don't want to deal with 0
         return "0 "+unit 
@@ -73,12 +84,16 @@ def auto_unit(value, unit, decimal=None):
     except:
         ## if something goes wrong, return this simple format.
         result = str(value)+" "+unit
+    
+    ## Remove space at the end if it ends with a space.
+    if result[-1]==' ':
+        result = result[:-1]
     return result
     
 def create_todays_folder():
     """ Create those folders if they don't exist. """
     for saving_loc in saving_folders():
-        for section in ["data", "experiment","data_txt","fig","script","params","sweep","custom"]:
+        for section in ["data", "experiment","fig","script","params","sweep","custom"]:
             folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
@@ -170,6 +185,8 @@ def lastID():
     """Return last saved ID."""
     return pad_ID(int(detect_experiment_ID())-1)
      
+def remove_nan(array):
+    return array[np.logical_not(np.isnan(array))]
     
 def number_suffix(n):
     """ Returns the number suffix correponding to input n. """
@@ -182,11 +199,7 @@ def pad_ID(ID):
     
 def plot_loaded_sequence_auto_label(lab):
     """Automatic prefix and multiplier for time labels in plot_loaded_sequence methods."""
-    try:
-        index=int(np.floor(np.log10(lab.total_duration - lab.end_buffer)//3))
-        print "lab.end_buffer trimmed from time axis."
-    except:
-        index=int(np.floor(np.log10(lab.total_duration)//3))
+    index=int(np.floor(np.log10(lab.total_duration)//3))
         
     if 0 <= (index+3) < 3:
         prefix = ["n", "u", "m"][index+3]
@@ -212,20 +225,16 @@ def run_experiment(lab, params, experiment, data, fig, file_ID, update_plot):
     Procedure:
     1) Reset instructions related objects.
     2) Execute experiment.sequence().
-    3) Append a buffer of lab.end_buffer to the end of sequence.
-    4) Load memory of instruments.
-    5) Execute experiment.launch().
-    6) Wait for end of experiment.
-    7) Store the result of experiment.get_data() in data array.
-    8) Update figure.
+    3) Load memory of instruments.
+    4) Execute experiment.launch().
+    5) Wait for end of experiment.
+    6) Store the result of experiment.get_data() in data array.
+    7) Update figure.
     """
     ## Reset everything instructions related from lab, as well as the instructions of each memory instrument.
     lab.reset_instructions()
     ## Run the sequence function from experiment module (custom function defined by user) which should fill the instructions attribute of instruments with memory.
     experiment.sequence(lab, params, fig, data, file_ID)
-    ## Add a buffer of 20 ms to the experiments (timeit.default_timer() worst case precision is 1/60th of a second. Should be microsecond precision on Windows.)
-    ## Second reason for doing this is to let some space for the awg to get its granularity right.
-    lab.delay(lab.end_buffer)
     ## Load memory of instruments who can't ping_pong.
     for instrument in lab.get_memory_instruments():
         instrument.load_memory()
@@ -234,8 +243,8 @@ def run_experiment(lab, params, experiment, data, fig, file_ID, update_plot):
     ## Save time at which the experiment starts.
     lab.time_launched = timeit.default_timer()
     ## Wait for the end of experiment. 
-    while (timeit.default_timer() < lab.time_launched + lab.total_duration):
-        pass
+    while (timeit.default_timer() < lab.time_launched + lab.total_duration + 20*ms): ## timeit.default_timer() worst case precision is roughly 20 ms. Should be microsecond precision on Windows.
+        pass 
     ## Update data array.
     data[params.get_data_indices()] = experiment.get_data(lab, params, fig, data, file_ID)
     if update_plot and fig != None:
@@ -273,13 +282,13 @@ def size_of_get_data_return(experiment):
         raise LabMasterError, "Could not extract the number of return values of "+experiment.__name__+".get_data().\nSpecial rules for experiment.get_data: there can only be one return, and return values have to be separated by comas.\n Look at source code (nfu.size_of_get_data_return??) to understand how the return value is read."
     return size
   
-def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, update_plot):
+def sweep(lab, params, experiment, data, fig, current_sweep_dim, file_ID, update_plot):
     """ 
-    Sweeps through all params the same way as for loops, starting with sweep_ID #1. 
+    Sweeps through all params the same way as for loops, starting with sweep_dim #1. 
     for ... : (sweep #1)
-        for ... : (sweep_ID #2)
+        for ... : (sweep_dim #2)
             .....................
-                for ... : (sweep_ID #max)
+                for ... : (sweep_dim #max)
     This function is recursive. The number of 'for' loops depends on input parameters.
     """
 
@@ -288,18 +297,18 @@ def sweep(lab, params, experiment, data, fig, current_sweep_ID, file_ID, update_
         ## This happens if every parameter is a constant. Run experiment only once.
         run_experiment(lab, params, experiment, data, fig, file_ID, update_plot)
     else:
-        current_sweeps = params.get_current_sweeps(current_sweep_ID)
-        ## Here goes one 'for loop' corresponding to current sweep_ID
+        current_sweeps = params.get_current_sweeps(current_sweep_dim)
+        ## Here goes one 'for loop' corresponding to current sweep_dim
         for i in range(len(current_sweeps[0].value)): 
             ## Update the current value in array (_v attribute)
             update_params(current_sweeps, i) 
             
-            if current_sweep_ID==params.get_dimension():
+            if current_sweep_dim==params.get_dimension():
                 ## If this is the last 'for' loop, it's time to run an experiment. End of recursion.
                 run_experiment(lab, params, experiment, data, fig, file_ID, update_plot) 
             else:
-                ## Else, go for another 'for' loop at the next sweep_ID.
-                sweep(lab, params, experiment, data, fig, current_sweep_ID+1, file_ID, update_plot) 
+                ## Else, go for another 'for' loop at the next sweep_dim.
+                sweep(lab, params, experiment, data, fig, current_sweep_dim+1, file_ID, update_plot) 
 
     return
 
@@ -325,7 +334,7 @@ def update_params(swept_params, i):
 def zeros(params, experiment):
     """ 
     Initializes data to zeros. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
-    dim 1 is sweep_ID #1, dim 2 is sweep_ID #2 and so on.
+    dim 1 is sweep_dim #1, dim 2 is sweep_dim #2 and so on.
     """
     ## dimension of the sweep
     dimension = params.get_dimension()
@@ -346,6 +355,7 @@ def zeros(params, experiment):
     
     ## Initialize all data elements to NaNs (NaNs are not plotted on matplotlib figures)
     data[:] = np.nan
+
     return data
 
 

@@ -2,21 +2,19 @@ import exp.exp_ramsey as experiment
 import exp._defaults_ as _defaults_
 import exp._sequences_ as _sequences_
 
-PHASE_CYCLING = False
-awg_amp = _defaults_.awg_amp
-awg_freq = _defaults_.awg_freq
-awg_sample_rate = 976*MHz
-pi_len = _defaults_.pi_len
-laser_curr = _defaults_.laser_current
-rf_freq = _defaults_.sig_gen_freq
-lab.awg.default_channel = "1"
+experiment.PHASE_CYCLING = True
 
-params = Params("loops", "tau;s", "phase_cycle", "phase_start", "time_axis;s", "bin_length:s")
-params.phase_start.value = "X"
+params = Params('tau;s', 'phase_cycle', 'phase_start', 'time_axis;s', 'bin_length;s',
+                'awg_amp;V', 'awg_freq;Hz', 'awg_sample_rate;Hz', 'pi_len;s', 'sequence', 'loops')
+                
+params.phase_start.value = 'X'
 params.bin_length.value = _defaults_.bin_len
+params.awg_amp.value = _defaults_.awg_amp
+params.awg_freq.value = _defaults_.awg_freq
+params.awg_sample_rate.value = _defaults_.awg_sample_rate
+params.pi_len.value = _defaults_.pi_len
 
-params.tau.sweep_ID = 1
-# params.tau.value = 10*ms
+
 params.tau.value = orange(0, 20, 10*ms)
 
 fig_ref = plt.figure()
@@ -24,51 +22,33 @@ fig_ref = plt.figure()
     
 
 try:    
-    lab.pb.add_slave("master_trig", 1)
-    lab.pb.add_slave("Xshutter", 2)
-    lab.pb.add_slave("binA", 10)
-    lab.pb.add_slave("binB", 11)
-    lab.pb.add_slave("scope_trig", 17)
-
-    lab.awg.set_default_params(length=pi_len, amp=awg_amp, freq=awg_freq)
-    lab.awg.set_sample_clock_rate(awg_sample_rate)
-    lab.awg.set_trigger_mode("trig")
-
-    if PHASE_CYCLING:
-        params.phase_cycle.sweep_ID = params.get_dimension() + 1
-        params.phase_cycle.value = ["","-"]
-    else:
-        params.phase_cycle.value = ""
-
-    params.loops.value = 1
-    
-    params.time_axis.sweep_ID = 0
-    params.time_axis.value = np.zeros(params.tau.get_size())
-
-    
     scan(lab, params, experiment, fig=fig_ref, quiet=True)
-    period = experiment.out(lab, params, fig, data, None)
 
 except:
-    period = None
     error_manager()
 finally:
-    notebook("period;"+str(period),
-             "awg freq;"+str(awg_freq),
-             "awg ampl;"+str(awg_amp),
-             "pi len;"+str(pi_len),
-             "tau start;"+str(params.tau.get_start()),
-             "tau end;"+str(params.tau.get_end()),
-             "tau step;"+str(params.tau.get_step()),
-             "phase cycling;"+("Yes"*PHASE_CYCLING+"No"*(not PHASE_CYCLING)),
-             "laser current set;"+str(_defaults_.laser_current),
-             "laser current read;"+str(lab.laser.get_current()),
-             "rf freq;"+str(lab.sig_gen.get_freq()),
-             "ND filters;"+_defaults_.ND_filters, 
-             "sensitivity;"+str(_defaults_.amp_sensitivity), 
-             "bin length;"+str(params.bin_length.value),
-             "phase start;"+params.phase_start.value,
-             "error;"+error_manager(as_string=True),
+    
+    try:
+        A, period = experiment.out(None, params, None, last_data(), None)
+    except:
+        raise #TODO
+        print "Couldn't calculate fit parameters."
+        A, period = None, None
+    notebook('period;'+str(period),
+             'awg freq;'+str(params.awg_freq.value),
+             'awg amp;'+str(params.awg_amp.value),
+             'pi len;'+str(params.pi_len.value),
+             'tau start;'+str(params.tau.get_start()),
+             'tau end;'+str(params.tau.get_end()),
+             'tau step;'+str(params.tau.get_step()),
+             'phase cycling;'+('Yes'*experiment.PHASE_CYCLING+'No'*(not experiment.PHASE_CYCLING)),
+             'laser current set;'+str(_defaults_.laser_current),
+             'laser current read;'+str(lab.laser.get_current()),
+             'rf freq;'+str(lab.sig_gen.get_freq()),
+             'ND filters;'+_defaults_.ND_filters, 
+             'sensitivity;'+str(_defaults_.amp_sensitivity), 
+             'bin length;'+str(params.bin_length.value),
+             'phase start;'+params.phase_start.value
              )
 
     

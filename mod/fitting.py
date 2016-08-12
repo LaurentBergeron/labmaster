@@ -27,7 +27,6 @@ def fit(fit_func, xdata, ydata,  \
     - initial_guess: Initial guess for the curve_fit function.
     - *fit_args: Addition arguments will be sent to the curve_fit function.
     """
-        
     ## Remove NaNs from arrays.
     xdata = xdata[np.isfinite(ydata)]
     ydata = ydata[np.isfinite(ydata)]

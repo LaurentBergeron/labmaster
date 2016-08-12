@@ -2,7 +2,7 @@
 Definition of USB counter Instrument classes.
 
 Current classes: 
-- Usb_counter_CTR04
+- USB_counter_CTR04
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
@@ -21,7 +21,7 @@ from .. import not_for_user
 nfu = not_for_user 
         
 
-class Usb_counter_CTR04(Instrument):
+class USB_counter_CTR04(Instrument):
     """
     Class allowing to control an CTR04 USB counter.
     
@@ -49,6 +49,7 @@ class Usb_counter_CTR04(Instrument):
             status = self.cbw32.cbCConfigScan(self.board_num, counter_num, 0x10, 16, 0, 0, 0, counter_num)
             self.check_status(status)
             self.clear(counter_num)
+        print 'connected to USB counter CTR04.'
         return
     
     def abort(self):

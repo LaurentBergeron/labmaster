@@ -1,49 +1,40 @@
 import exp.exp_rf_scan as experiment
+import exp._defaults_ as _defaults_
 
-### Definition of parameters #################################
-awg_amp   = _defaults_.awg_amp          #pulse
-awg_freq  = _defaults_.awg_freq         #pulse
-lab.awg.default_channel = "1"                    #determines which channel to use
-
-params = Params("freq;Hz", "amp;mV", "phase;rad", "freq_estimate_min;Hz", "freq_estimate_max;Hz", "delay;s")
+params = Params('freq;Hz', 'awg_amp;V', 'awg_freq;Hz', 'freq_estimate_min;Hz', 'freq_estimate_max;Hz', 'delay;s')
 params.freq.value = orange(1.6093*GHz, 1.613*GHz, 10*kHz)
 params.delay.value = 100*ms
+params.awg_amp.value = _defaults_.awg_amp
+params.awg_freq.value = _defaults_.awg_freq
 
-### Min and max current for fitting
+## Min and max freq for finding clock transition
 params.freq_estimate_min.value = 1.6103*GHz
 params.freq_estimate_max.value = 1.6106*GHz
 
-
-### comment both to plot next data on fig_ref figure
+## comment both to plot next data on fig_ref figure
 fig_ref = plt.figure()
 # fig_ref = None
 
-##############################################################
-
 
 try:
-    lab.awg.cw(awg_freq, awg_amp)
-    
-    lab.sig_gen.set_freq(params.freq.value[0])
-    time.sleep(200*ms) 
-    
     scan(lab, params, experiment, fig=fig_ref)
-    freq_at_clock = experiment.out(lab, params, fig, data, None)
 except:
-    freq_at_clock = None
     error_manager()
-    
 finally:
-    notebook("Clock trans. freq;"+str(freq_at_clock),
-             "awg frequency;"+str(awg_freq),
-             "awg amplitude;"+str(awg_amp),
-             "freq start;"+str(params.freq.get_start()),
-             "freq end;"+str(params.freq.get_end()),
-             "freq step;"+str(params.freq.get_step()),
-             "delay;"+str(params.delay.value),
-             "laser current set;"+str(_defaults_.laser_current),
-             "laser current read;"+str(lab.laser.get_current()),
-             "ND filters;"+ND_filters,
-             "sensitivity;"+str(amp_sensitivity), 
-             "error;"+error_manager(as_string=True),
+    try:
+        peak_min, at_freq = experiment.out(None, params, None, last_data(), None)
+    except:
+        print "Couldn't calculate frequency at peak minimum."
+        peak_min, at_freq = None, None
+    notebook('Clock trans. freq;'+str(at_freq),
+             'awg frequency;'+str(params.awg_freq.value),
+             'awg amplitude;'+str(params.awg_amp.value),
+             'freq start;'+str(params.freq.get_start()),
+             'freq end;'+str(params.freq.get_end()),
+             'freq step;'+str(params.freq.get_step()),
+             'delay;'+str(params.delay.value),
+             'laser current set;'+str(_defaults_.laser_current),
+             'laser current read;'+str(lab.laser.get_current()),
+             'ND filters;'+_defaults_.ND_filters,
+             'sensitivity;'+str(_defaults_.amp_sensitivity), 
              )

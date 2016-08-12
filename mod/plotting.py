@@ -22,7 +22,7 @@ from not_for_user import LabMasterError
 def create_plot_auto(lab, params, fig, data, ID):
     """
     If one of create_plot or update_plot function is omitted from the experimented module, this function will be used instead.
-    Create a simple XY plot based on parameter arrays and sweep IDs.
+    Create a simple XY plot based on parameter arrays and sweep dimensionality.
     """
     if len(data.shape) == 1:
         xlabel = sorted([x.name for x in params.get_current_sweeps(1)])[0]

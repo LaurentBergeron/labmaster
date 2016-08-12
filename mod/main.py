@@ -3,7 +3,6 @@ from __future__ import division
 Holds all the functions useful for the user. Use 'python _console_launch_.py' to launch LabMaster.
 """
 __author__ = "Laurent Bergeron, <laurent.bergeron4@gmail.com>, Camille Bowness <cbowness@sfu.ca>, Adam DeAbreu <adeabreu@sfu.ca>"
-__version__ = "2.0"   
 
 ## Base modules
 import sys
@@ -30,21 +29,22 @@ import xlwt             ## .xlsx write
 import not_for_user as nfu
 import classes
 import plotting
+import fitting
 import instruments
 import available_instruments
 
 ## Import useful objects to user from other modules
 from classes import Lab, Params
-from not_for_user import LabMasterError, today, lastID, auto_unit, saving_folders
+from not_for_user import LabMasterError, today, lastID, auto_unit, saving_folders, remove_nan
 from units import *
 from pydoc import help
 
         
     
-def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
+def scan(lab, params, experiment, fig=None, quiet=True, update_plot=True):
     """
     The holy grail of LabMaster.
-    Scan parameters value attribute in the order imposed by their sweep_ID.
+    Scan parameters value attribute in the order imposed by their sweep_dim.
     For each point in scan, run an experiment as dicted by the experiment module.
     Saves everything under locations defined by saving_folders().
 
@@ -55,24 +55,24 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     - quiet: If True, won't ask user if everything is ok. Enable this for overnight runs or if you are overconfident.
     - update_plot: If a figure object is given by the fig argument, update_plot=False will update the figure only once, at the end of the scan.
     """
-
-    ## Check if inputs are conform to a bunch of restrictions
-    check_params(params)
-    check_experiment(experiment)
-    check_lab(lab)
-
-    print "\n--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
-    print params 
-
-    if quiet:
-        ## No time for questions.
-        pass
-    else:
-        if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
-            raise KeyboardInterrupt
             
     ## ID is the number indicated after the date in file names.
     ID = nfu.detect_experiment_ID() ## returns the current max ID found in experiment/ folder, plus one (ID is a string)
+    
+    ## Replace missing functions from experiment module
+    fill_experiment_functions(experiment)
+    
+    ## Get ready once, for experiment.start function.
+    nfu.get_ready(lab, params)
+    ## Call the start function of experiment module
+    experiment.start(lab, params, fig, None, ID)
+    ## Get ready once more! Start may have affected things.
+    nfu.get_ready(lab, params)
+
+    ## Check if inputs are conform to a bunch of restrictions
+    check_params(params)
+    check_lab(lab)
+
     print "ID:",ID,"\n"
     ## data is an array full of zeros matching good dimensions imposed by params.
     data = nfu.zeros(params, experiment)
@@ -82,19 +82,27 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
         ## Initialize the plot on the figure.
         experiment.create_plot(lab, params, fig, data, ID)
 
+    if quiet:
+        ## No time for questions.
+        pass
+    else:
+        if raw_input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
+            raise KeyboardInterrupt
+            
+    print "\n--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------" 
+    print params 
+
+        
     ## Up to this point, results will be saved whatever happens.
     try:
         ## Save what we know about the experiment so far in experiment/ folder. 
         save_experiment(None, None, None, ID, "first_time")
-        ## Stuff that needs to be done before the scan.
-        nfu.get_ready(lab, params)
-        ## Call the start function of experiment module
-        experiment.start(lab, params, fig, data, ID)
         ## Start the sweep! data will be filled with science
         nfu.sweep(lab, params, experiment, data, fig, 1, ID, update_plot)
         error_message = "Scan completed."
     except:        
-        error_message = error_manager(as_string=True)
+        error_message = error_manager(as_string=True, all=True)
+        raise
     finally:
         ##-------------------------------- All executions in the finally statement should be fail-proof. --------------------------------##
         ## Save experiment info, as well as experiment source code.
@@ -106,6 +114,8 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
             print "end function from "+experiment.__name__+" failed.", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
         ## Call the abort method from every instrument connected to the Lab instance.
         lab.abort_all()
+        ## Save params in params/ folder. 
+        save_params(params, ID)
         ## Save parameters values and data in sweep/ folder. 
         save_sweep(params, data, ID)
         ## Save fig as pdf in fig/ folder
@@ -122,45 +132,6 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     return
                     
 
-
-def check_experiment(experiment):
-    """
-    Check experiment module for missing functions. 
-    If a function is missing, it will be replaced by an empty one, with the exception of create_plot and update_plot.
-    If one of create_plot or update_plot is missing, both will be replaced by the automatic plotting functions from the plotting module.
-    
-    - experiment: Module to be used as experiment in a scan function.
-    """
-    def empty(lab, params, fig, data, ID):
-        """A very boring function."""
-        return 
-
-    ## List of functions that can be defined in an experiment module.
-    available_functions = ("launch",
-                           "get_data",
-                           "sequence",
-                           "start",
-                           "end",
-                           "out",
-                           "create_plot",
-                           "update_plot")
-
-    ## Each function from the previous list must have the same arguments as empty().
-    required_num_args = len(inspect.getargspec(empty).args)
-
-    for func_name in available_functions:
-        try:
-            if len(inspect.getargspec(experiment.__dict__[func_name]).args) != required_num_args:
-                raise LabMasterError, "Function "+func_name+" from "+experiment.__name__+" requires "+str(required_num_args)+" arguments."
-        except KeyError:
-            ## If an experiment module misses a function, a KeyError will be raised. A default function is then assigned.
-            if func_name=="create_plot" or func_name=="update_plot":
-                experiment.create_plot = plotting.create_plot_auto
-                experiment.update_plot = plotting.update_plot_auto
-            else:
-                experiment.__dict__[func_name] = empty
-    
-    return 
 
 
 def check_lab(lab):
@@ -190,14 +161,13 @@ def check_params(params):
     """
     if params.get_objects()==[]:
         raise LabMasterError, "No parameters detected."
-        
     for key, param in params.get_items():   
         ## Sweep IDs must be int types. 
-        if not isinstance(param.sweep_ID, int):
-            raise LabMasterError, key+".sweep_ID should be int type, instead of "+str(type(param.sweep_ID))+"."   
+        if not isinstance(param.sweep_dim, int):
+            raise LabMasterError, key+".sweep_dim should be int type, instead of "+str(type(param.sweep_dim))+"."   
         ## Sweep IDs must be positive.     
-        if param.sweep_ID < 0:
-            raise LabMasterError, key+".sweep_ID is < 0."
+        if param.sweep_dim < 0:
+            raise LabMasterError, key+".sweep_dim is < 0."
         if param.is_not_const():
             ## Convert lists to numpy arrays.
             if isinstance(param.value, list):
@@ -209,18 +179,18 @@ def check_params(params):
             if param.value.ndim > 1:
                 raise LabMasterError, key+".value has a dimension higher than 1."                
             ## The length is restricted to 10^8. 
-            if len(param.value) > 1e8:
-                print nfu.warn_msg()+param.name+" array is very large and takes a lot of memory. Consider using a smaller array."
+            if len(param.value) > 1e6:
+                raise LabMasterError,param.name+" array will slow Python because it is too large."
 
     for i in range(1,params.get_dimension()+1):
-        ## Empty sweep IDs are forbidden.
+        ## Empty sweep dimensions are forbidden.
         if params.get_current_sweeps(i)==[]:
-            raise LabMasterError, "No sweeps detected at sweep_ID #"+str(i)+"."
-        ## All parameters from the same sweep ID must be the same length.
+            raise LabMasterError, "No sweeps detected at sweep_dim="+str(i)+"."
+        ## All parameters from the same sweep dimension must be the same length.
         lengths_by_ID = [len(x.value) for x in params.get_current_sweeps(i)]
         for l in range(len(lengths_by_ID)):
             if not lengths_by_ID[l] == lengths_by_ID[l-1]:
-                raise LabMasterError, "Arrays programmed for sweep ID #"+str(i)+" have different lenghts."  
+                raise LabMasterError, "Arrays programmed for sweep_dim="+str(i)+" have different lenghts."  
     return
 
 def clean_reset(namespace):
@@ -246,7 +216,7 @@ def clean_reset(namespace):
     del key, value
     return
     
-def error_manager(as_string=False, all=True):
+def error_manager(as_string=False, all=False):
     """
     Get last raised error from sys module. 
     If it's a LabMasterError or one of its subclasses, print the error message in a minimalistic way. To get full traceback, run %tb in Ipython.
@@ -309,6 +279,7 @@ def export_data(date, IDs, location, output, \
     - popts_manipulation: function to manipulate loaded data and loaded param class to generate fit parameters
             (see mod/analyze_data.py)
     """
+    raise LabMasterError, "This function is deprecated. Adam, please update it!"
     popts_ar = None 
     for i, ID in enumerate(IDs):
         print "currently processing: ", ID
@@ -344,6 +315,47 @@ def export_data(date, IDs, location, output, \
 
     return popts_ar
 
+
+def fill_experiment_functions(experiment):
+    """
+    Check experiment module for missing functions. 
+    If a function is missing, it will be replaced by an empty one, with the exception of create_plot and update_plot.
+    If one of create_plot or update_plot is missing, both will be replaced by the automatic plotting functions from the plotting module.
+    
+    - experiment: Module to be used as experiment in a scan function.
+    """
+    def empty(lab, params, fig, data, ID):
+        """A very boring function."""
+        return 
+
+    ## List of functions that can be defined in an experiment module.
+    available_functions = ("launch",
+                           "get_data",
+                           "sequence",
+                           "start",
+                           "end",
+                           "out",
+                           "create_plot",
+                           "update_plot")
+
+    ## Each function from the previous list must have the same arguments as empty().
+    required_num_args = len(inspect.getargspec(empty).args)
+
+    for func_name in available_functions:
+        try:
+            if len(inspect.getargspec(experiment.__dict__[func_name]).args) != required_num_args:
+                raise LabMasterError, "Function "+func_name+" from "+experiment.__name__+" requires "+str(required_num_args)+" arguments."
+        except KeyError:
+            ## If an experiment module misses a function, a KeyError will be raised. A default function is then assigned.
+            if func_name=="create_plot" or func_name=="update_plot":
+                experiment.create_plot = plotting.create_plot_auto
+                experiment.update_plot = plotting.update_plot_auto
+            else:
+                experiment.__dict__[func_name] = empty
+    
+    return 
+    
+    
 def help_please():
     """
     Use ? after an object to get documentation. With ?? you get source code.
@@ -391,6 +403,17 @@ def last_sweep():
     Is the same as load_sweep(today(), lastID()).
     """
     return load_sweep(today(), lastID())
+    
+def last_params(output=None):
+    """
+    Load params from last scan.
+    Is the same as load_params(today(), lastID()).
+    
+    - experiment_name: Use create_plot and update_plot from this experiment.
+    - output: If None, will return the whole params instance.
+              If a string, will return the parameter from params with that name.
+    """
+    return load_params(today(), lastID(), output=output)
     
 def last_plot(experiment_name=None):
     """
@@ -446,8 +469,36 @@ def load_sweep(date, ID):
         
     return np.load(matching_file)
     
-  
+def load_params(date, ID, output=None):
+    """
+    Load params from a .pickle file in params/ folder.
     
+    - date: Date from file name. Has to follow this datetime format: %Y_%m_%d
+            %Y is year in four characters.
+            %m is month in two characters.
+            %d is day in two characters.
+            Good format example: 2016_06_24
+    - ID: Number indicated after the date in file name.
+    - output: If None, will return the whole params instance.
+              If a string, will return the parameter from params with that name.
+    """
+    ID = nfu.pad_ID(ID) ## Convert ID to correct format.
+    file_format = nfu.filename_format(date, ID, script_name=False)
+    main_saving_loc = nfu.saving_folders()[0]
+    try:
+        matching_file = [filename for filename in glob.glob(main_saving_loc+"params/"+date+"/*") if file_format in filename][0]
+    except IndexError:
+        raise LabMasterError, "Date or ID does not match any existing file."
+    with open(matching_file, "rb") as f:
+        params = pickle.load(f)
+    if output==None:
+        return params
+    else:
+        try:
+            return params.__dict__[output]
+        except KeyError:
+            raise nfu.LabMasterError, "Requested output not found in params attributes."
+    return
 
 def load_plot(date, ID, experiment_name=None, fig=None):
     """
@@ -494,7 +545,7 @@ def load_plot(date, ID, experiment_name=None, fig=None):
         
     return fig
     
-def load_out(date, ID, experiment_name=None):
+def load_out(date, ID, fig=None, experiment_name=None):
     """
     Show figure generated by data, params and experiment from specified date and ID.
     
@@ -503,6 +554,7 @@ def load_out(date, ID, experiment_name=None):
             %m is month in two characters.
             %d is day in two characters.
             Good format example: 2016_06_24
+    - fig: If experiment.out requires a fig, input it here.
     - ID: Number indicated after the date in file name.
     - experiment_name: Use a specific experiment module.
     """
@@ -523,7 +575,6 @@ def load_out(date, ID, experiment_name=None):
         ## IndexError will be raised if date and ID don't match any file.
         raise LabMasterError, "Could not import experiment."
 
-    fig = plt.figure()
     lab = None ## fake lab to input to create_plot and update_plot. If those functions needed lab, an error will be raised.
     params = load_params(date, ID)
     data = load_data(date, ID)
@@ -545,7 +596,7 @@ def notebook(*args):
     filename="notebook" ## Name under which to save the .txt file (default is 'notebook')
     delimiter=';' ## The delimiter must match notebook_to_xls().
     date = nfu.today()
-    ID = nfu.detect_experiment_ID()
+    ID = nfu.pad_ID(int(nfu.detect_experiment_ID())-1)
     script_name = nfu.get_script_filename()
     column_name = [script_name, date, "ID"] + [""]*len(args) + ["comment"]
     entry       = ["",          "",   ID] +   [""]*len(args) + [" ".join(sys.argv[1:])]
@@ -598,6 +649,7 @@ def orange(start, stop, step):
     """
     Same as numpy.arange with one extra point.
     orange stands for optimal range. 
+    May occasional return two extra points because of float additions (happened to me once.)    
     """
     return np.arange(start, stop+step, step)
   
@@ -659,6 +711,24 @@ def save_experiment(lab, params, experiment, ID, error_string):
     except:
         print "save_experiment() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
     return
+    
+def save_params(params, ID):
+    """ 
+    Save params instance with pickle under saved/params/ folder.
+    Extract them with ease using the load_params() function.
+    
+    Input
+    - params: Params instance.
+    - ID: Number indicated after the date in file name.
+    """
+    try:
+        for saving_loc in nfu.saving_folders():
+            filename = saving_loc+"params/"+today()+"/"+nfu.filename_format(today(), ID)[:-3]+".pickle"
+            with open(filename, "wb") as f:
+                pickle.dump(params, f, pickle.HIGHEST_PROTOCOL) # Pickle using the highest protocol available.
+    except:
+        print "save_params() failed."
+    return
 
 
 def save_script(ID):
@@ -690,22 +760,23 @@ def save_sweep(params, data, ID):
             ## An entry in the output array is dedicated to data. Access using 'DATA'.
             sweep_contents = [data]
             dtype_list = [('DATA', (data.dtype, data.shape))]
-            ## An entry in the output array is dedicated to sweep IDs. Access using 'IDs'.
-            sweep_IDs = np.array([param.name+'='+str(param.sweep_ID) for param in params.get_sweeps()])
-            sweep_contents += [sweep_IDs]
-            dtype_list += [('IDs', (sweep_IDs.dtype,sweep_IDs.shape))]
+            ## An entry in the output array is dedicated to sweep dims. Access using 'SWEEPS'.
+            sweep_dims = np.array([param.name+'='+str(param.sweep_dim) for param in params.get_sweeps()])
+            sweep_contents += [sweep_dims]
+            dtype_list += [('SWEEPS', (sweep_dims.dtype,sweep_dims.shape))]
             for param in params.get_sweeps(): 
                 if not isinstance(param.value, np.ndarray): 
                     ## Convert lists to numpy arrays.
-                    param.value = np.array(param.value)
-                type_ = param.value.dtype
-                dtype_list += [(param.name, (param.value.dtype, param.value.shape))]
-                sweep_contents += [param.value]
+                    value = np.array(param.value)
+                else:
+                    value = param.value
+                dtype_list += [(param.name, (value.dtype, value.shape))]
+                sweep_contents += [value]
             for param in params.get_constants():
                 ## Convert constants to numpy format.
-                param.value = np.array([param.value])
-                dtype_list += [(param.name, param.value.dtype)]
-                sweep_contents += [param.value]
+                value = np.array(param.value)
+                dtype_list += [(param.name, value.dtype)]
+                sweep_contents += [value]
             ## Declare the sweep numpy dtype array.
             sweep = np.array([tuple(sweep_contents)], dtype=np.dtype(dtype_list))
             ## Get rid of an extra useless dimension.

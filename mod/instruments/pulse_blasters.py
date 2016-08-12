@@ -59,6 +59,7 @@ class Pulse_blaster_USB(Instrument):
         self.spinapi.pb_core_clock(self.ref_freq/1e6)
         ## Turn all channels off.
         self.all_channels_off()
+        print 'connected to PulseBlasterUSB!.'
         return 
     
     def abort(self):
@@ -180,7 +181,7 @@ class Pulse_blaster_USB(Instrument):
         """
         if self.instructions==[]:
             if self.show_warning_no_inst:
-                print nfu.warn_msg()+"No instructions for pulse blaster. Set the use_memory attribute to False."
+                print "PulseBlasterUSB!: No instructions detected. self.load_memory() skipped."
                 self.show_warning_no_inst = False
             return
         ## Stop previous generation.
@@ -192,9 +193,8 @@ class Pulse_blaster_USB(Instrument):
         
         ## Load results from self.preprocess() using spinapi.pb_inst_pbonly commands.
         for flags, opcode, data_field, duration in self.preprocess():
-            print flags, opcode, data_field, duration
             status = self.spinapi.pb_inst_pbonly(int(flags,2), opcode, data_field, duration*1e9)
-        print ""
+
         ## All channels offs.
         self.flags = "0"*24
         start = self.spinapi.pb_inst_pbonly(int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
@@ -398,7 +398,7 @@ class Pulse_blaster_USB(Instrument):
                 ax_ = axes[-1]
             ax_.set_xlabel("Time ("+prefix+"s)")
             ## Span time for all experiment duration
-            ax_.set_xlim([0, c*(self.lab.total_duration - self.lab.end_buffer)])
+            ax_.set_xlim([0, c*(self.lab.total_duration)])
         
         ## Compute preprocess
         preprocess_result = self.preprocess()
@@ -478,7 +478,7 @@ class Pulse_blaster_USB(Instrument):
         self.opcode("RTS", 0, duration=duration, ref=ref)
         return
     
-    def turn_on(self, channel, duration=None, opcode_str="", data_field=0, ref="", rewind=None):
+    def turn_on(self, channel, duration=None, opcode_str="", data_field=0, ref="", rewind=False):
         """
         Instruction to turn on specified channel.
         
@@ -501,7 +501,7 @@ class Pulse_blaster_USB(Instrument):
             self.lab.update_time_cursor(duration, rewind)
         return
         
-    def turn_off(self, channel, duration=None, opcode_str="", ref="", rewind=None):
+    def turn_off(self, channel, duration=None, opcode_str="", ref="", rewind=False):
         """
         Instruction to turn off specified channel.
         

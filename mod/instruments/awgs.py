@@ -95,13 +95,14 @@ class Awg_M8190A(Instrument):
                 self.check_error(status)
                 self.set_sample_clock_source_route("internal", channel=channel)
                 self.set_channel_route("AC", channel=channel)
-                self.set_amplitude(1.0, channel=channel)
+                self.set_amplitude(2.0, channel=channel)
                 self.set_arm_mode("self", channel=channel)
                 self.set_trigger_mode("trig", channel=channel)
                 self.set_gate_mode("trig", channel=channel)
         except:
             self.close()
             raise
+        print 'connected to AWG M8190A.'
         return
 
     def abort(self):
@@ -160,7 +161,6 @@ class Awg_M8190A(Instrument):
         channel = self.channel_format(channel)
         if freq==None:
             freq = self.default_freq[channel]
-        
         
         ## Optimize sample rate
         new_sample_rate = self.cw_optimal_sample_rate(freq)
@@ -364,32 +364,38 @@ class Awg_M8190A(Instrument):
             if self.get_trigger_mode(channel=channel)=="auto":
                 ## If trigger mode is automatic, it means we are outputting a continous waveform. In this case, skip load_memory.
                 if channel=="1" and self.show_warning_trig_auto_no_load1:
-                    print nfu.warn_msg()+"channel 1 trigger mode is automatic, load_memory will be skipped."
+                    print "AWG channel 1: trigger mode is automatic, load_memory() will be skipped."
                     self.show_warning_trig_auto_no_load1 = False
                 if channel=="2" and  self.show_warning_trig_auto_no_load2:
-                    print nfu.warn_msg()+"channel 2 trigger mode is automatic, load_memory will be skipped."
+                    print "AWG channel 2: trigger mode is automatic, load_memory() will be skipped."
                     self.show_warning_trig_auto_no_load2 = False
                 continue
 
             ## Abort current awg signal generation
             status = self.abort_generation(channel=channel)
             self.check_error(status)
-
-            ## Preprocess: Merge pulses and markers into blocks, detect delays.
-            segments={}
-            self.preprocess(channel, segments, is_cw)
-            if segments=={}: ## skip the rest of the loop if no instructions are detected.
+            
+            ## skip the rest of the loop if no instructions are detected.
+            if [inst for inst in self.instructions if inst[1]==str(channel)]==[]:
                 if channel=="1" and self.show_warning_no_inst1:
-                    print nfu.warn_msg()+"no instructions for awg channel 1"
+                    print "AWG channel 1: No instructions detected, load_memory() will be skipped."
                     self.show_warning_no_inst1 = False
                     continue
                 if channel=="2" and self.show_warning_no_inst2:
-                    print nfu.warn_msg()+"no instructions for awg channel 2"
+                    print "AWG channel 2: No instructions detected, load_memory() will be skipped."
                     self.show_warning_no_inst2 = False
                     continue
-
-            if sum([seq_info["is_start"] for seq_info in segments["sequence_info"]]) != sum([seq_info["is_end"] for seq_info in segments["sequence_info"]]):
-                raise AgM8190Error, "The number of 'New sequence' segments doesn't match the number of 'End Sequence' segments."
+                
+            ## Preprocess: Merge pulses and markers into blocks, detect delays.
+            segments={}
+            self.preprocess(channel, segments, is_cw)
+                    
+            ## Check if number of New sequence match the number of End sequence.
+            if not is_cw:
+                N_is_start = sum([seq_info["is_start"] for seq_info in segments["sequence_info"]])
+                N_is_end = sum([seq_info["is_end"] for seq_info in segments["sequence_info"]])
+                if N_is_start!=N_is_start:
+                    raise AgM8190Error, "The number of 'New sequence' segments doesn't match the number of 'End Sequence' segments."
             
             ## Reset the sequence table
             self.AgM8190.SequenceTableReset(self.session, channel)
@@ -659,7 +665,7 @@ class Awg_M8190A(Instrument):
             i+=1
             if i > len(freqs)-1:
                 break
-
+        
 
         ## Adjust trigger latency if option is activated. This will chop 10240 counts from the start of sequence. The experiment needs a time buffer.
         if self.adjust_trig_latency:
@@ -683,6 +689,16 @@ class Awg_M8190A(Instrument):
                 raise AgM8190Error, "You must add a time buffer at the beginning of experiment if using adjust_trig_latency=True."
 
         for b, block in enumerate(blocks):
+        
+            ##------- Temporary clipping warning message since the other one is now broken. When fixed, delete this message. -------##
+            ## This warning may be shown for nothing, depending on the phases of the pulses and the shape of the envelope.
+            if sum(block["wfm_amps"])/2047.0>awg_amp:
+                if self.show_warning_amp_clipping:
+                    print nfu.warn_msg()+"AWG pulses are overlapping and their amplitude are most likely overloading. \nIn this case, behaviour is unexpected. You should look at pulses on a scope or using self.plot_loaded_sequence(). \nTo avoid this issue, edit the "+self.__class__.__name__+" class so it clips the amplitude. See related TODO in class comments."
+                    raw_input("I saw this message. [ENTER]")
+                    self.show_warning_amp_clipping = False
+            ##----------------------------------------------------------------------------------------------------------------------##
+        
             ## Find block min and max for padding
             block_start = int(np.min(block["wfm_starts"]))
             block_end = int(np.max(block["wfm_ends"]))
@@ -708,17 +724,18 @@ class Awg_M8190A(Instrument):
             ## Compute the sum of pulses.
             self.wfmGenLib2.wfmgen(C_countFreq, C_blockStart, C_wfmstart, C_wfmlength, C_arrPeriod, C_arrPhase, C_arrAmp, C_arrShape, C_arrOut_int16)
 
-            ## Clip block amplitude if to high.
-            ##### TODO: Since C_arrOut_int16 is a short, the following statement is never True. No warning will be raised for clipping. #####
-            # if np.max(C_arrOut_int16) > short_size: 
-                # if self.show_clipping_warning:
-                    # print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
-                # for i, item in enumerate(C_arrOut_int16):
-                    # if item > 0:
-                        # C_arrOut_int16[i] = min(item, short_size)
-                    # else:
-                        # C_arrOut_int16[i] = max(item, -short_size)
-            #################################################################################################################################
+            ## Clip block amplitude if to high (BROKEN). 
+            ## TODO: Since C_arrOut_int16 is a short, the following statement is never True. No warning will be raised for clipping. ##
+            ##       This check/clipping will probably need to take place in wfmGenLib2 C code.                                      ##       
+            #if np.max(C_arrOut_int16) > short_size: 
+            #    if self.show_warning_amp_clipping:
+            #        print nfu.warn_msg()+"Amplitude of the sum of pulses ("+str(np.max(C_arrOut_int16)/short_size*awg_amp)+" V) is higher awg amplitude ("+str(awg_amp)+" V). Waveform will be clipped."
+            #    for i, item in enumerate(C_arrOut_int16):
+            #        if item > 0:
+            #            C_arrOut_int16[i] = min(item, short_size)
+            #        else:
+            #            C_arrOut_int16[i] = max(item, -short_size)
+            ##-----------------------------------------------------------------------------------------------------------------------##
 
             ## Add markers
             for time_ in marker_times:
@@ -866,7 +883,7 @@ class Awg_M8190A(Instrument):
             ax = fig.add_subplot(111)
             ax.set_xlabel("Time ("+prefix+"s)")
             ## Span time for all experiment duration
-            ax.set_xlim([0, c*(self.lab.total_duration - self.lab.end_buffer)])
+            ax.set_xlim([0, c*(self.lab.total_duration)])
 
         for i, (segment_type, segment_info, sequence_info) in enumerate(zip(segments["type"], segments["segment_info"], segments["sequence_info"])):
             if segment_type=="delay":
@@ -901,7 +918,7 @@ class Awg_M8190A(Instrument):
 
 
 
-    def pulse(self, length=None, phase=None, amp=None, freq=None, shape=None, rewind=None, channel=None):
+    def pulse(self, length=None, phase=None, amp=None, freq=None, shape=None, rewind=False, channel=None):
         """
         Instruction to add a pulse starting at current time cursor.
         Time cursor updates by the length of the pulse.
@@ -1009,7 +1026,7 @@ class Awg_M8190A(Instrument):
         Reset show_warnings attributes to True. 
         Is called at the beginning of the scan function.
         """
-        self.show_warning_amp_clipping = True ## Never shown. See preprocess.
+        self.show_warning_amp_clipping = True ## Is shown more often than it should be (waiting to be fixed, see preprocess.)
         self.show_warning_freqrangeAC = True
         self.show_warning_loop_start = True
         self.show_warning_loop_end = True

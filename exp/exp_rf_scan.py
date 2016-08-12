@@ -1,6 +1,12 @@
 from mod.main import *
 
-def sequence(lab, params, fig, data, ID):
+def start(lab, params, fig, data, ID):
+    lab.awg.default_channel = '1'    
+    
+    lab.awg.cw(params.awg_freq.value, params.awg_amp.value)
+    
+    lab.sig_gen.set_freq(params.freq.value[0])
+    time.sleep(200*ms) 
     return
 
 def launch(lab, params, fig, data, ID):
@@ -16,30 +22,35 @@ def get_data(lab, params, fig, data, ID):
 def create_plot(lab, params, fig, data, ID):
     if len(fig.axes) == 0: 
         ## If the figure is empty.
-        plotting.createfig_XY(fig, "sig_gen frequency", "lock-in", 1, "--o")
+        plotting.createfig_XY(fig, 'sig_gen frequency', 'lock-in', 1, '--o')
     else: 
         ## If using a figure which already contains a plot.
-        plotting.add_lines(fig, 1, "-")
+        plotting.add_lines(fig, 1, '-')
     return
     
 def update_plot(lab, params, fig, data, ID):
-    ax = fig.axes[0]
+    ax = fig.axes[0] 
     plotting.updatefig_XY(fig, params.freq.value, data, line_index=len(ax.lines)-1)
     
     peak_min, at_freq = out(lab, params, fig, data, ID)
-    fig.suptitle("peak min = "+peak_min+at_freq, fontsize=15)
+    if peak_min != None:
+        title = 'peak min = %0.0f'%peak_min
+        title += ' at '+auto_unit(at_freq, 'Hz', decimal=6)
+    else:
+        title = 'peak_min = unknown'
+    fig.suptitle(title, fontsize=15)
     return
     
     
 def out(lab, params, fig, data, ID):
-    nonan = data[np.logical_not(np.isnan(data))]
+    data_nonan = remove_nan(data)
     freq_min_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_min.v))
     freq_max_idx = np.argmin(np.abs(params.freq.value - params.freq_estimate_max.v))
     try:
-        peak_min = "%0.0f"%np.min(nonan[freq_min_idx:freq_max_idx+1])
-        at_freq = " at freq "+auto_unit(params.freq.value[np.argmin(nonan[freq_min_idx:freq_max_idx+1])+freq_min_idx], "Hz", decimal=6)
+        peak_min = np.min(data_nonan[freq_min_idx:freq_max_idx+1])
+        at_freq = params.freq.value[np.argmin(data_nonan[freq_min_idx:freq_max_idx+1])+freq_min_idx]
     except ValueError:
-        peak_min = "unknown"
-        at_freq = ""
+        peak_min = None
+        at_freq = None
     return peak_min, at_freq
     

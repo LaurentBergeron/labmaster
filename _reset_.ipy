@@ -18,6 +18,13 @@ os.system("attrib +H *.pyc /S")  # ---> hide .pyc files in directory
 from mod.main import clean_reset
 clean_reset(globals())
 
+## Message when it's not first launch.
+try:
+    __LABMASTER__
+    print 'Ipython environnement reset.'
+except:
+    print '>>> run _reset_.ipy'
+    print 'Start by connecting to instruments using lab.add_instrument(). Happy science!'
 
 ## Reset Ipython environnement
 %reset -f
@@ -26,13 +33,9 @@ clean_reset(globals())
 
 ## Import LabMaster
 from mod.main import *
-from mod.main import __version__
 
 __LABMASTER__ = True
 
-## Hail the great LabMaster
-print "\n*** Welcome to the LabMaster v."+__version__+" "*(13-len(__version__))+"***"
-print "*** In case of emergency, try help_please(). ***\n" 
 
 plt.ion() ## interactive matplotlib ON
 plt.close("all") ## close matplotlib figures
@@ -53,25 +56,13 @@ def irun(line):
 del irun
 
 
-## Initialize those instruments on start up.
+## Initialize this lab instance.
 lab = Lab()
 
-# lab.add_instrument("pb")
-# lab.add_instrument("awg")
-# lab.add_instrument("usb_counter")
-# lab.add_instrument("laser")
-# lab.add_instrument("lockin")
-# lab.add_instrument("sig_gen")
-# lab.add_instrument("sig_gen_srs")
-# lab.add_instrument("wavemeter")
 
-print ""
-print lab
-
-
-### Auto completion for instrument strings
+### Auto completion for instrument strings (awg='awg', etc.)
 for name in available_instruments.__dict__.keys():
     if not name.startswith("_"):
-        exec(name+"='for science!'")
-    
-import numpy
+        exec(name+"='"+name+"'")
+        
+        

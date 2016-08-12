@@ -29,13 +29,12 @@ class Sig_gen_E8257D(Default_visa):
         - parent: A reference to the lab instance hosting the instrument.
         - visa_ID: Connection address. 
         """
-        Default_visa.__init__(self, name, parent) 
-        rm = vi.ResourceManager()
-        self.device_handle = rm.open_resource(visa_ID)
+        Default_visa.__init__(self, name, parent, visa_ID) 
         self.MIN_FREQ = 100*kHz
         self.MAX_FREQ = 50*GHz
         self.MIN_AMP = -20 ##dBm
         self.MAX_AMP = 12 ##dBm
+        print 'connected to E8257D signal generator.'
         return
         
     def check_freq(self, freq):
@@ -95,9 +94,8 @@ class Sig_gen_SRS(Default_visa):
         - parent: A reference to the lab instance hosting the instrument.
         - visa_ID: Connection address. 
         """
-        Default_visa.__init__(self, name, parent)
-        rm = vi.ResourceManager()
-        self.device_handle = rm.open_resource(visa_ID)
+        Default_visa.__init__(self, name, parent, visa_ID) 
+        print 'connected to SRS signal generator.'
         return
         
     def get_freq(self):

@@ -26,7 +26,6 @@ class Default_visa(Instrument):
         Instrument.__init__(self, name, parent) 
         rm = vi.ResourceManager()
         self.device_handle = rm.open_resource(visa_ID)
-        print self.device_handle.query("*IDN?")
         return
         
     def abort(self):

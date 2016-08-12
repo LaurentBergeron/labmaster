@@ -1,7 +1,3 @@
-""" 
-When the lab is far away.
-"""
-
 import numpy as np 
 import random
 from mod.main import *
