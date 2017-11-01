@@ -1,6 +1,6 @@
 from mod.main import *
 
-def start(lab, params, fig, data, ID):
+def pre_scan(lab, params, fig, data, ID):
     lab.awg.default_channel = '1'    
     
     lab.awg.cw(params.awg_freq.value, params.awg_amp.value)

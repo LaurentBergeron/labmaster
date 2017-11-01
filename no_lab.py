@@ -18,5 +18,5 @@ except:
 
 finally:
     time_2 = timeit.default_timer()
-    print 'time spent: %3.3f' % (time_2-time_1)
+    print(('time spent: %3.3f' % (time_2-time_1)))
     

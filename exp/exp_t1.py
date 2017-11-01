@@ -3,14 +3,14 @@ import numpy as np
 import scipy.constants as cst
 
 ## Home modules
-import _shared_
+from . import _shared_
 from mod.main import *
-from _sequences_ import *
+from ._sequences_ import *
 
-from exp_nmr import launch, get_data, create_plot, fit_exp, out
-import exp_nmr
+from .exp_nmr import launch, get_data, create_plot, fit_exp, out
+from . import exp_nmr
 
-def start(lab, params, fig, data, ID):
+def pre_scan(lab, params, fig, data, ID):
     lab.pb.add_channel('master_trig', 1)
     lab.pb.add_channel('Xshutter', 2)
     lab.pb.add_channel('binA', 10)
@@ -88,7 +88,7 @@ def update_plot(lab, params, fig, data, ID):
             plotting.updatefig_XY(fig, xdata, ydata, line_index=1)
             fig.suptitle('$T_1$ = '+auto_unit(popt[1], 's', decimal=3)+'\t\t $A$ = %3.0f'%popt[0], fontsize=20)
 
-    print time.time()-saved
+    print((time.time()-saved))
     return
     
     

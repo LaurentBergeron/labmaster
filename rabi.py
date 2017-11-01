@@ -26,7 +26,7 @@ finally:
     try:
         A, fit_pi_len = experiment.out(None, params, None, last_data(), None)
     except:
-        print "Couldn't calculate fit parameters."
+        print("Couldn't calculate fit parameters.")
         A, fit_pi_len = None, None
     notebook('fitted pi_len;'+str(fit_pi_len),
              'awg frequency;'+str(params.awg_freq.value),

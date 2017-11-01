@@ -36,7 +36,7 @@ finally:
     try:
         A, T2 = experiment.out(None, params, None, last_data(), None)
     except:
-        print "Couldn't calculate fit parameters."
+        print("Couldn't calculate fit parameters.")
         A, T2 = None, None
     notebook('sequence;'+params.sequence_name.value,
              'T2;'+str(T2),

@@ -59,7 +59,7 @@ class Pulse_blaster_USB(Instrument):
         self.spinapi.pb_core_clock(self.ref_freq/1e6)
         ## Turn all channels off.
         self.all_channels_off()
-        print 'connected to PulseBlasterUSB!.'
+        print('connected to PulseBlasterUSB!.')
         return 
     
     def abort(self):
@@ -77,12 +77,12 @@ class Pulse_blaster_USB(Instrument):
         - channel: This channel number can now be refered with the name.
         """
         if name in self.available_opcodes():
-            raise PulseBlasterUSBError, "Failed to add channel, "+name+" is a reserved name."
+            raise PulseBlasterUSBError("Failed to add channel, "+name+" is a reserved name.")
         if not (0 < channel < 25):
-            raise PulseBlasterUSBError, "Failed to add channel, "+name+" must be between 1 and 24."
-        for key, channel_ in self.channels.items():
+            raise PulseBlasterUSBError("Failed to add channel, "+name+" must be between 1 and 24.")
+        for key, channel_ in list(self.channels.items()):
             if channel==channel_ and key!=name:
-                raise PulseBlasterUSBError, "Channel "+str(channel)+" is already assigned to '"+key+"'."
+                raise PulseBlasterUSBError("Channel "+str(channel)+" is already assigned to '"+key+"'.")
         self.channels[name] = channel
         return
 
@@ -129,10 +129,10 @@ class Pulse_blaster_USB(Instrument):
     def check_error(self, status):
         """Check pulse blaster board for errors."""
         if self.verbose:
-            print "pb:", status
+            print("pb:", status)
         if status < 0:
             error = self.spinapi.pb_get_error()
-            raise PulseBlasterUSBError, error
+            raise PulseBlasterUSBError(error)
         return
 
     def close(self):
@@ -181,7 +181,7 @@ class Pulse_blaster_USB(Instrument):
         """
         if self.instructions==[]:
             if self.show_warning_no_inst:
-                print "PulseBlasterUSB!: No instructions detected. self.load_memory() skipped."
+                print("PulseBlasterUSB!: No instructions detected. self.load_memory() skipped.")
                 self.show_warning_no_inst = False
             return
         ## Stop previous generation.
@@ -250,12 +250,12 @@ class Pulse_blaster_USB(Instrument):
         
         ## Unzip instructions
         instructions = [tuple(x) for x in (sorted(self.instructions))] + [(self.lab.total_duration, "", "", "", "")]
-        time_list, channel_list, opcode_list, data_field_list, ref_list = zip(*instructions) 
+        time_list, channel_list, opcode_list, data_field_list, ref_list = list(zip(*instructions)) 
         
         ## Make sure each ref is unique.
         for ref in ref_list:
             if ref != "" and ref_list.count(ref)>1:
-                raise PulseBlasterUSBError, "Pulse blaster: each ref must be unique or an empty string."
+                raise PulseBlasterUSBError("Pulse blaster: each ref must be unique or an empty string.")
         
         ## as refs are detected, they will be added to this ref_dict, with ref as the key and the address in pb memory as the value
         ref_dict = {}
@@ -281,7 +281,7 @@ class Pulse_blaster_USB(Instrument):
                 ref_dict["ZERO_TIME"] = len(result)-1 ## to loop/branch to the start, use ZERO_TIME ref.
         else:
             if self.adjust_trig_latency:
-                raise PulseBlasterUSBError, "You need to add a time buffer at the start of sequence when adjusting for trigger latency."
+                raise PulseBlasterUSBError("You need to add a time buffer at the start of sequence when adjusting for trigger latency.")
                 
         ## Go through all the instructions and condense them to spinapi.pb_inst_pbonly() arguments.
         i=0
@@ -294,13 +294,13 @@ class Pulse_blaster_USB(Instrument):
                 ## Check and assign refs
                 if ref_list[i] != "": 
                     if ref != "":
-                        raise PulseBlasterUSBError, "Two different refs detected at the same time."
+                        raise PulseBlasterUSBError("Two different refs detected at the same time.")
                     else:
                         ref = ref_list[i]
                 ## Check and assign opcodes/data_field
                 if opcode_list[i] in self.available_opcodes():
                     if opcode != self.spinapi.Inst.CONTINUE:
-                        raise PulseBlasterUSBError, "Two different opcode instructions detected at the same time."
+                        raise PulseBlasterUSBError("Two different opcode instructions detected at the same time.")
                     else:
                         opcode = self.spinapi.Inst.__dict__[opcode_list[i]]  ## ready for pulse blaster communication.
                         data_field = data_field_list[i] ## data_field: for BRANCH and END_LOOP opcodes, data_field stays the ref string to link to. 
@@ -331,7 +331,7 @@ class Pulse_blaster_USB(Instrument):
                 try:
                     data_field = ref_dict[data_field]
                 except KeyError:
-                    raise PulseBlasterUSBError, "ref '"+data_field+"' not found."
+                    raise PulseBlasterUSBError("ref '"+data_field+"' not found.")
             final_result.append([flags, opcode, data_field, duration])
         
         return final_result
@@ -346,7 +346,7 @@ class Pulse_blaster_USB(Instrument):
         ultra_max_duration = (2**52-1)/float(self.get_ref_freq()) ## 2^32-1 clock cycles is max duration for LONG_DELAY
         if opcode==self.spinapi.Inst.CONTINUE: 
             if duration > ultra_max_duration:
-                raise PulseBlasterUSBError, "You asked for a delay longer than %0.0f days."%(ultra_max_duration/60./60./24.)
+                raise PulseBlasterUSBError("You asked for a delay longer than %0.0f days."%(ultra_max_duration/60./60./24.))
             elif duration > max_duration:  
                 opcode = self.spinapi.Inst.LONG_DELAY
                 data_field = int(duration//max_duration + 1) ## number of repetition. total duration will be duration*data_field
@@ -355,7 +355,7 @@ class Pulse_blaster_USB(Instrument):
                 pass
         else:
             if duration > max_duration:
-                raise PulseBlasterUSBError, "Autolongdelay can't be called because the opcode is already taken."
+                raise PulseBlasterUSBError("Autolongdelay can't be called because the opcode is already taken.")
             else:
                 pass
         return opcode, data_field, duration
@@ -378,7 +378,7 @@ class Pulse_blaster_USB(Instrument):
             channel_values = list(set([inst[1] for inst in self.instructions if inst[1] != None]))
             for chan in channel_values:
                 name = 'channel '+str(chan)
-                for key, v in self.channels.items():
+                for key, v in list(self.channels.items()):
                     if chan==v:
                         name = key
                 channels.update({name: chan})
@@ -419,7 +419,7 @@ class Pulse_blaster_USB(Instrument):
             timer=0
             for flags, opcode, _, duration in preprocess_result:
                 if opcode != 0:
-                    print "Opcode effects are not considered in the plot."
+                    print("Opcode effects are not considered in the plot.")
                     continue
                 if flags[-channel]=="1":
                     ax_.fill_between([c*timer, c*timer+c*duration], 0, [1,1])
@@ -449,7 +449,7 @@ class Pulse_blaster_USB(Instrument):
         *WARNING*: Time cursor won't update. Do not use in combinaison with other instruments if timing is important.
         """
         if opcode_str not in self.available_opcodes():
-            raise PulseBlasterUSBError, "Wrong opcode. \n"+textwrap.dedent(Pulse_blaster_USB.opcode.__doc__)
+            raise PulseBlasterUSBError("Wrong opcode. \n"+textwrap.dedent(Pulse_blaster_USB.opcode.__doc__))
         self.keep_going()
         self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref])
         if duration > 0:
@@ -536,7 +536,7 @@ class Pulse_blaster_USB(Instrument):
             if 1 <= name <= 24:
                 channel = int(name)
             else:
-                raise PulseBlasterUSBError, "Pulse blaster channel channel must be between 1 and 24 (included)"
+                raise PulseBlasterUSBError("Pulse blaster channel channel must be between 1 and 24 (included)")
         return channel
         
     def start(self):

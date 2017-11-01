@@ -3,14 +3,14 @@ import numpy as np
 import scipy.constants as cst
 
 ## Home modules
-import _shared_
+from . import _shared_
 from mod.main import *
-import _sequences_
+from . import _sequences_
 
 from exp.exp_nmr import sequence, launch, get_data, create_plot
 
 
-def start(lab, params, fig, data, ID):
+def pre_scan(lab, params, fig, data, ID):
     lab.pb.add_channel('master_trig', 1)
     lab.pb.add_channel('Xshutter', 2)
     lab.pb.add_channel('binA', 10)
@@ -54,8 +54,8 @@ def update_plot(lab, params, fig, data, ID):
         if popt is not None:
             xdata = params.time_axis.value[1:][np.isfinite(data[1:])]
             ydata = fit_sin(params.time_axis.value[1:], *popt)[np.isfinite(data[1:])]
-            print xdata
-            print ydata
+            print(xdata)
+            print(ydata)
             plotting.updatefig_XY(fig, xdata, ydata, line_index=1)
             fig.suptitle('$T$ = '+auto_unit(popt[1], 's', decimal=3)+'\n $A$ = %3.0f'%popt[0])
     return

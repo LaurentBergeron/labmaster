@@ -14,9 +14,9 @@ import sys
 import importlib
 
 ## Homemade modules
-import not_for_user as nfu
-from units import *
-import available_instruments
+from . import not_for_user as nfu
+from .units import *
+from . import available_instruments
 
 def all_bases(cls):
     """Return all the parent classes from specified class."""
@@ -44,15 +44,15 @@ class Drawer():
         To overwrite an attribute, delete it first using 'del'.
         """
         ## Raise an error is a vilain is trying to overwrite a protected object.
-        if (key!="object_type") and (key in self.__dict__.keys()):
+        if (key in list(self.__dict__.keys())) and (key!="object_type"):
             if self.is_object_type(self.__dict__[key]):
                 if self.object_type=='Parameter':
                     add_msg = " Use the value attribute."
                 else:
                     add_msg = ""
-                raise nfu.LabMasterError, "Can't overwrite "+key+" "+self.object_type+"."+add_msg
+                raise nfu.LabMasterError("Can't overwrite "+key+" "+self.object_type+"."+add_msg)
                 
-        ## This is the classic way to set attributes.
+        ## If no error, the classic way to set attributes.
         self.__dict__[key] = value 
         return
         
@@ -67,19 +67,19 @@ class Drawer():
     
     def get_dict(self):
         """Return a dictionary with all attributes matching self.object_type."""
-        return {key:value for key, value in self.__dict__.items() if self.is_object_type(value)}
+        return {key:value for key, value in list(self.__dict__.items()) if self.is_object_type(value)}
         
     def get_names(self):
         """Return a list of names of attributes matching self.object_type."""
-        return self.get_dict().keys()
+        return list(self.get_dict().keys())
         
     def get_objects(self):
         """Return a list of attributes matching self.object_type."""
-        return self.get_dict().values()
+        return list(self.get_dict().values())
         
     def get_items(self):
         """Return attributes along with their name if they match self.object_type."""
-        return self.get_dict().items()
+        return list(self.get_dict().items())
 
     def import_to(self, namespace):
         """Import objects matching self.object_type from drawer in the specified namespace."""
@@ -104,9 +104,9 @@ class Lab(Drawer):
         self.time_cursor = 0 
         ## The time at which the experiment ends, aka the duration of experiment.
         self.total_duration = 0 
-        ## The time at which last experiment was launched. Must be initialized to zero.
+        ## The time at which the experiment was launched. See nfu.run_experiment().
         self.time_launched = 0
-        ## each time the delay() function is called, this variable += the duration of delay.
+        ## each time the delay() function is called, this variable += the duration of delay. It is the time during which no pulse is applied.
         self.free_evolution_time = 0 
         
         ## Connect to instruments specified in arguments.
@@ -118,7 +118,7 @@ class Lab(Drawer):
         try: 
             self.__dict__[name].abort()
         except:
-            print name+" abort failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+            print(name+" abort failed; ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1])
         return
             
     def abort_all(self):
@@ -140,13 +140,13 @@ class Lab(Drawer):
             try:
                 ## Be sure instrument is not to be overwritten.
                 if name in self.get_names():
-                    raise nfu.LabMasterError, name+" is already connected."
+                    raise nfu.LabMasterError(name+" is already connected.")
                     
                 ## Case for generic VISA instrument, with custom name and custom visa_ID
                 if name[:4]=="VISA":
-                    print "Generic VISA instrument requested."
+                    print("Generic VISA instrument requested.")
                     _, new_name, visa_ID = "".join(name.split()).split(",")
-                    print "Name: "+new_name+" \nVisaID: "+visa_ID
+                    print("Name: "+new_name+" \nVisaID: "+visa_ID)
                     import mod.instruments.visa_instruments
                     module_name = "visa_instruments"
                     class_name = "Default_visa"
@@ -155,7 +155,7 @@ class Lab(Drawer):
                 else:
                     ## Look if requested instrument is available.
                     if name not in available_instruments.__dict__:
-                        raise nfu.LabMasterError, "Requested instrument "+name+" not found in available_instruments module."
+                        raise nfu.LabMasterError("Requested instrument "+name+" not found in available_instruments module.")
                     instrument_specs = available_instruments.__dict__[name]
                     module_name = instrument_specs[0]
                     class_name = instrument_specs[1]
@@ -169,16 +169,16 @@ class Lab(Drawer):
             
                 if not isinstance(opt_args, tuple):
                     ## opt_args has to be a tuple.
-                    raise LabMasterError, "Optional arguments to "+name+" must be a tuple." 
+                    raise LabMasterError("Optional arguments to "+name+" must be a tuple.") 
                     
                 if not isinstance(opt_keyargs, dict):
                     ## opt_keyargs has to be a dict
-                    raise LabMasterError, "Optional key-arguments to "+name+" must be a dict."
+                    raise LabMasterError("Optional key-arguments to "+name+" must be a dict.")
                     
                 ## init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
             except:
-                print "Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1])
+                print("Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1]))
                 
                 
         return
@@ -197,12 +197,12 @@ class Lab(Drawer):
         try:
             self.__dict__[name].close()
             del self.__dict__[name]
-            print name+" closed."
+            print(name+" closed.")
             return 0
         except KeyError:
-            raise nfu.LabMasterError, name+" was not found in lab's instruments."
+            raise nfu.LabMasterError(name+" was not found in lab's instruments.")
         except:
-            print  name+" failed to close. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+            print(name+" failed to close. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1])
             return 1 
             
     def close_all(self):
@@ -239,7 +239,7 @@ class Lab(Drawer):
         if as_string:
             return string
         else:
-            print string
+            print(string)
         return
         
 
@@ -285,7 +285,7 @@ class Lab(Drawer):
             self.time_cursor -= instruction_duration
             
         if self.time_cursor < 0:
-            raise nfu.LabMasterError, "Instructions led to a negative time. Going back in time is not implemented (todo list)."
+            raise nfu.LabMasterError("Instructions led to a negative time. Going back in time is not implemented (todo list).")
 
         
         return
@@ -401,7 +401,7 @@ class Params(Drawer):
             out = string
         else:
             out = ""
-            print string
+            print(string)
         return out
     
     

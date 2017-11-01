@@ -17,11 +17,11 @@ from mod.main import *
     
 ## Define all IDs and dates for the files to be exported
 acpmg = [66, 67, 68]
-lvl0 = [126] + range(152,164)
-lvl1 = [164, 165, 166] + range(169,181)
+lvl0 = [126] + list(range(152,164))
+lvl1 = [164, 165, 166] + list(range(169,181))
 XY = [186, 187]
 mrev = [193, 195]
-lvl2 = range(30,42)
+lvl2 = list(range(30,42))
 ar_IDs = [acpmg, lvl0, lvl1, XY, mrev, lvl2]
 
 dates = ['2016_07_27']*5 + ['2016_07_28']

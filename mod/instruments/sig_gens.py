@@ -12,7 +12,7 @@ import numpy as np
 import visa as vi
 
 # Homemade modules
-from default_visa import Default_visa
+from .default_visa import Default_visa
 from ..units import *
 from .. import not_for_user     
 nfu = not_for_user
@@ -34,23 +34,23 @@ class Sig_gen_E8257D(Default_visa):
         self.MAX_FREQ = 50*GHz
         self.MIN_AMP = -20 ##dBm
         self.MAX_AMP = 12 ##dBm
-        print 'connected to E8257D signal generator.'
+        print('connected to E8257D signal generator.')
         return
         
     def check_freq(self, freq):
         """Check if input frequency satisfies minimum and maximum values."""
         if freq > self.MAX_FREQ:
-            raise SigGenE8257DError, "Can't set freq higher than "+nfu.auto_unit(self.MAX_FREQ, "Hz")+"."
+            raise SigGenE8257DError("Can't set freq higher than "+nfu.auto_unit(self.MAX_FREQ, "Hz")+".")
         elif freq < self.MIN_FREQ:
-            raise SigGenE8257DError, "Can't set freq lower than "+nfu.auto_unit(self.MIN_FREQ, "Hz")+"."
+            raise SigGenE8257DError("Can't set freq lower than "+nfu.auto_unit(self.MIN_FREQ, "Hz")+".")
         return
         
     def check_amp(self, amp):
         """Check if input amplitude satisfies minimum and maximum values."""
         if amp > self.MAX_AMP:
-            raise SigGenE8257DError, "Can't set amp higher than "+nfu.auto_unit(self.MAX_AMP, "dBm")+"."
+            raise SigGenE8257DError("Can't set amp higher than "+nfu.auto_unit(self.MAX_AMP, "dBm")+".")
         elif amp < self.MIN_AMP:
-            raise SigGenE8257DError, "Can't set amp lower than "+nfu.auto_unit(self.MIN_AMP, "dBm")+"."
+            raise SigGenE8257DError("Can't set amp lower than "+nfu.auto_unit(self.MIN_AMP, "dBm")+".")
         return
 
     def get_freq(self):
@@ -95,7 +95,7 @@ class Sig_gen_SRS(Default_visa):
         - visa_ID: Connection address. 
         """
         Default_visa.__init__(self, name, parent, visa_ID) 
-        print 'connected to SRS signal generator.'
+        print('connected to SRS signal generator.')
         return
         
     def get_freq(self):

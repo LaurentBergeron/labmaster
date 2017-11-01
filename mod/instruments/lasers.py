@@ -12,7 +12,7 @@ import numpy as np
 import visa as vi
 
 ## Homemade modules
-from default_visa import Default_visa
+from .default_visa import Default_visa
 from ..units import *
 from .. import not_for_user     
 nfu = not_for_user
@@ -32,27 +32,27 @@ class Laser_ITC4001(Default_visa):
         self.MIN_CURR = 0
         self.MAX_TEMP = 40 ## Celcius
         self.MIN_TEMP = 30 ## Celcius
-        print 'connected ITC4001 laser.'
+        print('connected ITC4001 laser.')
         return 
         
     def check_temperature(self, temp):
         """Check if input temperature satisfies minimum and maximum values."""
         if temp > self.MAX_TEMP:
             self.beep()
-            raise LaserITC4001Error, "Can't set temperature higher than "+str(self.MAX_TEMP)+" Celcius."
+            raise LaserITC4001Error("Can't set temperature higher than "+str(self.MAX_TEMP)+" Celcius.")
         elif temp < self.MIN_TEMP:
             self.beep()
-            raise LaserITC4001Error, "Can't set temperature lower than "+str(self.MIN_TEMP)+" Celcius."
+            raise LaserITC4001Error("Can't set temperature lower than "+str(self.MIN_TEMP)+" Celcius.")
         return
         
     def check_current(self, curr):
         """Check if input current satisfies minimum and maximum values."""
         if curr > self.MAX_CURR:
             self.beep()
-            raise LaserITC4001Error, "Can't set current higher than "+str(self.MAX_CURR*1e3)+" mA."
+            raise LaserITC4001Error("Can't set current higher than "+str(self.MAX_CURR*1e3)+" mA.")
         elif curr < self.MIN_CURR:
             self.beep()
-            raise LaserITC4001Error, "Can't set current lower than "+str(self.MIN_CURR*1e3)+" mA."
+            raise LaserITC4001Error("Can't set current lower than "+str(self.MIN_CURR*1e3)+" mA.")
         return
     
     def get_temp(self):

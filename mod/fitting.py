@@ -10,8 +10,8 @@ import sys
 from scipy.optimize import curve_fit
 
 ## Homemade modules
-from units import *
-from not_for_user import LabMasterError
+from .units import *
+from .not_for_user import LabMasterError
 
 
     
@@ -43,6 +43,6 @@ def fit(fit_func, xdata, ydata,  \
         popt, pcov = curve_fit(fit_func, xdata, ydata, initial_guess, *fit_args)
     except:
         popt, pcov = None, None
-        print "curve_fit failed.", sys.exc_info()[0].__name__+":",  sys.exc_info()[1]
+        print("curve_fit failed.", sys.exc_info()[0].__name__+":",  sys.exc_info()[1])
 
     return popt

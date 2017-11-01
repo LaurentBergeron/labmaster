@@ -49,7 +49,7 @@ class USB_counter_CTR04(Instrument):
             status = self.cbw32.cbCConfigScan(self.board_num, counter_num, 0x10, 16, 0, 0, 0, counter_num)
             self.check_status(status)
             self.clear(counter_num)
-        print 'connected to USB counter CTR04.'
+        print('connected to USB counter CTR04.')
         return
     
     def abort(self):
@@ -59,10 +59,10 @@ class USB_counter_CTR04(Instrument):
     def check_status(self, status):
         """Get error message if an error was raised by a function from the driver."""
         if self.verbose:
-            print "USB_counter:", status
+            print("USB_counter:", status)
         if status > 0:
             self.cbw32.cbGetErrMsg(status, self.error_msg)
-            raise USBCounterError, self.error_msg.value
+            raise USBCounterError(self.error_msg.value)
         return
     
     def clear(self, counter_num):

@@ -33,7 +33,7 @@ class Wavemeter_Bristol621(Instrument):
         self.com_number = com_number
         self.device_handle = self.CLDevIFace.CLOpenUSBSerialDevice(self.com_number)
         self.lambda_units = "nm"
-        print 'connected to Bristol 621 wavemeter.'
+        print('connected to Bristol 621 wavemeter.')
         return
     
     def abort(self):

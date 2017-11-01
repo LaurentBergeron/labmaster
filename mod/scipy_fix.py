@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 """
 Prevent interference with KeyboardInterrupt on Windows due to Fortran libraries.
 See stackoverflow for explanation: http://stackoverflow.com/questions/15457786/ctrl-c-crashes-python-after-importing-scipy-stats
@@ -27,16 +27,16 @@ dirname = imp.find_module('scipy')[1]
 config_file = os.path.join(dirname, '__config__.py')
 
 if os.path.exists(config_file):
-    with open(config_file, 'rb') as fid:
+    with open(config_file, 'r') as fid:
         text = fid.read()
-    if 'mkl_blas' in text:
+    if ('mkl_blas' in text):
         INSTALL = True
 
 def handler(sig):
     try:
         import _thread
     except ImportError:
-        import thread as _thread
+        import _thread as _thread
     _thread.interrupt_main()
     return 1 # do not execute any other handlers.
 
@@ -62,4 +62,4 @@ if INSTALL:
 
     ctypes.windll.kernel32.SetConsoleCtrlHandler(routine, 1)
     
-    print "scipy fixed."
+    print("scipy fixed.")

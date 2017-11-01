@@ -13,7 +13,7 @@ import inspect
 import os 
 
 ## Homemade modules
-from visa_types import *
+from .visa_types import *
 
 ## Load AgM8190.dll
 dll = WinDLL("mod/instruments/extern/AgM8190") 
@@ -59,7 +59,7 @@ for define in (header.defines):
         define = define.replace(" ", "=")
         if define[:8]=="AGM8190_":
             define = define[8:]
-        exec define
+        exec(define)
         
 ### ------------------------------------------------------------------------------------- ###   
 
@@ -72,7 +72,7 @@ def check_args(argtype, input_args):
         args_size = 1
     if args_size != len(input_args):
         parent = inspect.stack()[1][3]
-        raise IndexError, "Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(input_args))+")."
+        raise IndexError("Wrong number of arguments ("+parent+" takes "+str(args_size)+" arguments, not "+str(len(input_args))+").")
     return 
 
 ### ----------------------------- functions from AgM8190.dll ---------------------------- ###

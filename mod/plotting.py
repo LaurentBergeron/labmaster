@@ -13,8 +13,8 @@ import sys
 from scipy.optimize import curve_fit
 
 ## Homemade modules
-from units import *
-from not_for_user import LabMasterError
+from .units import *
+from .not_for_user import LabMasterError
 
 
 ##-------------------------------  automatic plotting -----------------------------------------------##
@@ -31,7 +31,7 @@ def create_plot_auto(lab, params, fig, data, ID):
         xlabel = sorted([x.name for x in params.get_current_sweeps(1)])[0]
         createfig_XY(fig, xlabel, "data", data.shape[1], "--o")
     else:
-        raise LabMasterError, "data dimension is too damn high (for plotting). Turn off plotting."
+        raise LabMasterError("data dimension is too damn high (for plotting). Turn off plotting.")
     return
         
     

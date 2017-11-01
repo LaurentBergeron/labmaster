@@ -24,7 +24,7 @@ finally:
     try:
         peak_min, at_freq = experiment.out(None, params, None, last_data(), None)
     except:
-        print "Couldn't calculate frequency at peak minimum."
+        print("Couldn't calculate frequency at peak minimum.")
         peak_min, at_freq = None, None
     notebook('Clock trans. freq;'+str(at_freq),
              'awg frequency;'+str(params.awg_freq.value),

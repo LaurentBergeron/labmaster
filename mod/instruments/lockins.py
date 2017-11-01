@@ -11,7 +11,7 @@ import numpy as np
 import visa as vi
 
 ## Homemade modules
-from default_visa import Default_visa
+from .default_visa import Default_visa
 from ..units import *
 from .. import not_for_user     
 nfu = not_for_user
@@ -28,7 +28,7 @@ class Lockin_5210(Default_visa):
         Default_visa.__init__(self, name, parent, visa_ID) 
         ### Options ###
         self.convert_reading = False ## True is not fully tested.
-        print 'connected to lock-in model 5210.'
+        print('connected to lock-in model 5210.')
         return
     
         
@@ -96,21 +96,21 @@ class Lockin_5210(Default_visa):
     def set_time_constant(self, time_cst):
         """Set time constant. Input the requested time constant in seconds."""
         code = None
-        for key, value in self.time_cst_chart.items():
+        for key, value in list(self.time_cst_chart.items()):
             if value==time_cst:
                 code = key
         if code==None:
-            raise Lockin5210Error, "Requested time constant not available."
+            raise Lockin5210Error("Requested time constant not available.")
         return self.device_handle.write('TC '+code)
 
     def set_sensitivity(self, sensitivity):
         """Set sensitivity. Input the requested sensitivity in volts."""
         code = None
-        for key, value in self.sensitivity_chart.items():
+        for key, value in list(self.sensitivity_chart.items()):
             if value==sensitivity:
                 code = key
         if code==None:
-            raise Lockin5210Error, "Requested sensitivity not available."
+            raise Lockin5210Error("Requested sensitivity not available.")
         return self.device_handle.write('SEN '+code)
         
         

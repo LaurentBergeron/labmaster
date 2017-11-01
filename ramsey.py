@@ -32,7 +32,7 @@ finally:
         A, period = experiment.out(None, params, None, last_data(), None)
     except:
         raise #TODO
-        print "Couldn't calculate fit parameters."
+        print("Couldn't calculate fit parameters.")
         A, period = None, None
     notebook('period;'+str(period),
              'awg freq;'+str(params.awg_freq.value),

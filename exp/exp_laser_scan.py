@@ -4,7 +4,7 @@ Low power regime: Green 3, Red Open.
 """
 from mod.main import *
 
-def start(lab, params, fig, data, ID):
+def pre_scan(lab, params, fig, data, ID):
     lab.laser.set_current(params.current.value[0])
     time.sleep(200*ms)
     

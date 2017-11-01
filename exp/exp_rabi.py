@@ -2,12 +2,12 @@
 import numpy as np 
 
 ## Home modules
-import _shared_ 
+from . import _shared_ 
 from mod.main import *
 
-from exp_nmr import launch, get_data
+from .exp_nmr import launch, get_data
 
-def start(lab, params, fig, data, ID):
+def pre_scan(lab, params, fig, data, ID):
     lab.pb.add_channel('master_trig', 1)
     lab.pb.add_channel('Xshutter', 2)
     lab.pb.add_channel('binA', 10)

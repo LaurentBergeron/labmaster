@@ -31,7 +31,7 @@ finally:
     try:
         A, T1 = experiment.out(None, params, None, last_data(), None)
     except:
-        print "Couldn't calculate fit parameters."
+        print("Couldn't calculate fit parameters.")
         A, T1 = None, None
         
     notebook('T1;'+str(T1),

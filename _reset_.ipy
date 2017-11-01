@@ -21,10 +21,9 @@ clean_reset(globals())
 ## Message when it's not first launch.
 try:
     __LABMASTER__
-    print 'Ipython environnement reset.'
+    print('Ipython environnement reset.')
 except:
-    print '>>> run _reset_.ipy'
-    print 'Start by connecting to instruments using lab.add_instrument(). Happy science!'
+    print('Start by connecting to instruments using lab.add_instrument(). Happy science!')
 
 ## Reset Ipython environnement
 %reset -f
@@ -64,5 +63,3 @@ lab = Lab()
 for name in available_instruments.__dict__.keys():
     if not name.startswith("_"):
         exec(name+"='"+name+"'")
-        
-        

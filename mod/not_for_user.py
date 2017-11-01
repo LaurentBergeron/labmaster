@@ -21,8 +21,8 @@ import linecache        ## Required before some inspect functions.
 import datetime         ## Includes datetime objects to handle dates.
 import types            ## better type handling
 ## Homemade modules
-import plotting
-from units import *
+from . import plotting
+from .units import *
 
   
 def auto_unit(value, unit, decimal=None):
@@ -38,7 +38,7 @@ def auto_unit(value, unit, decimal=None):
         return "'"+str(value)+"'"
         
     ## Case if value is None.
-    if isinstance(value, types.NoneType):
+    if isinstance(value, type(None)):
         return "N/A"
 
     value = float(str(value)) ## Gets rid of awful Python decimals.
@@ -279,7 +279,7 @@ def size_of_get_data_return(experiment):
         source = source.split(",") 
         size = len(source) 
     except:
-        raise LabMasterError, "Could not extract the number of return values of "+experiment.__name__+".get_data().\nSpecial rules for experiment.get_data: there can only be one return, and return values have to be separated by comas.\n Look at source code (nfu.size_of_get_data_return??) to understand how the return value is read."
+        raise LabMasterError("Could not extract the number of return values of "+experiment.__name__+".get_data().\nSpecial rules for experiment.get_data: there can only be one return, and return values have to be separated by comas.\n Look at source code (nfu.size_of_get_data_return??) to understand how the return value is read.")
     return size
   
 def sweep(lab, params, experiment, data, fig, current_sweep_dim, file_ID, update_plot):
@@ -363,14 +363,14 @@ def zeros(params, experiment):
 
 def tea():
     """Says Eddie the computer."""
-    print "You ordered: tea.\nPlease wait will the Nutrimatic Drinks Dispenser prepares your: tea."
+    print("You ordered: tea.\nPlease wait will the Nutrimatic Drinks Dispenser prepares your: tea.")
     for i in range(3):
-        print "."*(i+1)
+        print("."*(i+1))
         time.sleep(1)
     time.sleep(2)
     for i in range(5000):
-        print "."*(i%500 +1)
-    raise SystemError, "You are an ignorant monkey."
+        print("."*(i%500 +1))
+    raise SystemError("You are an ignorant monkey.")
     return
 
 
@@ -379,12 +379,12 @@ def hack_time():
     try:
         import msvcrt
     except ImportError:
-        raise LabMasterError, "Hacking time is not compatible with your system."
+        raise LabMasterError("Hacking time is not compatible with your system.")
        
     yes = "\t[YES]\t NO "
     no = "\t YES \t[NO]"
     yes_or_no = yes
-    print "\n\n\tYOU'RE ABOUT \n\tTO HACK TIME,\n\tARE YOU SURE?\n"
+    print("\n\n\tYOU'RE ABOUT \n\tTO HACK TIME,\n\tARE YOU SURE?\n")
     sys.stdout.write("%s\r" % yes )
     sys.stdout.flush()
     while True:
@@ -403,7 +403,7 @@ def hack_time():
                     sys.stdout.flush()
             elif pressed=="\r":
                 if yes_or_no==yes:
-                    print "\n\n"
+                    print("\n\n")
                     for i in range(10000):
                         N = ((i//1000+1)%3+1)
                         sys.stdout.write("    HACKING TIME"+"."*N+" "*(3-N)+"\t\t\tYEARS HACKED: "+str(int(np.exp(i/800.0)))+"\r")
@@ -418,9 +418,9 @@ def hack_time():
                         sys.stdout.write("    ERROR! HACKING TOO MUCH TIME!\r")
                         sys.stdout.flush()
                         time.sleep(0.5)
-                    print "\n\n\n    GOOD LUCK OUT THERE. WATCH OUT FOR THE LASER RAPTORS."
+                    print("\n\n\n    GOOD LUCK OUT THERE. WATCH OUT FOR THE LASER RAPTORS.")
                     break
                 elif yes_or_no==no:
-                    print "\n\nWHAT?? YOU ARE A CHICKEN."
+                    print("\n\nWHAT?? YOU ARE A CHICKEN.")
                     break
     return
