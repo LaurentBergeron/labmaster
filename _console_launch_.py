@@ -6,13 +6,13 @@ __version__ = "3.0"
 
 import os
 
-if "__nonzero__" in list(globals().keys()): ### do not use this -> try: __IPYTHON__    or %tb will break.
+if "__nonzero__" in list(globals().keys()): 
     raise RuntimeError("Lab-Master needs to be launched outside Ipython.")
 
-   
-if os.name == 'nt':
-    import mod.scipy_fix
-
+##### FIXED IN PYTHON 3.6 #####
+# if os.name == 'nt':
+    # import mod.scipy_fix
+###############################
     
 import IPython
 print("Ipython starting...\n")
