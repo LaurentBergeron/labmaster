@@ -94,7 +94,7 @@ def create_todays_folder():
     """ Create those folders if they don't exist. """
     for saving_loc in saving_folders():
         for section in ["data", "experiment","fig","script","params","sweep","custom"]:
-            folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y_%m_%d")
+            folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y-%m-%d")
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
     return 
@@ -111,7 +111,7 @@ def detect_experiment_ID():
     second_purge = []
     for x in first_purge:
         try:
-            ## 2nd purge: thing between prefix and .txt has to be castable into an int.
+            ## 2nd purge: thing between last '_' and .txt has to be castable into an int.
             second_purge.append(int(x)) 
         except:
             pass
@@ -318,7 +318,7 @@ def sweep(lab, params, experiment, data, fig, current_sweep_dim, file_ID, update
 def today():
     """Format of the date in filename. Be aware that loading previous files with LabMaster load functions will not work if you edit this function."""
     ## Be aware that loading previous files with LabMaster load functions will not work if you edit this function.    
-    return datetime.date.today().strftime("%Y_%m_%d")
+    return datetime.date.today().strftime("%Y-%m-%d")
 
 def update_params(swept_params, i):
     """ Updates the attribute _v (current value) of the parameters that are swept to their ith value. """
@@ -326,9 +326,6 @@ def update_params(swept_params, i):
         param._update(i)
     return
     
-
-
-
 
 
 def zeros(params, experiment):
