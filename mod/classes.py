@@ -147,11 +147,11 @@ class Lab(Drawer):
                     print("Generic VISA instrument requested.")
                     _, new_name, visa_ID = "".join(name.split()).split(",")
                     print("Name: "+new_name+" \nVisaID: "+visa_ID)
-                    import mod.instruments.visa_instruments
-                    module_name = "visa_instruments"
+                    module_name = "default_visa"
                     class_name = "Default_visa"
                     opt_args = (visa_ID,)
                     opt_keyargs = {}
+                    name = new_name
                 else:
                     ## Look if requested instrument is available.
                     if name not in available_instruments.__dict__:
@@ -177,6 +177,7 @@ class Lab(Drawer):
                     
                 ## init requested instrument
                 self.__dict__[name] = class_(name, self, *opt_args, **opt_keyargs)
+                
             except:
                 print("Can't add "+name+" ->  "+ sys.exc_info()[0].__name__+": "+str(sys.exc_info()[1]))
                 
@@ -248,8 +249,13 @@ class Lab(Drawer):
         Close and reinitialize the instrument. 
         Avoids to restart the Ipython console on UnboundLocalError class autoreload bug.
         """
-        self.close(name)
-        self.add_instrument(name)
+        print(str(type(self.__dict__[name])).split('.'))
+        if str(type(self.__dict__[name])).split('.')[-1]=="Default_visa'>":
+            self.close(name)
+            self.add_instrument("VISA, "+name+", "+self.__dict__[name].visa_ID)
+        else:
+            self.close(name)
+            self.add_instrument(name)
         return
         
     def reset_instructions(self):

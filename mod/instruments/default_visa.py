@@ -24,6 +24,7 @@ class Default_visa(Instrument):
         - visa_ID: Connection address. 
         """
         Instrument.__init__(self, name, parent) 
+        self.visa_ID = visa_ID
         rm = vi.ResourceManager()
         self.device_handle = rm.open_resource(visa_ID)
         return

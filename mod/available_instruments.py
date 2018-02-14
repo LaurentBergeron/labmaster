@@ -6,8 +6,8 @@ name = [module, class, (optional arguments,), {optional key arguments}]
 
 where:
     - name is the same that will be used for the instrument as a Lab attribute.
-    - module: name of the module from the instruments package.
-    - class: name of the instrument class located in module.
+    - module: name of the python module file from the instruments package folder.
+    - class: name of the instrument class located in the module file.
     - (optional arguments,): has to be a tuple, so don't forget the coma before closing the parenthesis. 
     - {optional key arguments}: has to be a dictionnary. 
 
@@ -22,7 +22,7 @@ It's possible to connect to a generic VISA instrument with no specific class, mo
 awg =         [ "awgs",                "Awg_M8190A",           ("PXI13::0::0::INSTR",),                        {}  ]
 pb =          [ "pulse_blasters",      "Pulse_blaster_USB",    (),                                             {}  ]
 usb_counter = [ "usb_counters",        "USB_counter_CTR04",    (0,),                                           {}  ]
-lockin =      [ "lockins",             "Lockin_5210",          ("GPIB0::12::INSTR",),                          {}  ]
+lockin =      [ "lockins",             "Lockin_5210",          ("GPIB0::24::INSTR",),                          {}  ]
 laser =       [ "lasers",              "Laser_ITC4001",        ("USB0::0x1313::0x804A::M00243388::INSTR",),    {}  ]
 sig_gen =     [ "sig_gens",            "Sig_gen_E8257D",       ("GPIB0::19::INSTR",),                          {}  ]
 sig_gen_srs = [ "sig_gens",            "Sig_gen_SRS",          ("GPIB0::3::INSTR",),                           {}  ]
