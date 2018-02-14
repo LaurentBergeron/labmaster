@@ -10,8 +10,8 @@ from ctypes import *
 import os
 
 ## Load cbw32.dll
-dll = WinDLL("mod/instruments/extern/cbw32.dll")
-
+### IMPORTANT InstalCal must be run at least once for this to work.
+dll = WinDLL("C://Program Files (x86)/Measurement Computing/DAQ/cbw64.dll") 
 
 ARRAY = POINTER
     

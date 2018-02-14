@@ -166,7 +166,7 @@ class Lab(Drawer):
                 module = importlib.import_module("mod.instruments."+module_name)
                 ## Import the class.
                 class_ = module.__dict__[class_name]
-            
+                
                 if not isinstance(opt_args, tuple):
                     ## opt_args has to be a tuple.
                     raise LabMasterError("Optional arguments to "+name+" must be a tuple.") 
