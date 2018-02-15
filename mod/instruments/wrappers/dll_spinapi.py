@@ -1,9 +1,8 @@
 """
 Python wrapper for spinapi.dll
+Python 3 version. 
 Required to use SpinCore drivers.
 Wrapper base provided by SpinCore Techonologies. 
-Added some functions needed by PulseBlasterUSB! such as pb_inst_pbonly().
-Initial file (spinapi.py) was coded for Python 3, translated here for Python 2.
 Take a look at spinapi.h for more documenation on dll functions.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, starting from an extensive base by SpinCore Technologies <http://www.spincore.com>"
@@ -29,13 +28,26 @@ __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, starting from an 
 
 import ctypes
 
-## Code for pb_start_programming mode.
 PULSE_PROGRAM = 0
 FREQ_REGS = 1  
-   
-## Load spinapi.dll
-spinapi = ctypes.CDLL("mod/instruments/extern/spinapi")
 
+TX_ENABLE = 1
+TX_DISABLE = 0
+   
+PHASE_RESET = 1
+NO_PHASE_RESET = 0
+
+try:
+	spinapi = ctypes.CDLL("spinapi64")
+except:
+	try:
+		spinapi = ctypes.CDLL("spinapi")
+	except:
+		print("Failed to load spinapi library.")
+		pass
+	
+def enum(**enums):
+    return type('Enum', (), enums)
 		
 ns = 1.0
 us = 1000.0
@@ -45,11 +57,7 @@ MHz = 1.0
 kHz = 0.001
 Hz = 0.000001
 		
-## Weird tweak to get enums on Python...
-def enum(**enums):
-    return type('Enum', (), enums)
-
-## Instruction enum
+#Instruction enum
 Inst = enum(
 	CONTINUE = 0,
 	STOP = 1,
@@ -62,7 +70,6 @@ Inst = enum(
 	WAIT = 8,
 	RTI = 9
 )
-
 ### ----------------------------------------------- Result types ----------------------------------------------- ###
 spinapi.pb_get_version.restype = (ctypes.c_char_p)
 spinapi.pb_get_error.restype = (ctypes.c_char_p)
@@ -99,20 +106,20 @@ spinapi.pb_close.restype = (ctypes.c_int)
 ### ----------------------------------------------- Argument types ----------------------------------------------- ###
 
 spinapi.pb_inst_dds2.argtype = (
-	ctypes.c_int, #Frequency register DDS0
-	ctypes.c_int, #Phase register DDS0
-	ctypes.c_int, #Amplitude register DDS0
-	ctypes.c_int, #Output enable DDS0
-	ctypes.c_int, #Phase reset DDS0
-	ctypes.c_int, #Frequency register DDS1
-	ctypes.c_int, #Phase register DDS1
-	ctypes.c_int, #Amplitude register DDS1
-	ctypes.c_int, #Output enable DDS1,
-	ctypes.c_int, #Phase reset DDS1,
-	ctypes.c_int, #Flags
-	ctypes.c_int, #inst
-	ctypes.c_int, #inst data
-	ctypes.c_double, #timing value (double)
+	ctypes.c_int, ##Frequency register DDS0
+	ctypes.c_int, ##Phase register DDS0
+	ctypes.c_int, ##Amplitude register DDS0
+	ctypes.c_int, ##Output enable DDS0
+	ctypes.c_int, ##Phase reset DDS0
+	ctypes.c_int, ##Frequency register DDS1
+	ctypes.c_int, ##Phase register DDS1
+	ctypes.c_int, ##Amplitude register DDS1
+	ctypes.c_int, ##Output enable DDS1,
+	ctypes.c_int, ##Phase reset DDS1,
+	ctypes.c_int, ##Flags
+	ctypes.c_int, ##inst
+	ctypes.c_int, ##inst data
+	ctypes.c_double, ##timing value (double)
 )
 spinapi.pb_inst_dds2.restype = (ctypes.c_int)
 
@@ -134,10 +141,6 @@ spinapi.pb_inst_pbonly64.argtype = (
     ctypes.c_double #timing value (double)
 )
 spinapi.pb_inst_pbonly64.restype = (ctypes.c_int)
-
-
-
-### ----------------------------------------------- spinapi functions. ----------------------------------------------- ###
 
 
 def pb_get_version():
@@ -182,12 +185,11 @@ def pb_stop_programming():
 	return spinapi.pb_stop_programming()
 	
 def pb_inst_dds2(*args):
-    "This is for pulse blaster with a DDS, not the case for our PulseBlasterUSB. Use pb_inst_pbonly or pb_inst_pbonly64 instead."
-    t = list(args)
-    #Argument 13 must be a double
-    t[13] = ctypes.c_double(t[13])
-    args = tuple(t)
-    return spinapi.pb_inst_dds2(*args)
+	t = list(args)
+	#Argument 13 must be a double
+	t[13] = ctypes.c_double(t[13])
+	args = tuple(t)
+	return spinapi.pb_inst_dds2(*args)
 
 
 "Added pb_inst_pbonly."
@@ -205,8 +207,7 @@ def pb_inst_pbonly64(*args):
     t[3] = ctypes.c_double(t[3])
     args = tuple(t)
     return spinapi.pb_inst_pbonly64(*args)
-
-
+    
 def pb_start():
 	return spinapi.pb_start()
 	
@@ -218,5 +219,3 @@ def pb_reset():
 	
 def pb_close():
 	return spinapi.pb_close()
-	
-	
