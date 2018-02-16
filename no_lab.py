@@ -10,7 +10,7 @@ params.y.value = ['a','b']
 params.y.sweep_dim = 2
     
 try:
-    scan(lab, params, experiment, fig=plt.figure(), quiet=True)
+    scan(lab, params, experiment, fig=plt.figure())
 
 except:
     raise

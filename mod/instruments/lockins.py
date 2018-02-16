@@ -2,6 +2,7 @@
 Definition of lock-in amplifier Instrument classes.
 
 Current classes: 
+- Lockin_SR844
 - Lockin_5210 
 """
 __author__ =  "Adam DeAbreu <adeabreu@sfu.ca>, Laurent Bergeron <laurent.bergeron4@gmail.com>"

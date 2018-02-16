@@ -29,11 +29,13 @@ __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>, starting from an 
 import ctypes
 
 PULSE_PROGRAM = 0
-FREQ_REGS = 1  
+FREQ_REGS = 1 
+TX_PHASE_REGS = 2 
+RX_PHASE_REGS = 3
 
 TX_ENABLE = 1
 TX_DISABLE = 0
-   
+
 PHASE_RESET = 1
 NO_PHASE_RESET = 0
 
@@ -70,7 +72,7 @@ Inst = enum(
 	WAIT = 8,
 	RTI = 9
 )
-### ----------------------------------------------- Result types ----------------------------------------------- ###
+
 spinapi.pb_get_version.restype = (ctypes.c_char_p)
 spinapi.pb_get_error.restype = (ctypes.c_char_p)
 
@@ -102,9 +104,6 @@ spinapi.pb_stop.restype = (ctypes.c_int)
 spinapi.pb_reset.restype = (ctypes.c_int)
 spinapi.pb_close.restype = (ctypes.c_int)
 
-
-### ----------------------------------------------- Argument types ----------------------------------------------- ###
-
 spinapi.pb_inst_dds2.argtype = (
 	ctypes.c_int, ##Frequency register DDS0
 	ctypes.c_int, ##Phase register DDS0
@@ -122,25 +121,6 @@ spinapi.pb_inst_dds2.argtype = (
 	ctypes.c_double, ##timing value (double)
 )
 spinapi.pb_inst_dds2.restype = (ctypes.c_int)
-
-
-
-spinapi.pb_inst_pbonly.argtype = (
-    ctypes.c_int, #Flags
-    ctypes.c_int, #inst
-    ctypes.c_int, #inst data
-    ctypes.c_double #timing value (double)
-)
-spinapi.pb_inst_pbonly.restype = (ctypes.c_int)
-
-
-spinapi.pb_inst_pbonly64.argtype = (
-    ctypes.c_int, #Flags
-    ctypes.c_int, #inst
-    ctypes.c_int, #inst data
-    ctypes.c_double #timing value (double)
-)
-spinapi.pb_inst_pbonly64.restype = (ctypes.c_int)
 
 
 def pb_get_version():
@@ -191,22 +171,6 @@ def pb_inst_dds2(*args):
 	args = tuple(t)
 	return spinapi.pb_inst_dds2(*args)
 
-
-"Added pb_inst_pbonly."
-def pb_inst_pbonly(*args):
-    t = list(args)
-    #Argument 13 must be a double
-    t[3] = ctypes.c_double(t[3])
-    args = tuple(t)
-    return spinapi.pb_inst_pbonly(*args)
-
-"Added pb_inst_pbonly64."
-def pb_inst_pbonly64(*args):
-    t = list(args)
-    #Argument 13 must be a double
-    t[3] = ctypes.c_double(t[3])
-    args = tuple(t)
-    return spinapi.pb_inst_pbonly64(*args)
     
 def pb_start():
 	return spinapi.pb_start()
@@ -219,3 +183,77 @@ def pb_reset():
 	
 def pb_close():
 	return spinapi.pb_close()
+    
+    
+    
+    
+
+######################## ADDED ########################
+
+spinapi.pb_read_status.argtype = ()
+spinapi.pb_read_status.restype = (ctypes.c_int)
+
+spinapi.pb_select_dds.argtype = (ctypes.c_int)
+spinapi.pb_select_dds.restype = (ctypes.c_int)
+
+spinapi.pb_inst_pbonly.argtype = (
+    ctypes.c_int, #Flags
+    ctypes.c_int, #inst
+    ctypes.c_int, #inst data
+    ctypes.c_double #timing value (double)
+)
+spinapi.pb_inst_pbonly.restype = (ctypes.c_int)
+
+
+spinapi.pb_inst_pbonly64.argtype = (
+    ctypes.c_int, #Flags
+    ctypes.c_int, #inst
+    ctypes.c_int, #inst data
+    ctypes.c_double #timing value (double)
+)
+spinapi.pb_inst_pbonly64.restype = (ctypes.c_int)
+
+spinapi.pb_set_freq.argtype = (ctypes.c_double)
+spinapi.pb_set_freq.restype = (ctypes.c_int)
+
+spinapi.pb_set_phase.argtype = (ctypes.c_double)
+spinapi.pb_set_phase.restype = (ctypes.c_int)
+
+spinapi.pb_set_amp.argtype = (ctypes.c_float, ctypes.c_int)
+spinapi.pb_set_amp.restype = (ctypes.c_int)
+
+def pb_read_status():
+    return spinapi.pb_read_status()
+
+def pb_select_dds(dds_num):
+    return spinapi.pb_select_dds(dds_num)
+
+def pb_inst_pbonly(*args):
+    t = list(args)
+    #Argument 13 must be a double
+    t[3] = ctypes.c_double(t[3])
+    args = tuple(t)
+    return spinapi.pb_inst_pbonly(*args)
+
+def pb_inst_pbonly64(*args):
+    t = list(args)
+    #Argument 13 must be a double
+    t[3] = ctypes.c_double(t[3])
+    args = tuple(t)
+    return spinapi.pb_inst_pbonly64(*args)
+    
+    
+def pb_set_freq(freq):
+    freq = ctypes.c_double(freq)
+    return spinapi.pb_set_freq(freq)
+
+def pb_set_phase(phase):
+    phase = ctypes.c_double(phase)
+    return spinapi.pb_set_phase(phase)
+
+def pb_set_amp(amp, register):
+    amp = ctypes.c_float(amp)
+    return spinapi.pb_set_phase(amp, register)
+    
+    
+#######################################################

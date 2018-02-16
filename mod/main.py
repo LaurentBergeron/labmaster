@@ -40,7 +40,7 @@ from pydoc import help
 
         
     
-def scan(lab, params, experiment, fig=None, quiet=True, update_plot=True):
+def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     """
     The holy grail of LabMaster.
     Scan parameters value attribute in the order imposed by their sweep_dim.
@@ -81,6 +81,9 @@ def scan(lab, params, experiment, fig=None, quiet=True, update_plot=True):
         ## Initialize the plot on the figure.
         experiment.create_plot(lab, params, fig, data, ID)
 
+    print("\n--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------") 
+    print(params) 
+    
     if quiet:
         ## No time for questions.
         pass
@@ -88,8 +91,6 @@ def scan(lab, params, experiment, fig=None, quiet=True, update_plot=True):
         if input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
             raise KeyboardInterrupt
             
-    print("\n--------------------------------------------\n", experiment.__name__, "\n--------------------------------------------") 
-    print(params) 
 
         
     ## Up to this point, results will be saved whatever happens.
@@ -332,7 +333,7 @@ def fill_experiment_functions(experiment):
                            "get_data",
                            "sequence",
                            "pre_scan",
-                           "end",
+                           "post_scan",
                            "out",
                            "create_plot",
                            "update_plot")

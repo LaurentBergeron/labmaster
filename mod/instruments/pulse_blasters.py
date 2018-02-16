@@ -2,6 +2,7 @@
 Definition of Pulse Blaster Instrument classes.
 
 Current classes: 
+- Pulse_blaster_DDSII300
 - Pulse_blaster_USB
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
@@ -38,9 +39,9 @@ class Pulse_blaster_DDSII300(Instrument):
         - parent: A reference to the lab instance hosting the instrument.
         """
         ##-------------------------------------------- OPTIONS --------------------------------------------##
-        self.verbose = False                    ## Print the status of each driver function call.
+        self.verbose = True                    ## Print the status of each driver function call.
         self.adjust_trig_latency = False        ## Adjust first duration to remove the 8 clock cycles trigger latency (needs a time buffer at the start of sequence).
-        self.ref_freq = 50*MHz                  ## Recommended to run at 50 MHz
+        self.ref_freq = 75*MHz                  ## Recommended to run at 75 MHz
         ##-------------------------------------------------------------------------------------------------##
         ## Inherit from Instrument
         Instrument.__init__(self, name, parent, use_memory=True)
@@ -49,18 +50,170 @@ class Pulse_blaster_DDSII300(Instrument):
         ## spinapi wrapper
         self.spinapi = importlib.import_module("mod.instruments.wrappers.dll_spinapi") ## dll wrapper
         ## Dictionary with channel names as keys and their respective channel as values.
-        self.channels = {} 
-        ## States of the channels. Channel one is on the right, channel 12 on the left.
+        self.channels = {}
+        ## Dictionary with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
+        self.registers = {'RF1':{'freq':[], 'phase':[], 'amp':[]}, 'RF2':{'freq':[], 'phase':[], 'amp':[]}}
+        ## Default values are dictionaries with values defined below in set_default_pulse. Key of the dictionary is the channel.
+        self.default_delay = {}
+        self.default_length = {}
+        self.default_freq = {}
+        self.default_phase = {}
+        self.default_amp = {}
+        self.set_default_pulse('RF1', delay=ms, length=us, freq=2*MHz, phase=0, amp=0.)
+        self.set_default_pulse('RF2', delay=ms, length=us, freq=2*MHz, phase=180, amp=.9)
+        ## States of the channels. Channel one is on the right, channel 12 on the left. (The truth is actually the opposite, but the string sent for programming the board is reversed. This is done to keep the same standard as PulseblasterUSB!)
         self.flags = "000000000000"
         ## Initialize drivers.
         status = self.spinapi.pb_init()
         self.check_error(status)
         ## Set clock frequency.
         self.spinapi.pb_core_clock(self.ref_freq/1e6)
+        ## Clear registers and add default pulses to registers.
+        self.reset_registers()
         ## Turn all channels off.
         self.all_channels_off()
         print('connected to PulseBlasterDDSII300.')
         return 
+    
+    def check_rf_channel_format(self, rf_channel):
+        if not (rf_channel in ('RF1','RF2')):
+            raise PulseBlasterDDSII300Error("Wrong format for rf_channel input. Should be 'RF1' or 'RF2'")
+        return
+        
+    def rf_channel_str2int(self, rf_channel_str):
+        self.check_rf_channel_format(rf_channel_str)
+        return int(rf_channel_str[-1:])
+    
+    def set_default_pulse(self, rf_channel, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
+        self.check_rf_channel_format(rf_channel)
+        if delay!=None:
+            self.default_delay[rf_channel] = delay
+        if length!=None:
+            self.default_length[rf_channel] = length
+        if freq!=None:
+            self.default_freq[rf_channel] = freq
+        if phase!=None:
+            self.default_phase[rf_channel] = phase
+        if amp!=None:
+            self.default_amp[rf_channel] = amp
+        if shape!=None:
+            self.default_shape[rf_channel] = shape
+        return
+        
+        
+    
+    def clear_freq_register(self, rf_channel):
+        self.check_rf_channel_format(rf_channel)
+        status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.check_error(status)
+        self.registers[rf_channel]['freq'] = []
+        status = self.spinapi.pb_start_programming(self.spinapi.FREQ_REGS)
+        self.check_error(status)
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+        return
+        
+    def clear_phase_register(self, rf_channel):
+        self.check_rf_channel_format(rf_channel)
+        status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.check_error(status)
+        self.registers[rf_channel]['phase'] = []
+        status = self.spinapi.pb_start_programming(self.spinapi.TX_PHASE_REGS)
+        self.check_error(status)
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+        return
+        
+    def clear_amp_register(self, rf_channel):
+        """
+        doesn't actually clear anything on the board, because of the way amplitude registers work.
+        """
+        self.check_rf_channel_format(rf_channel)
+        status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.check_error(status)
+        self.registers[rf_channel]['amp'] = []
+        return
+    
+    def clear_registers(self):
+        """
+        Clear registers.
+        """
+        for rf_channel in ('RF1','RF2'):
+            self.clear_freq_register(rf_channel)
+            self.clear_phase_register(rf_channel)
+            self.clear_amp_register(rf_channel)
+        return
+        
+    def reset_registers(self):
+        """
+        Clear registers and add default pulses to registers.
+        """
+        self.clear_registers()
+        for rf_channel in ('RF1','RF2'):
+            self.add_freq_to_register(rf_channel, self.default_freq[rf_channel])
+            self.add_phase_to_register(rf_channel, self.default_phase[rf_channel])
+            self.add_amp_to_register(rf_channel, self.default_amp[rf_channel])
+        return
+    
+    def add_freq_to_register(self, rf_channel, freq_to_add):
+        """
+        freq in Hz
+        """
+        self.check_rf_channel_format(rf_channel)
+        if not (5*kHz <= freq_to_add <= 100*MHz): 
+            raise PulseBlasterDDSII300Error('Frequency added to register should be between 5 kHz and 100 MHz.')
+        if len(self.registers[rf_channel]['freq']) > 15:
+            raise PulseBlasterDDSII300Error('Maximum number of frequency registers reached ('+rf_channel+').')
+        self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.registers[rf_channel]['freq'].append(freq_to_add)
+        status = self.spinapi.pb_start_programming(self.spinapi.FREQ_REGS)
+        self.check_error(status)
+        for freq in self.registers[rf_channel]['freq']:
+            status = self.spinapi.pb_set_freq(freq*1e-6)
+            self.check_error(status)
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+        return
+   
+    def add_phase_to_register(self, rf_channel, phase_to_add):
+        """
+        phase in deg
+        """
+        self.check_rf_channel_format(rf_channel)
+        if not (0 <= phase_to_add < 360): 
+            raise PulseBlasterDDSII300Error('Phase added to register should be between 0 and 360.')
+        if len(self.registers[rf_channel]['phase']) > 7:
+            raise PulseBlasterDDSII300Error('Maximum number of phase registers reached ('+rf_channel+').')
+        self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.registers[rf_channel]['phase'].append(phase_to_add)
+        status = self.spinapi.pb_start_programming(self.spinapi.TX_PHASE_REGS)
+        self.check_error(status)
+        for phase in self.registers[rf_channel]['phase']:
+            status = self.spinapi.pb_set_phase(phase)
+            self.check_error(status)
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+        return
+        
+    def add_amp_to_register(self, rf_channel, amp_to_add):
+        """
+        amp from 0.0 to 1.0
+        it's super weird that it works differently than freq and phase
+        
+        TODO
+        """
+        self.check_rf_channel_format(rf_channel)
+        if not (0. <= amp_to_add <= 1.): 
+            raise PulseBlasterDDSII300Error('Amplitude added to register should be between 0.0 and 1.0.')
+        if len(self.registers[rf_channel]['amp']) > 3:
+            raise PulseBlasterDDSII300Error('Maximum number of amplitude registers reached ('+rf_channel+').')
+        self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        self.registers[rf_channel]['amp'].append(amp_to_add)
+        register_address = len(self.registers[rf_channel]['amp']) - 1
+        status = self.spinapi.pb_set_amp(amp_to_add, register_address)
+        self.check_error(status)
+        return
+        
     
     def abort(self):
         """
@@ -98,11 +251,11 @@ class Pulse_blaster_DDSII300(Instrument):
         self.flags = "0"*12
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
+                                          int(self.flags[::-1],2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
         self.check_error(start)
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags,2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
+                                          int(self.flags[::-1],2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
         self.check_error(status)
         ## Stop programming.
         status = self.spinapi.pb_stop_programming()
@@ -134,7 +287,9 @@ class Pulse_blaster_DDSII300(Instrument):
         """Check pulse blaster board for errors."""
         if self.verbose:
             print("pb:", status)
-        if status < 0:
+        if status == -1:
+            raise PulseBlasterDDSII300Error('Unknown error.')
+        if status < -1:
             error = self.spinapi.pb_get_error()
             raise PulseBlasterDDSII300Error(error)
         return
@@ -166,7 +321,7 @@ class Pulse_blaster_DDSII300(Instrument):
         Useful to split delays.
         Useful to insert refs.
         """
-        self.instructions.append([self.lab.time_cursor, None, "KEEP_GOING", None, ref])            
+        self.instructions.append([self.lab.time_cursor, None, "KEEP_GOING", None, ref, ()])            
     
     def get_ref_freq(self):
         """
@@ -198,20 +353,23 @@ class Pulse_blaster_DDSII300(Instrument):
         self.check_error(status)
         
         ## Load results from self.preprocess() using spinapi.pb_inst_dds2 commands.
-        for flags, opcode, data_field, duration in self.preprocess():
-            status = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                               0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                               int(self.flags,2), opcode, data_field, duration*1e9)
+        for TTL_params, RF1_params, RF2_params in self.preprocess():
+            flags, opcode, data_field, duration = TTL_params
+            
+            status = self.spinapi.pb_inst_dds2(*RF1_params, \
+                                               *RF2_params, \
+                                               int(flags[::-1],2), opcode, data_field, duration*1e9)
+            self.check_error(status)
 
         ## All channels offs.
         self.flags = "0"*12
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
+                                          int(self.flags[::-1],2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
         self.check_error(start)
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags,2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
+                                          int(self.flags[::-1],2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
         self.check_error(status)
         ## Stop programming memory.
         status = self.spinapi.pb_stop_programming()
@@ -264,7 +422,7 @@ class Pulse_blaster_DDSII300(Instrument):
         
         ## Unzip instructions
         instructions = [tuple(x) for x in (sorted(self.instructions))] + [(self.lab.total_duration, "", "", "", "")]
-        time_list, channel_list, opcode_list, data_field_list, ref_list = list(zip(*instructions)) 
+        time_list, channel_list, opcode_list, data_field_list, ref_list, RF_params_list = list(zip(*instructions)) 
         
         ## Make sure each ref is unique.
         for ref in ref_list:
@@ -279,7 +437,7 @@ class Pulse_blaster_DDSII300(Instrument):
             trigger_latency = 8.0/self.get_ref_freq()
         else:
             trigger_latency = 0
-        
+
         ## First instruction is special.
         ## In any case, if the first instruction doesn't start at time 0, all channels are set to zero until first instruction starts.
         ## If adjust_trig_latency is activated, the first instruction needs to be set after a time buffer (this time buffer needs to be longer than the latency delay).
@@ -291,13 +449,18 @@ class Pulse_blaster_DDSII300(Instrument):
                 opcode = self.spinapi.Inst.CONTINUE
                 data_field = 0
                 opcode, data_field, duration = self.autolongdelay(opcode, data_field, duration) ## will add a LONG_DELAY opcode if needed.
-                result.append([self.flags, opcode, data_field, duration])
-                ref_dict["ZERO_TIME"] = len(result)-1 ## to loop/branch to the start, use ZERO_TIME ref.
+                TTL_params = (self.flags, opcode, data_field, duration)
+                RF1_params = (0,0,0,lab.pb.spinapi.TX_ENABLE, lab.pb.spinapi.NO_PHASE_RESET)
+                RF2_params = (0,0,0,lab.pb.spinapi.TX_ENABLE, lab.pb.spinapi.NO_PHASE_RESET)
+                result.append([TTL_params, RF1_params, RF2_params])
+                ref_dict["ZERO_TIME"] = 0 ## to loop/branch to the start, use ZERO_TIME ref.
         else:
             if self.adjust_trig_latency:
                 raise PulseBlasterDDSII300Error("You need to add a time buffer at the start of sequence when adjusting for trigger latency.")
                 
         ## Go through all the instructions and condense them to spinapi.pb_inst_dds2() arguments.
+        RF1_params = (0,0,0,lab.pb.spinapi.TX_DISABLE, lab.pb.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
+        RF2_params = (0,0,0,lab.pb.spinapi.TX_DISABLE, lab.pb.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
         i=0
         while i < len(instructions)-1:
             i_saved = i ## when multiple instructions are assigned during the same 5 clock cycles window, i_saved is needed to remember the time of the earliest instruction. 
@@ -306,9 +469,9 @@ class Pulse_blaster_DDSII300(Instrument):
             ref = "" ## by default
             while i < len(instructions)-1:
                 ## Check and assign refs
-                if ref_list[i] != "": 
+                if ref_list[i] != "":
                     if ref != "":
-                        raise PulseBlasterDDSII300Error("Two different refs detected at the same time.")
+                        raise PulseBlasterDDSII300Error("Two different refs detected for the same time.")
                     else:
                         ref = ref_list[i]
                 ## Check and assign opcodes/data_field
@@ -322,6 +485,27 @@ class Pulse_blaster_DDSII300(Instrument):
                 ## Keep going meaning keep channels as they are. Useful to split a delay without using opcodes.
                 elif opcode_list[i]=="KEEP_GOING": 
                     pass
+                ## A rf-pulse is indicated with the opcode variable.
+                elif opcode_list[i]=="pulse":
+                    rf_channel, phase, amp, freq = RF_params_list[i]    
+                    freq_register = self.registers[rf_channel]['freq'].index(freq)
+                    phase_register = self.registers[rf_channel]['phase'].index(phase)
+                    amp_register = self.registers[rf_channel]['amp'].index(amp)
+                    if rf_channel=='RF1':
+                        RF1_enable = lab.pb.spinapi.TX_ENABLE
+                        RF1_params = (freq_register, phase_register, amp_register, RF1_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                    elif rf_channel=='RF2':
+                        RF2_enable = lab.pb.spinapi.TX_ENABLE
+                        RF2_params = (freq_register, phase_register, amp_register, RF2_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                elif opcode_list[i]=="pulse-end":
+                    rf_channel, _, _, _ = RF_params_list[i]    
+                    if rf_channel=='RF1':
+                        RF1_enable = lab.pb.spinapi.TX_DISABLE
+                        RF1_params = (0, 0, 0, RF1_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                    elif rf_channel=='RF2':
+                        RF2_enable = lab.pb.spinapi.TX_DISABLE
+                        RF2_params = (0, 0, 0, RF2_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                    pass
                 ## If no opcode detected, it's a turn_on/turn_off situation.
                 else:
                     channel = channel_list[i] ## which channel to change
@@ -330,10 +514,11 @@ class Pulse_blaster_DDSII300(Instrument):
                 duration = time_list[i+1] - time_list[i_saved] 
                 if (duration >= 5.0/self.get_ref_freq()): ## minimum pulse length is 5 clock cycles. If duration is smaller than that, repeat loop without appending result (flags will remain changed).
                     opcode, data_field, duration = self.autolongdelay(opcode, data_field, duration) ## will add a LONG_DELAY opcode if needed.
-                    result.append([self.flags, opcode, data_field, duration])
+                    TTL_params = (self.flags, opcode, data_field, duration)
+                    result.append([TTL_params, RF1_params, RF2_params])
                     if ref!="":
                         ref_dict[ref]=len(result)-1
-                    break ## break While statement if a result was appended.
+                    break ## break 'while' statement if a result was appended.
                 i+=1
             i+=1
 
@@ -341,7 +526,7 @@ class Pulse_blaster_DDSII300(Instrument):
         final_result = []
         for i, x in enumerate(result):
             flags, opcode, data_field, duration = x
-            if x[1]==self.spinapi.Inst.END_LOOP or x[1]==self.spinapi.Inst.BRANCH:
+            if opcode==self.spinapi.Inst.END_LOOP or opcode==self.spinapi.Inst.BRANCH:
                 try:
                     data_field = ref_dict[data_field]
                 except KeyError:
@@ -443,8 +628,32 @@ class Pulse_blaster_DDSII300(Instrument):
 
         plt.show()
         return
+    
+    def pulse(self, rf_channel, length=None, phase=None, amp=None, freq=None, shape=None, rewind=False, opcode_str="", data_field=0, ref=""):
+
+        self.check_rf_channel_format(rf_channel)
+        if length==None:
+            length = self.default_length[rf_channel]
+        if phase==None:
+            phase = self.default_phase[rf_channel]
+        if amp==None:
+            amp = self.default_amp[rf_channel]
+        if freq==None:
+            freq = self.default_freq[rf_channel]
+        if shape==None:
+            shape = self.default_shape[rf_channel]
         
+        if opcode_str!="":
+            self.opcode(opcode_str, data_field)
         
+        ## Update instructions
+        RF_params = (rf_channel, length, phase, amp, freq)
+        self.instructions.append([self.lab.time_cursor, None, "pulse", RF_params, ref, RF_params])
+        self.instructions.append([self.lab.time_cursor + length, None, "pulse-end", None, "", None])
+        self.lab.update_time_cursor(length, rewind)
+        return
+    
+
     def opcode(self, opcode_str, data_field, duration=0, ref=""):
         """
         Valid entries:
@@ -465,13 +674,29 @@ class Pulse_blaster_DDSII300(Instrument):
         *WARNING*: Time cursor won't update. Do not use in combinaison with other instruments if timing is important.
         """
         if opcode_str not in self.available_opcodes():
-            raise PulseBlasterDDSII300Error("Wrong opcode. \n"+textwrap.dedent(Pulse_blaster_USB.opcode.__doc__))
+            raise PulseBlasterDDSII300Error("Wrong opcode. \n"+textwrap.dedent(Pulse_blaster_DDSII300.opcode.__doc__))
         self.keep_going()
-        self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref])
+        self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref, ()])
         if duration > 0:
             self.lab.update_time_cursor(duration, None)
             self.keep_going()
         return
+    
+    def read_status(self):
+        """
+        comment section TODO
+        """
+        code = self.spinapi.pb_read_status()
+        str_code = bin(code)[2:].zfill(4)
+        if str_code[-1]=='1':
+            print('Stopped')
+        if str_code[-2]=='1':
+            print('Reset (or stopped? bug)') ## Appears at times when it should be Stopped. 
+        if str_code[-3]=='1':
+            print('Running')
+        if str_code[-4]=='1':
+            print('Waiting')
+        return 
     
     def reset_warnings(self):
         """ 
@@ -509,11 +734,11 @@ class Pulse_blaster_DDSII300(Instrument):
         if opcode_str!="":
             self.opcode(opcode_str, data_field)
         if duration==None:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref, ()])
             self.lab.update_time_cursor(0., rewind)
         else:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref])
-            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 0, ""])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref, ()])
+            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 0, "", ()])
             self.lab.update_time_cursor(duration, rewind)
         return
         
@@ -532,11 +757,11 @@ class Pulse_blaster_DDSII300(Instrument):
         if opcode_str!="":
             self.opcode(opcode_str, ref)
         if duration==None:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref, ()])
             self.lab.update_time_cursor(0., rewind)
         else:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref])
-            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 1, ""])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref, ()])
+            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 1, "", ()])
             self.lab.update_time_cursor(duration, rewind)
         return
         
@@ -618,6 +843,8 @@ class Pulse_blaster_USB(Instrument):
         Add a channel to channels dictionary.
         - name: New name.
         - channel: This channel number can now be refered with the name.
+        
+        TODO: should be named add_channel_alias 
         """
         if name in self.available_opcodes():
             raise PulseBlasterUSBError("Failed to add channel, "+name+" is a reserved name.")
@@ -673,7 +900,9 @@ class Pulse_blaster_USB(Instrument):
         """Check pulse blaster board for errors."""
         if self.verbose:
             print("pb:", status)
-        if status < 0:
+        if status == -1:
+            raise PulseBlasterUSBError('Unknown error.')
+        if status < -1:
             error = self.spinapi.pb_get_error()
             raise PulseBlasterUSBError(error)
         return

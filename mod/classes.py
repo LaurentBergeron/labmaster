@@ -59,7 +59,7 @@ class Drawer():
     def is_object_type(self, value):
         """Will return True if input argument is the same type as self.object_type, False if not."""
         try:
-            classes = [str(x).split(".")[-1] for x in list(all_bases(value.__class__))+[value.__class__]]
+            classes = [str(x).split(".")[-1][:-2] for x in list(all_bases(value.__class__))+[value.__class__]]
             out = self.object_type in classes
         except:
             out = False
@@ -249,7 +249,6 @@ class Lab(Drawer):
         Close and reinitialize the instrument. 
         Avoids to restart the Ipython console on UnboundLocalError class autoreload bug.
         """
-        print(str(type(self.__dict__[name])).split('.'))
         if str(type(self.__dict__[name])).split('.')[-1]=="Default_visa'>":
             self.close(name)
             self.add_instrument("VISA, "+name+", "+self.__dict__[name].visa_ID)
