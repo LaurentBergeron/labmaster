@@ -1292,7 +1292,7 @@ class Awg_M8190A(Instrument):
         Is based on default pulse parameters (delay, length, amplitude, frequency, phase and shape).
         Example of valid string input: 'tau, X/2, tau*3, -Y, tau'.
         
-        'X', '-X', 'Y' or '-Y' will select the phase (respectively 0, 180, 90 and 270 degrees). This phase is added to default phase.
+        'X', '-X', 'Y' or '-Y' will select the phase (respectively 0, 180, 90 and 270 degrees). This phase is added to self.default_phase.
         
         'tau' or 't' is for a delay. 
         The duration of tau is the default delay.

@@ -4,10 +4,14 @@ Default parameters shared among experiments.
 
 from mod.units import *
 
+dds_freq = MHz
+dds_amp = 1.0
+
 awg_sample_rate = 976*MHz
 awg_freq = 50*MHz
-pi_len = 31.5*us
 awg_amp = 200*mV
+
+pi_len = 31.5*us
 bin_len = 150*ms
 amp_sensitivity = 1e-7
 ND_filters = 'Red Open, Green 3'

@@ -1,6 +1,8 @@
 from mod.main import *
 
 def pre_scan(lab, params, fig, data, ID):
+    lab.dds.default_channel = 'RF1'   
+    lab.dds.set_default_pulse('RF1', amp=params.dds_amp.value) ## pulse length of 10s. will be stopped before that anyway.
     time.sleep(200*ms) 
     return
 
@@ -8,7 +10,8 @@ def sequence(lab, params, fig, data, ID):
     return
     
 def launch(lab, params, fig, data, ID):
-    lab.sig_gen_SRS.set_freq(params.freq.v)
+    lab.dds.reset_registers()
+    lab.dds.cw(freq=params.freq.v)
     time.sleep(params.delay.v)
     return
 

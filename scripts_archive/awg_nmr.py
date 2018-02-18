@@ -1,4 +1,4 @@
-import exp.exp_nmr as experiment
+import exp.exp_awg_nmr as experiment
 import exp._defaults_ as _defaults_
 import exp._sequences_ as _sequences_
 

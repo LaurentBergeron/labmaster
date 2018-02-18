@@ -1,4 +1,4 @@
-import exp.exp_t1 as experiment
+import exp.exp_dds_t1 as experiment
 import exp._defaults_ as _defaults_
 
 
@@ -6,11 +6,10 @@ experiment.PHASE_CYCLING = True
 experiment.DELAY_BEFORE_PULSE = False
 
 params = Params('tau;s', 'phase_cycle', 'phase_start', 'time_axis;s', 'bin_length;s',
-                'awg_amp;V', 'awg_freq;Hz', 'awg_sample_rate;Hz', 'pi_len;s')
+                'dds_amp;V', 'dds_freq;Hz', 'pi_len;s')
 
-params.awg_amp.value = _defaults_.awg_amp
-params.awg_freq.value = _defaults_.awg_freq
-params.awg_sample_rate.value = _defaults_.awg_sample_rate
+params.dds_amp.value = _defaults_.dds_amp
+params.dds_freq.value = _defaults_.dds_freq
 params.pi_len.value = _defaults_.pi_len
 params.phase_start.value = 'X'
 params.bin_length.value = _defaults_.bin_len
@@ -36,8 +35,8 @@ finally:
         
     notebook('T1;'+str(T1),
              'A;'+str(A),
-             'awg freq;'+str(params.awg_freq.value),
-             'awg amp;'+str(params.awg_amp.value),
+             'dds freq;'+str(params.dds_freq.value),
+             'dds amp;'+str(params.dds_amp.value),
              'pi len;'+str(params.pi_len.value),
              'tau start;'+str(params.tau.get_start()),
              'tau end;'+str(params.tau.get_end()),

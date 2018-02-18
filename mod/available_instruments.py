@@ -20,7 +20,8 @@ It's possible to connect to a generic VISA instrument with no specific class, mo
 
 ## name         ## Module              ## class                  ## optional arguments to the class              ## optional key arguments to the class
 awg =         [ "awgs",                "Awg_M8190A",             ("PXI13::0::0::INSTR",),                        {}  ]
-pb =          [ "pulse_blasters",      "Pulse_blaster_DDSII300", (),                                             {}  ]
+dds =         [ "pulse_blasters",      "Pulse_blaster_DDSII300", (),                                             {}  ]
+pb =          [ "pulse_blasters",      "Pulse_blaster_USB",      (),                                             {}  ]
 usb_counter = [ "usb_counters",        "USB_counter_CTR04",      (0,),                                           {}  ]
 lockin =      [ "lockins",             "Lockin_SR844",           ("GPIB0::8::INSTR",),                           {}  ]
 laser =       [ "lasers",              "Laser_ITC4001",          ("USB0::0x1313::0x804A::M00243388::INSTR",),    {}  ]

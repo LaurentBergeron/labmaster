@@ -1,20 +1,21 @@
 from mod.main import *
 
 def pre_scan(lab, params, fig, data, ID):
+    lab.awg.default_channel = '1'    
+    
+    lab.awg.cw(params.awg_freq.value, params.awg_amp.value)
+    
+    lab.sig_gen.set_freq(params.freq.value[0])
     time.sleep(200*ms) 
     return
 
-def sequence(lab, params, fig, data, ID):
-    return
-    
 def launch(lab, params, fig, data, ID):
-    lab.sig_gen_SRS.set_freq(params.freq.v)
+    lab.sig_gen.set_freq(params.freq.v)
     time.sleep(params.delay.v)
     return
 
 
 def get_data(lab, params, fig, data, ID):  
-    print('getdata')
     return lab.lockin.get_X()
 
     

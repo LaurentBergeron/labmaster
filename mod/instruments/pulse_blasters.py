@@ -39,7 +39,7 @@ class Pulse_blaster_DDSII300(Instrument):
         - parent: A reference to the lab instance hosting the instrument.
         """
         ##-------------------------------------------- OPTIONS --------------------------------------------##
-        self.verbose = True                    ## Print the status of each driver function call.
+        self.verbose = False                    ## Print the status of each driver function call.
         self.adjust_trig_latency = False        ## Adjust first duration to remove the 8 clock cycles trigger latency (needs a time buffer at the start of sequence).
         self.ref_freq = 75*MHz                  ## Recommended to run at 75 MHz
         ##-------------------------------------------------------------------------------------------------##
@@ -54,6 +54,7 @@ class Pulse_blaster_DDSII300(Instrument):
         ## Dictionary with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
         self.registers = {'RF1':{'freq':[], 'phase':[], 'amp':[]}, 'RF2':{'freq':[], 'phase':[], 'amp':[]}}
         ## Default values are dictionaries with values defined below in set_default_pulse. Key of the dictionary is the channel.
+        self.default_rf_channel = 'RF1'
         self.default_delay = {}
         self.default_length = {}
         self.default_freq = {}
@@ -75,17 +76,19 @@ class Pulse_blaster_DDSII300(Instrument):
         print('connected to PulseBlasterDDSII300.')
         return 
     
-    def check_rf_channel_format(self, rf_channel):
+    def rf_channel_format(self, rf_channel):
+        if rf_channel==None:
+            rf_channel = self.default_rf_channel
         if not (rf_channel in ('RF1','RF2')):
             raise PulseBlasterDDSII300Error("Wrong format for rf_channel input. Should be 'RF1' or 'RF2'")
         return
         
     def rf_channel_str2int(self, rf_channel_str):
-        self.check_rf_channel_format(rf_channel_str)
+        rf_channel_str = self.rf_channel_format(rf_channel_str)
         return int(rf_channel_str[-1:])
     
     def set_default_pulse(self, rf_channel, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
-        self.check_rf_channel_format(rf_channel)
+        rf_channel = self.rf_channel_format(rf_channel)
         if delay!=None:
             self.default_delay[rf_channel] = delay
         if length!=None:
@@ -100,10 +103,87 @@ class Pulse_blaster_DDSII300(Instrument):
             self.default_shape[rf_channel] = shape
         return
         
+    def string_sequence(self, string, BB1=False, pulse_factor="length", rf_channel=None):
+        """ 
+        Input pulse sequence instructions as a string. Separe options shown below by comas in a string.
+        Not sensitive to spaces, tabs ('\\t') and returns ('\\r' or '\\n').
+        Is based on default pulse parameters (delay, length, amplitude, frequency, phase and shape).
+        Example of valid string input: 'tau, X/2, tau*3, -Y, tau'.
+        
+        'X', '-X', 'Y' or '-Y' will select the phase (respectively 0, 180, 90 and 270 degrees). This phase is added to self.default_phase.
+        
+        'tau' or 't' is for a delay. 
+        The duration of tau is the default delay.
+        
+        A factor can be applied to both pulses and delays. 
+        The factor can be multipled using '*' or divided using '/'.
+        The factor has to follow the command. For example, 'tau*2' is valid but not '2*tau'.
+        
+        - loops: Number of internal loops.
+        - pulse_factor: By default, the factor applies to the pulse length. Input pulse_factor='amp' to apply the factor to the pulse amplitude.
+                        For delays, the factor always applies on duration.
+        - BB1: Convert all pulses to their BB1 equivalent. If this option is activated, the only available factor is 0.5.           
+        """
+        rf_channel = self.rf_channel_format(rf_channel)
+        clean_string = (string.replace(" ", "").replace("\n", "").replace("\t", "").replace("\r", ""))
+        for tok, token in enumerate(clean_string.split(",")):
+            phase = self.default_phase[rf_channel]
+            length = self.default_length[rf_channel]
+            tau = self.default_delay[rf_channel]
+            amp = self.default_amp[rf_channel]
+
+            try:
+                if ("t"==token.split("/")[0].split("*")[0]) or ("tau"==token.split("/")[0].split("*")[0]):
+                    if "/" in token:
+                        factor = 1/float(token.split("/")[-1])
+                    elif "*" in token:
+                        factor = float(token.split("*")[-1])
+                    else:
+                        factor = 1
+                    self.lab.delay(tau*factor)
+                elif ("X" in token) or ("Y" in token):
+                    ## Phase to add to default
+                    if "-X" in token:
+                        phase+=180
+                    elif "-Y" in token:
+                        phase+=270
+                    elif "X" in token:
+                        phase+=0
+                    elif "Y" in token:
+                        phase+=90
+                    ## Pulse length (or amp) divider/multiplier
+                    if "/" in token:
+                        factor = 1/float(token.split("/")[-1])
+                    elif "*" in token:
+                        factor = float(token.split("*")[-1])
+                    else:
+                        factor = 1
+                    if pulse_factor=="length":
+                        length*=factor
+                    elif pulse_factor=="amp":
+                        amp*=factor
+                    ## BB1 option
+                    if BB1:
+                        if factor==1:
+                            self.pulse_BB1_pi(channel=channel, pi_len=self.default_length[channel], phase=phase, pi_amp=amp)
+                        elif factor==0.5:
+                            self.pulse_BB1_piby2(channel=channel, pi_len=self.default_length[channel], piby2_len=length, phase=phase, pi_amp=self.default_amp[channel],  piby2_amp=amp)
+                        else:
+                            raise PulseBlasterDDSII300Error("BB1 option is valid for pi or pi/2 pulses only.")
+                    else:
+                        self.pulse(rf_channel=rf_channel, length=length, phase=phase, amp=amp)
+
+                elif token=="":
+                    pass
+                else:
+                    raise ValueError
+            except ValueError:
+                raise PulseBlasterDDSII300Error("Token '"+str(token)+"' for "+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" was not recognized. \n\n"+self.__class__.__name__+"."+str(inspect.stack()[0][3])+" docstring:\n"+textwrap.dedent(PulseBlasterDDSII300.string_sequence.__doc__)+"\n")
+        return
         
     
-    def clear_freq_register(self, rf_channel):
-        self.check_rf_channel_format(rf_channel)
+    def clear_freq_register(self, rf_channel=None):
+        rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
         self.check_error(status)
         self.registers[rf_channel]['freq'] = []
@@ -113,8 +193,8 @@ class Pulse_blaster_DDSII300(Instrument):
         self.check_error(status)
         return
         
-    def clear_phase_register(self, rf_channel):
-        self.check_rf_channel_format(rf_channel)
+    def clear_phase_register(self, rf_channel=None):
+        rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
         self.check_error(status)
         self.registers[rf_channel]['phase'] = []
@@ -124,11 +204,11 @@ class Pulse_blaster_DDSII300(Instrument):
         self.check_error(status)
         return
         
-    def clear_amp_register(self, rf_channel):
+    def clear_amp_register(self, rf_channel=None):
         """
         doesn't actually clear anything on the board, because of the way amplitude registers work.
         """
-        self.check_rf_channel_format(rf_channel)
+        rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
         self.check_error(status)
         self.registers[rf_channel]['amp'] = []
@@ -159,7 +239,7 @@ class Pulse_blaster_DDSII300(Instrument):
         """
         freq in Hz
         """
-        self.check_rf_channel_format(rf_channel)
+        rf_channel = self.rf_channel_format(rf_channel)
         if not (5*kHz <= freq_to_add <= 100*MHz): 
             raise PulseBlasterDDSII300Error('Frequency added to register should be between 5 kHz and 100 MHz.')
         if len(self.registers[rf_channel]['freq']) > 15:
@@ -179,7 +259,7 @@ class Pulse_blaster_DDSII300(Instrument):
         """
         phase in deg
         """
-        self.check_rf_channel_format(rf_channel)
+        rf_channel = self.rf_channel_format(rf_channel)
         if not (0 <= phase_to_add < 360): 
             raise PulseBlasterDDSII300Error('Phase added to register should be between 0 and 360.')
         if len(self.registers[rf_channel]['phase']) > 7:
@@ -202,7 +282,7 @@ class Pulse_blaster_DDSII300(Instrument):
         
         TODO
         """
-        self.check_rf_channel_format(rf_channel)
+        rf_channel = self.rf_channel_format(rf_channel)
         if not (0. <= amp_to_add <= 1.): 
             raise PulseBlasterDDSII300Error('Amplitude added to register should be between 0.0 and 1.0.')
         if len(self.registers[rf_channel]['amp']) > 3:
@@ -251,11 +331,11 @@ class Pulse_blaster_DDSII300(Instrument):
         self.flags = "0"*12
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags[::-1],2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
+                                          int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
         self.check_error(start)
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags[::-1],2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
+                                          int(self.flags,2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
         self.check_error(status)
         ## Stop programming.
         status = self.spinapi.pb_stop_programming()
@@ -358,18 +438,18 @@ class Pulse_blaster_DDSII300(Instrument):
             
             status = self.spinapi.pb_inst_dds2(*RF1_params, \
                                                *RF2_params, \
-                                               int(flags[::-1],2), opcode, data_field, duration*1e9)
+                                               int(flags,2), opcode, data_field, duration*1e9)
             self.check_error(status)
 
         ## All channels offs.
         self.flags = "0"*12
         start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags[::-1],2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
+                                          int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
         self.check_error(start)
-        start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
+        status = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
                                           0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
-                                          int(self.flags[::-1],2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
+                                          int(self.flags,2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
         self.check_error(status)
         ## Stop programming memory.
         status = self.spinapi.pb_stop_programming()
@@ -421,7 +501,7 @@ class Pulse_blaster_DDSII300(Instrument):
         result = []
         
         ## Unzip instructions
-        instructions = [tuple(x) for x in (sorted(self.instructions))] + [(self.lab.total_duration, "", "", "", "")]
+        instructions = [tuple(x) for x in (sorted(self.instructions, key=lambda x: x[0]))] + [(self.lab.total_duration, "", "", "", "", ())]
         time_list, channel_list, opcode_list, data_field_list, ref_list, RF_params_list = list(zip(*instructions)) 
         
         ## Make sure each ref is unique.
@@ -450,8 +530,8 @@ class Pulse_blaster_DDSII300(Instrument):
                 data_field = 0
                 opcode, data_field, duration = self.autolongdelay(opcode, data_field, duration) ## will add a LONG_DELAY opcode if needed.
                 TTL_params = (self.flags, opcode, data_field, duration)
-                RF1_params = (0,0,0,lab.pb.spinapi.TX_ENABLE, lab.pb.spinapi.NO_PHASE_RESET)
-                RF2_params = (0,0,0,lab.pb.spinapi.TX_ENABLE, lab.pb.spinapi.NO_PHASE_RESET)
+                RF1_params = (0,0,0,self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+                RF2_params = (0,0,0,self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
                 result.append([TTL_params, RF1_params, RF2_params])
                 ref_dict["ZERO_TIME"] = 0 ## to loop/branch to the start, use ZERO_TIME ref.
         else:
@@ -459,8 +539,8 @@ class Pulse_blaster_DDSII300(Instrument):
                 raise PulseBlasterDDSII300Error("You need to add a time buffer at the start of sequence when adjusting for trigger latency.")
                 
         ## Go through all the instructions and condense them to spinapi.pb_inst_dds2() arguments.
-        RF1_params = (0,0,0,lab.pb.spinapi.TX_DISABLE, lab.pb.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
-        RF2_params = (0,0,0,lab.pb.spinapi.TX_DISABLE, lab.pb.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
+        RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
+        RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
         i=0
         while i < len(instructions)-1:
             i_saved = i ## when multiple instructions are assigned during the same 5 clock cycles window, i_saved is needed to remember the time of the earliest instruction. 
@@ -492,19 +572,19 @@ class Pulse_blaster_DDSII300(Instrument):
                     phase_register = self.registers[rf_channel]['phase'].index(phase)
                     amp_register = self.registers[rf_channel]['amp'].index(amp)
                     if rf_channel=='RF1':
-                        RF1_enable = lab.pb.spinapi.TX_ENABLE
-                        RF1_params = (freq_register, phase_register, amp_register, RF1_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                        RF1_enable = self.spinapi.TX_ENABLE
+                        RF1_params = (freq_register, phase_register, amp_register, RF1_enable, self.spinapi.NO_PHASE_RESET)
                     elif rf_channel=='RF2':
-                        RF2_enable = lab.pb.spinapi.TX_ENABLE
-                        RF2_params = (freq_register, phase_register, amp_register, RF2_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                        RF2_enable = self.spinapi.TX_ENABLE
+                        RF2_params = (freq_register, phase_register, amp_register, RF2_enable, self.spinapi.NO_PHASE_RESET)
                 elif opcode_list[i]=="pulse-end":
                     rf_channel, _, _, _ = RF_params_list[i]    
                     if rf_channel=='RF1':
-                        RF1_enable = lab.pb.spinapi.TX_DISABLE
-                        RF1_params = (0, 0, 0, RF1_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                        RF1_enable = self.spinapi.TX_DISABLE
+                        RF1_params = (0, 0, 0, RF1_enable, self.spinapi.NO_PHASE_RESET)
                     elif rf_channel=='RF2':
-                        RF2_enable = lab.pb.spinapi.TX_DISABLE
-                        RF2_params = (0, 0, 0, RF2_enable, lab.pb.spinapi.NO_PHASE_RESET)
+                        RF2_enable = self.spinapi.TX_DISABLE
+                        RF2_params = (0, 0, 0, RF2_enable, self.spinapi.NO_PHASE_RESET)
                     pass
                 ## If no opcode detected, it's a turn_on/turn_off situation.
                 else:
@@ -524,14 +604,14 @@ class Pulse_blaster_DDSII300(Instrument):
 
         ## In this final preprocess loop, replace refs for their matching address in pulse_blaster memory.
         final_result = []
-        for i, x in enumerate(result):
+        for i, (x, RF1_params, RF2_params) in enumerate(result):
             flags, opcode, data_field, duration = x
             if opcode==self.spinapi.Inst.END_LOOP or opcode==self.spinapi.Inst.BRANCH:
                 try:
                     data_field = ref_dict[data_field]
                 except KeyError:
                     raise PulseBlasterDDSII300Error("ref '"+data_field+"' not found.")
-            final_result.append([flags, opcode, data_field, duration])
+            final_result.append([[flags, opcode, data_field, duration], RF1_params, RF2_params])
         
         return final_result
         
@@ -629,9 +709,8 @@ class Pulse_blaster_DDSII300(Instrument):
         plt.show()
         return
     
-    def pulse(self, rf_channel, length=None, phase=None, amp=None, freq=None, shape=None, rewind=False, opcode_str="", data_field=0, ref=""):
-
-        self.check_rf_channel_format(rf_channel)
+    def pulse(self, rf_channel=None, length=None, phase=None, amp=None, freq=None, rewind=False, opcode_str="", data_field=0, ref=""):
+        rf_channel = self.rf_channel_format(rf_channel)
         if length==None:
             length = self.default_length[rf_channel]
         if phase==None:
@@ -640,20 +719,114 @@ class Pulse_blaster_DDSII300(Instrument):
             amp = self.default_amp[rf_channel]
         if freq==None:
             freq = self.default_freq[rf_channel]
-        if shape==None:
-            shape = self.default_shape[rf_channel]
         
         if opcode_str!="":
             self.opcode(opcode_str, data_field)
         
+        
+        ## Add specified freq, phase and amp to registers if they are not already there.
+        if not freq in self.registers[rf_channel]['freq']:
+            self.add_freq_to_register(rf_channel, freq)
+        if not phase in self.registers[rf_channel]['phase']:
+            self.add_phase_to_register(rf_channel, phase)            
+        if not amp in self.registers[rf_channel]['amp']:
+            self.add_amp_to_register(rf_channel, amp)
+            
+        
+        
         ## Update instructions
-        RF_params = (rf_channel, length, phase, amp, freq)
+        RF_params = (rf_channel, phase, amp, freq)
         self.instructions.append([self.lab.time_cursor, None, "pulse", RF_params, ref, RF_params])
-        self.instructions.append([self.lab.time_cursor + length, None, "pulse-end", None, "", None])
+        self.instructions.append([self.lab.time_cursor + length, None, "pulse-end", RF_params, "", RF_params])
         self.lab.update_time_cursor(length, rewind)
         return
     
 
+    def cw(self, freq=None, amp=None, rf_channel=None):
+        """
+        Spit a continous wave function of specified frequency and amplitude.
+        If arguments are omitted, defaults will be used.
+        """
+        ## Replace None values by default settings.
+        if rf_channel=='BOTH':
+            if amp==None:
+                amp = [self.default_amp['RF1'], self.default_amp['RF2']]
+            else:
+                amp = [self.default_amp['RF'+str(i+1)] if amp[i]==None else amp[i] for i in range(2)]
+            if freq==None:
+                freq = [self.default_freq['RF1'], self.default_freq['RF2']]
+            else:
+                freq = [self.default_freq['RF'+str(i+1)] if freq[i]==None else freq[i] for i in range(2)]
+        else:
+            rf_channel = self.rf_channel_format(rf_channel)
+            if amp==None:
+                amp = self.default_amp[rf_channel]
+            if freq==None:
+                freq = self.default_freq[rf_channel]
+        
+        ## Empty instructions. Can't use intructions if a cw is being generated.
+        self.lab.reset_instructions()
+        
+        ### Program the cw        
+        ## Stop previous generation.
+        status = self.spinapi.pb_stop() 
+        self.check_error(status)
+        
+        
+        
+        ## Add specified freq, phase and amp to registers if they are not already there.
+        if rf_channel=='BOTH':
+            for i in range(2):
+                if not freq[i] in self.registers['RF'+str(i+1)]['freq']:
+                    self.add_freq_to_register('RF'+str(i+1), freq[i])       
+                if not amp[i] in self.registers['RF'+str(i+1)]['amp']:
+                    self.add_amp_to_register('RF'+str(i+1), amp[i])
+        else:
+            if not freq in self.registers[rf_channel]['freq']:
+                self.add_freq_to_register(rf_channel, freq)       
+            if not amp in self.registers[rf_channel]['amp']:
+                self.add_amp_to_register(rf_channel, amp)
+        
+        ## Start programming memory.
+        status = self.spinapi.pb_start_programming(self.spinapi.PULSE_PROGRAM)
+        self.check_error(status)
+
+
+        if rf_channel=='BOTH':
+            freq_register_RF1 = self.registers['RF1']['freq'].index(freq[0])
+            amp_register_RF1 = self.registers['RF1']['amp'].index(amp[0])
+            freq_register_RF2 = self.registers['RF2']['freq'].index(freq[1])
+            amp_register_RF2 = self.registers['RF2']['amp'].index(amp[1])
+            RF1_params = (freq_register_RF1, 0, amp_register_RF1, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+            RF2_params = (freq_register_RF2, 0, amp_register_RF2, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+        else:
+            freq_register = self.registers[rf_channel]['freq'].index(freq)
+            amp_register = self.registers[rf_channel]['amp'].index(amp)
+            if rf_channel=='RF1':
+                RF1_params = (freq_register, 0, amp_register, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+                RF2_params = (0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
+            elif rf_channel=='RF2':
+                RF1_params = (0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
+                RF2_params = (freq_register, 0, amp_register, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+            
+        
+        ## All channels offs.
+        self.flags = "0"*12
+        status = self.spinapi.pb_inst_dds2(*RF1_params, \
+                                           *RF2_params, \
+                                           int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, 50e9)
+        self.check_error(status)
+
+        ## Stop programming memory.
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+                
+        
+        ## Set trigger mode to "auto" and initiate the cw.
+        self.start()
+        return
+        
+    
     def opcode(self, opcode_str, data_field, duration=0, ref=""):
         """
         Valid entries:

@@ -55,7 +55,9 @@ class Drawer():
         ## If no error, the classic way to set attributes.
         self.__dict__[key] = value 
         return
-        
+    
+    
+
     def is_object_type(self, value):
         """Will return True if input argument is the same type as self.object_type, False if not."""
         try:

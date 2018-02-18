@@ -1,4 +1,4 @@
-import exp.exp_rabi as experiment
+import exp.exp_awg_rabi as experiment
 import exp._defaults_ as _defaults_
 
 
