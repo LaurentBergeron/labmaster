@@ -11,8 +11,6 @@ import exp._sequences_ as _sequences_
 
 def pre_scan(lab, params, fig, data, ID):    
 
-    lab.pb = lab.dds ## use pb as alias for dds (to avoid editing _shared_.py)
-
     lab.dds.add_channel('master_trig', 1)
     lab.dds.add_channel('Xshutter', 2)
     lab.dds.add_channel('binA', 10)
@@ -21,7 +19,7 @@ def pre_scan(lab, params, fig, data, ID):
     
     
     lab.dds.default_channel = 'RF1'
-    lab.dds.set_default_pulse(length=params.pi_len.v, amp=params.dds_amp.v, freq=params.dds_freq.v)
+    lab.dds.set_default_pulse('RF1', length=params.pi_len.v, amp=params.dds_amp.v, freq=params.dds_freq.v)
 
     if PHASE_CYCLING:
         params.phase_cycle.sweep_dim = params.get_dimension() + 1

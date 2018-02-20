@@ -7,7 +7,6 @@ from mod.main import *
 
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.pb = lab.dds ## use pb as alias for dds (to avoid editing _shared_.py)
     lab.dds.add_channel('scope_trig', 4)
     
     lab.dds.default_rf_channel = 'RF1'

@@ -13,7 +13,7 @@ params.sequence.value = _sequences_.__dict__[params.sequence_name.value] ## From
 params.phase_start.value = 'X'
 params.bin_length.value = _defaults_.bin_len
 params.pi_len.value = _defaults_.pi_len
-params.dds_amp.value = _defaults_.ds_amp
+params.dds_amp.value = 1.0
 params.dds_freq.value = _defaults_.dds_freq
     
 params.loops.sweep_dim=2
@@ -51,8 +51,8 @@ finally:
              'loops step;'+str(params.loops.get_step()),
              'phase cycling;'+('Yes'*experiment.PHASE_CYCLING+'No'*(not experiment.PHASE_CYCLING)),
              'laser current set;'+str(_defaults_.laser_current),
-             'laser current read;'+str(lab.laser.get_current()),
-             'rf freq;'+str(lab.sig_gen.get_freq()),
+             # 'laser current read;'+str(lab.laser.get_current()),
+             'rf freq;'+str(lab.sig_gen_srs.get_freq()),
              'ND filters;'+_defaults_.ND_filters, 
              'sensitivity;'+str(_defaults_.amp_sensitivity), 
              'bin length;'+str(params.bin_length.value),

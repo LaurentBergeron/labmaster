@@ -1,26 +1,32 @@
 ## Base modules
 import numpy as np 
 import scipy.constants as cst
+import pdb
 
 ## Home modules
 from . import _shared_
 from mod.main import *
 from . import _sequences_
+import exp.exp_dds_nmr
 
-from exp.exp_dds_nmr import sequence, launch, get_data, create_plot
+sequence = exp.exp_dds_nmr.sequence
+launch = exp.exp_dds_nmr.launch
+get_data = exp.exp_dds_nmr.get_data
+create_plot = exp.exp_dds_nmr.create_plot
 
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.pb = lab.dds ## use pb as alias for dds (to avoid editing _shared_.py)
     
     lab.dds.add_channel('master_trig', 1)
     lab.dds.add_channel('Xshutter', 2)
     lab.dds.add_channel('binA', 10)
     lab.dds.add_channel('binB', 11)
-    lab.dds.add_channel('scope_trig', 17)
+    lab.dds.add_channel('scope_trig', 12)
 
     lab.dds.default_channel = 'RF1'
-    lab.dds.set_default_pulse(length=params.pi_len.v, amp=params.awg_amp.v, freq=params.awg_freq.v)
+    lab.dds.set_default_pulse('RF1', length=params.pi_len.v, amp=params.dds_amp.v, freq=params.dds_freq.v)
+    
+    exp.exp_dds_nmr.PHASE_CYCLING = PHASE_CYCLING ## global variable needs to be shared with nmr.py to use its functions.
 
     if PHASE_CYCLING:
         params.phase_cycle.sweep_dim = params.get_dimension() + 1
@@ -34,9 +40,12 @@ def pre_scan(lab, params, fig, data, ID):
     
     params.time_axis.sweep_dim = 0
     params.time_axis.value = np.zeros(params.tau.get_size())
-    
+
     return
 
+    
+    
+    
 def update_plot(lab, params, fig, data, ID):
     ##------------------------- with phase cycling ----------------------------##
     if data.ndim == 2 and PHASE_CYCLING: 

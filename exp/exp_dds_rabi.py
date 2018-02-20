@@ -4,12 +4,13 @@ import numpy as np
 ## Home modules
 from . import _shared_ 
 from mod.main import *
+import exp.exp_dds_nmr
 
-from .exp_dds_nmr import launch, get_data
+launch = exp.exp_dds_nmr.launch
+get_data = exp.exp_dds_nmr.get_data
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.pb = lab.dds ## use pb as alias for dds (to avoid editing _shared_.py)
-    
+    lab.dds.reset_channel_names()
     lab.dds.add_channel('master_trig', 1)
     lab.dds.add_channel('Xshutter', 2)
     lab.dds.add_channel('binA', 10)
@@ -17,7 +18,7 @@ def pre_scan(lab, params, fig, data, ID):
     lab.dds.add_channel('scope_trig', 12)
     
     lab.dds.default_channel = 'RF1'
-    lab.dds.set_default_pulse(amp=params.awg_amp.value, freq=params.awg_freq.value)
+    lab.dds.set_default_pulse('RF1', amp=params.dds_amp.value, freq=params.dds_freq.value)
     return 
     
 

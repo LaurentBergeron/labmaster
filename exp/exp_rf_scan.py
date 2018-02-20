@@ -8,7 +8,7 @@ def sequence(lab, params, fig, data, ID):
     return
     
 def launch(lab, params, fig, data, ID):
-    lab.sig_gen_SRS.set_freq(params.freq.v)
+    lab.sig_gen_srs.set_freq(params.freq.v)
     time.sleep(params.delay.v)
     return
 

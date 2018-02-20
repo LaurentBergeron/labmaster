@@ -51,7 +51,7 @@ class Pulse_blaster_DDSII300(Instrument):
         self.spinapi = importlib.import_module("mod.instruments.wrappers.dll_spinapi") ## dll wrapper
         ## Dictionary with channel names as keys and their respective channel as values.
         self.channels = {}
-        ## Dictionary with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
+        ##   with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
         self.registers = {'RF1':{'freq':[], 'phase':[], 'amp':[]}, 'RF2':{'freq':[], 'phase':[], 'amp':[]}}
         ## Default values are dictionaries with values defined below in set_default_pulse. Key of the dictionary is the channel.
         self.default_rf_channel = 'RF1'
@@ -60,9 +60,9 @@ class Pulse_blaster_DDSII300(Instrument):
         self.default_freq = {}
         self.default_phase = {}
         self.default_amp = {}
-        self.set_default_pulse('RF1', delay=ms, length=us, freq=2*MHz, phase=0, amp=0.)
-        self.set_default_pulse('RF2', delay=ms, length=us, freq=2*MHz, phase=180, amp=.9)
-        ## States of the channels. Channel one is on the right, channel 12 on the left. (The truth is actually the opposite, but the string sent for programming the board is reversed. This is done to keep the same standard as PulseblasterUSB!)
+        self.set_default_pulse('RF1', delay=ms, length=us, freq=2*MHz, phase=0, amp=1.)
+        self.set_default_pulse('RF2', delay=ms, length=us, freq=2*MHz, phase=180, amp=1.)
+        ## States of the channels. Channel one is on the right, channel 12 on the left. 
         self.flags = "000000000000"
         ## Initialize drivers.
         status = self.spinapi.pb_init()
@@ -79,15 +79,17 @@ class Pulse_blaster_DDSII300(Instrument):
     def rf_channel_format(self, rf_channel):
         if rf_channel==None:
             rf_channel = self.default_rf_channel
+        if rf_channel in (1,2):
+            rf_channel = 'RF'+str(rf_channel)            
         if not (rf_channel in ('RF1','RF2')):
             raise PulseBlasterDDSII300Error("Wrong format for rf_channel input. Should be 'RF1' or 'RF2'")
-        return
+        return rf_channel
         
     def rf_channel_str2int(self, rf_channel_str):
         rf_channel_str = self.rf_channel_format(rf_channel_str)
         return int(rf_channel_str[-1:])
     
-    def set_default_pulse(self, rf_channel, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
+    def set_default_pulse(self, rf_channel=None, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
         rf_channel = self.rf_channel_format(rf_channel)
         if delay!=None:
             self.default_delay[rf_channel] = delay
@@ -293,7 +295,10 @@ class Pulse_blaster_DDSII300(Instrument):
         status = self.spinapi.pb_set_amp(amp_to_add, register_address)
         self.check_error(status)
         return
-        
+    
+    def reset_channel_names(self):
+        self.channels = {}
+        return
     
     def abort(self):
         """
@@ -742,7 +747,7 @@ class Pulse_blaster_DDSII300(Instrument):
         return
     
 
-    def cw(self, freq=None, amp=None, rf_channel=None):
+    def cw(self, rf_channel=None, freq=None, amp=None):
         """
         Spit a continous wave function of specified frequency and amplitude.
         If arguments are omitted, defaults will be used.
@@ -763,7 +768,8 @@ class Pulse_blaster_DDSII300(Instrument):
                 amp = self.default_amp[rf_channel]
             if freq==None:
                 freq = self.default_freq[rf_channel]
-        
+        amp = float(amp)
+        freq = float(freq)
         ## Empty instructions. Can't use intructions if a cw is being generated.
         self.lab.reset_instructions()
         
@@ -777,15 +783,16 @@ class Pulse_blaster_DDSII300(Instrument):
         ## Add specified freq, phase and amp to registers if they are not already there.
         if rf_channel=='BOTH':
             for i in range(2):
-                if not freq[i] in self.registers['RF'+str(i+1)]['freq']:
+                if not (freq[i] in self.registers['RF'+str(i+1)]['freq']):
                     self.add_freq_to_register('RF'+str(i+1), freq[i])       
-                if not amp[i] in self.registers['RF'+str(i+1)]['amp']:
+                if not (amp[i] in self.registers['RF'+str(i+1)]['amp']):
                     self.add_amp_to_register('RF'+str(i+1), amp[i])
         else:
-            if not freq in self.registers[rf_channel]['freq']:
+            if not (freq in self.registers[rf_channel]['freq']):
                 self.add_freq_to_register(rf_channel, freq)       
-            if not amp in self.registers[rf_channel]['amp']:
+            if not (amp in self.registers[rf_channel]['amp']):
                 self.add_amp_to_register(rf_channel, amp)
+                stop
         
         ## Start programming memory.
         status = self.spinapi.pb_start_programming(self.spinapi.PULSE_PROGRAM)
@@ -808,13 +815,15 @@ class Pulse_blaster_DDSII300(Instrument):
             elif rf_channel=='RF2':
                 RF1_params = (0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
                 RF2_params = (freq_register, 0, amp_register, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
-            
         
-        ## All channels offs.
         self.flags = "0"*12
-        status = self.spinapi.pb_inst_dds2(*RF1_params, \
+        start = self.spinapi.pb_inst_dds2(*RF1_params, \
                                            *RF2_params, \
                                            int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, 50e9)
+        self.check_error(start)
+        status = self.spinapi.pb_inst_dds2(*RF1_params, \
+                                           *RF2_params, \
+                                           int(self.flags,2), self.spinapi.Inst.BRANCH, start, 50e9)
         self.check_error(status)
 
         ## Stop programming memory.
@@ -822,7 +831,7 @@ class Pulse_blaster_DDSII300(Instrument):
         self.check_error(status)
                 
         
-        ## Set trigger mode to "auto" and initiate the cw.
+        ## Initiate the cw.
         self.start()
         return
         

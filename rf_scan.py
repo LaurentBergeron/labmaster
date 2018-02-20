@@ -1,4 +1,4 @@
-import exp.exp_dds_rf_scan as experiment
+import exp.exp_rf_scan as experiment
 import exp._defaults_ as _defaults_
 
 params = Params('freq;Hz', 'freq_estimate_min;Hz', 'freq_estimate_max;Hz', 'delay;s')
@@ -10,8 +10,8 @@ params.freq_estimate_min.value = 40*MHz
 params.freq_estimate_max.value = 50*MHz
 
 ## comment both to plot next data on fig_ref figure
-# fig_ref = plt.figure()
-fig_ref = None
+fig_ref = plt.figure()
+# fig_ref = None
 
 
 try:

@@ -12,3 +12,45 @@ dds_rf_scan.py;2018-02-16;ID;Clock trans. freq;dds amplitude;freq start;freq end
 ;;0048;None;1.0;1000000.0;50000000.0;1000.0;0.1;0.146205;Red Open, Green 3;1e-07;
 ;;0049;None;1.0;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
 ;;0050;10000000.0;1.0;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
+
+rf_scan.py;2018-02-19;ID;Clock trans. freq;freq start;freq end;freq step;delay;laser current set;ND filters;sensitivity;comment;
+;;-001;None;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
+;;0000;None;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
+;;0001;10000000.0;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
+;;0002;10000000.0;1000000.0;10000000.0;100000.0;0.1;0.146205;Red Open, Green 3;1e-07;
+
+dds_rabi.py;2018-02-19;ID;fitted pi_len;dds frequency;dds amplitude;pi len start;pi len end;pi len step;laser current set;rf freq;ND filters;sensitivity;bin length;comment;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0002;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0003;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0004;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0005;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0006;1.0001935612260624;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0006;1.0001935612260624;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0007;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+
+dds_rabi.py;2018-02-20;ID;fitted pi_len;dds frequency;dds amplitude;pi len start;pi len end;pi len step;laser current set;rf freq;ND filters;sensitivity;bin length;comment;
+;;0000;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+;;0001;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;
+
+dds_nmr.py;2018-02-20;ID;sequence;T2;A;dds freq;dds amp;pi len;tau start;tau end;tau step;loops start;loops end;loops step;phase cycling;laser current set;rf freq;ND filters;sensitivity;bin length;phase start;comment;
+;;0001;HAHN;None;None;1000000.0;1.0;3.15e-05;0.0;20.01;0.01;1;10;1;Yes;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;X;
+;;0001;HAHN;None;None;1000000.0;1.0;3.15e-05;0.0;20.01;0.01;1;10;1;Yes;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;X;
+;;0001;HAHN;None;None;1000000.0;1.0;3.15e-05;0.0;20.01;0.01;1;10;1;Yes;0.146205;10000000.0;Red Open, Green 3;1e-07;0.15;X;
+
+dds_t1.py;2018-02-20;ID;T1;A;dds freq;dds amp;pi len;tau start;tau end;tau step;phase cycling;laser current set;rf freq;ND filters;sensitivity;bin length;comment;
+;;0015;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0015;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0015;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0015;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0015;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0016;10.0;0.0;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0017;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0018;None;None;1000000.0;1.0;3.15e-05;0.0;1.0;0.001;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+
+dds_nmr.py;2018-02-20;ID;sequence;T2;A;dds freq;dds amp;pi len;tau start;tau end;tau step;loops start;loops end;loops step;phase cycling;laser current set;rf freq;ND filters;sensitivity;bin length;phase start;comment;
+;;0019;HAHN;None;None;1000000.0;1.0;3.15e-05;0.0;20.01;0.01;1;10;1;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;X;
