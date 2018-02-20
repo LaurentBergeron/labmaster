@@ -17,14 +17,14 @@ if "__nonzero__" in list(globals().keys()):
 import IPython
 print("Ipython starting...\n")
 
-ipython_startup = ['from __future__ import division',
-                    '__version__ = '+str(__version__),
+ipython_startup = ['__version__ = '+str(__version__),
                    'print("")',
                    'print("")',
                    'print("*** Welcome to the LabMaster v."+str(__version__)+" "*(13-len(str(__version__)))+"***")',
                    'print("*** In case of emergency, try help_please(). ***")',
                    'print("")',
-                   'run _reset_.ipy']
+                   'run _reset_.ipy',
+                   '%matplotlib']
                    
 IPython.start_ipython(argv=['--InteractiveShellApp.exec_lines=%s'%ipython_startup])
 

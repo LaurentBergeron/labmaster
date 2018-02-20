@@ -4,7 +4,7 @@ time_1 = timeit.default_timer()
 import exp.exp_no_lab as experiment
 params = Params('x', 'y')
 
-params.x.value = np.linspace(0,6,6)
+params.x.value = np.linspace(0,1,1001)
 params.x.sweep_dim = 1
 params.y.value = ['a','b']
 params.y.sweep_dim = 2
@@ -13,7 +13,6 @@ try:
     scan(lab, params, experiment, fig=plt.figure())
 
 except:
-    raise
     error_manager()
 
 finally:
