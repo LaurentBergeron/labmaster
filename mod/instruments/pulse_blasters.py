@@ -35,6 +35,7 @@ class Pulse_blaster_DDSII300(Instrument):
         Inherit from Instrument. 
         Import wrapper and initialize instrument drivers.
         Set all channels to 0 V.
+        Set a default pulse and initialize pulse registers to those values.
         - name: Name to give to the instrument.
         - parent: A reference to the lab instance hosting the instrument.
         """
@@ -51,17 +52,18 @@ class Pulse_blaster_DDSII300(Instrument):
         self.spinapi = importlib.import_module("mod.instruments.wrappers.dll_spinapi") ## dll wrapper
         ## Dictionary with channel names as keys and their respective channel as values.
         self.channels = {}
-        ##   with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
+        ## Dictionary with registers for RF1 (DDS0) and RF2 (DDS1) (leave empty at this point)
         self.registers = {'RF1':{'freq':[], 'phase':[], 'amp':[]}, 'RF2':{'freq':[], 'phase':[], 'amp':[]}}
-        ## Default values are dictionaries with values defined below in set_default_pulse. Key of the dictionary is the channel.
+        ## Set default rf_channel (to use when rf_channel is not specified in a function call).
         self.default_rf_channel = 'RF1'
+        ## Default values are dictionaries with values defined below in set_default_pulse. Key of the dictionary is the channel.
         self.default_delay = {}
         self.default_length = {}
         self.default_freq = {}
         self.default_phase = {}
         self.default_amp = {}
-        self.set_default_pulse('RF1', delay=ms, length=us, freq=2*MHz, phase=0, amp=1.)
-        self.set_default_pulse('RF2', delay=ms, length=us, freq=2*MHz, phase=180, amp=1.)
+        self.set_default_pulse('RF1', delay=ms, length=us, freq=MHz, phase=0, amp=1.)
+        self.set_default_pulse('RF2', delay=ms, length=us, freq=MHz, phase=0, amp=1.)
         ## States of the channels. Channel one is on the right, channel 12 on the left. 
         self.flags = "000000000000"
         ## Initialize drivers.
@@ -77,6 +79,10 @@ class Pulse_blaster_DDSII300(Instrument):
         return 
     
     def rf_channel_format(self, rf_channel):
+        """
+        returns correct formatting for rf_channel. 
+        if input is None, default_rf_channel is used.
+        """
         if rf_channel==None:
             rf_channel = self.default_rf_channel
         if rf_channel in (1,2):
@@ -86,10 +92,18 @@ class Pulse_blaster_DDSII300(Instrument):
         return rf_channel
         
     def rf_channel_str2int(self, rf_channel_str):
+        """
+        From 'RF1', 'RF2' to 1, 2
+        """
         rf_channel_str = self.rf_channel_format(rf_channel_str)
         return int(rf_channel_str[-1:])
     
     def set_default_pulse(self, rf_channel=None, delay=None, length=None, freq=None, phase=None, amp=None, offset=None, shape=None):
+        """
+        Changes many parameters of a pulse at the same time.
+        Does not load the parameters into the board memory. Using self.load_memory() or self.cw() will automatically load them into the registers.
+        Calling self.reset_registers() will clear registers and then load the default pulse into the registers.
+        """
         rf_channel = self.rf_channel_format(rf_channel)
         if delay!=None:
             self.default_delay[rf_channel] = delay
@@ -121,10 +135,9 @@ class Pulse_blaster_DDSII300(Instrument):
         The factor can be multipled using '*' or divided using '/'.
         The factor has to follow the command. For example, 'tau*2' is valid but not '2*tau'.
         
-        - loops: Number of internal loops.
         - pulse_factor: By default, the factor applies to the pulse length. Input pulse_factor='amp' to apply the factor to the pulse amplitude.
                         For delays, the factor always applies on duration.
-        - BB1: Convert all pulses to their BB1 equivalent. If this option is activated, the only available factor is 0.5.           
+        - BB1: Convert all pulses to their BB1 equivalent. If this option is activated, the only available factor is 0.5.
         """
         rf_channel = self.rf_channel_format(rf_channel)
         clean_string = (string.replace(" ", "").replace("\n", "").replace("\t", "").replace("\r", ""))
@@ -185,6 +198,9 @@ class Pulse_blaster_DDSII300(Instrument):
         
     
     def clear_freq_register(self, rf_channel=None):
+        """
+        Empties the frequency register of specified rf channel.
+        """
         rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
         self.check_error(status)
@@ -196,6 +212,9 @@ class Pulse_blaster_DDSII300(Instrument):
         return
         
     def clear_phase_register(self, rf_channel=None):
+        """
+        Empties the phase register of specified rf channel.
+        """
         rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
         self.check_error(status)
@@ -208,7 +227,8 @@ class Pulse_blaster_DDSII300(Instrument):
         
     def clear_amp_register(self, rf_channel=None):
         """
-        doesn't actually clear anything on the board, because of the way amplitude registers work.
+        Empties the amplitude register of specified rf channel.
+        Actually doesn't clear anything on the board (amplitude register works differently than phase and frequency registers), but makes LabMaster think it's empty, so it's equivalent.
         """
         rf_channel = self.rf_channel_format(rf_channel)
         status = self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
@@ -218,7 +238,7 @@ class Pulse_blaster_DDSII300(Instrument):
     
     def clear_registers(self):
         """
-        Clear registers.
+        Clear all registers.
         """
         for rf_channel in ('RF1','RF2'):
             self.clear_freq_register(rf_channel)
@@ -239,18 +259,23 @@ class Pulse_blaster_DDSII300(Instrument):
     
     def add_freq_to_register(self, rf_channel, freq_to_add):
         """
-        freq in Hz
+        Add input frequency to the next register on the specified rf channel.
+        freq_to_add: from 5 kHz to 100 MHz (specify in Hz)
         """
         rf_channel = self.rf_channel_format(rf_channel)
         if not (5*kHz <= freq_to_add <= 100*MHz): 
             raise PulseBlasterDDSII300Error('Frequency added to register should be between 5 kHz and 100 MHz.')
         if len(self.registers[rf_channel]['freq']) > 15:
             raise PulseBlasterDDSII300Error('Maximum number of frequency registers reached ('+rf_channel+').')
+        ## Select RF channel for programming registers
         self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        ## Update registers dictionary
         self.registers[rf_channel]['freq'].append(freq_to_add)
+        ## Program frequency register
         status = self.spinapi.pb_start_programming(self.spinapi.FREQ_REGS)
         self.check_error(status)
         for freq in self.registers[rf_channel]['freq']:
+            ## pb_set_freq uses MHz
             status = self.spinapi.pb_set_freq(freq*1e-6)
             self.check_error(status)
         status = self.spinapi.pb_stop_programming()
@@ -259,18 +284,23 @@ class Pulse_blaster_DDSII300(Instrument):
    
     def add_phase_to_register(self, rf_channel, phase_to_add):
         """
-        phase in deg
+        Add input phase to the next register on the specified rf channel.
+        phase_to_add: from 0 to 360 (in degrees)
         """
         rf_channel = self.rf_channel_format(rf_channel)
         if not (0 <= phase_to_add < 360): 
             raise PulseBlasterDDSII300Error('Phase added to register should be between 0 and 360.')
         if len(self.registers[rf_channel]['phase']) > 7:
             raise PulseBlasterDDSII300Error('Maximum number of phase registers reached ('+rf_channel+').')
+        ## Select RF channel for programming registers
         self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        ## Update registers dictionary
         self.registers[rf_channel]['phase'].append(phase_to_add)
         status = self.spinapi.pb_start_programming(self.spinapi.TX_PHASE_REGS)
+        ## Program phase register
         self.check_error(status)
         for phase in self.registers[rf_channel]['phase']:
+            ## pb_set_phase uses degrees
             status = self.spinapi.pb_set_phase(phase)
             self.check_error(status)
         status = self.spinapi.pb_stop_programming()
@@ -279,24 +309,28 @@ class Pulse_blaster_DDSII300(Instrument):
         
     def add_amp_to_register(self, rf_channel, amp_to_add):
         """
-        amp from 0.0 to 1.0
-        it's super weird that it works differently than freq and phase
-        
-        TODO
+        Add input amplitude to the next register on the specified rf channel.
+        amp_to_add: from 0.0 to 1.0
         """
         rf_channel = self.rf_channel_format(rf_channel)
         if not (0. <= amp_to_add <= 1.): 
             raise PulseBlasterDDSII300Error('Amplitude added to register should be between 0.0 and 1.0.')
         if len(self.registers[rf_channel]['amp']) > 3:
             raise PulseBlasterDDSII300Error('Maximum number of amplitude registers reached ('+rf_channel+').')
+        ## Select RF channel for programming registers
         self.spinapi.pb_select_dds(self.rf_channel_str2int(rf_channel)-1)
+        ## Update registers dictionary
         self.registers[rf_channel]['amp'].append(amp_to_add)
+        ## Program frequency register. For some reason it works differently than frequency and phase programming (there is no need for pb_start_programming and pb_stop_programming function calls.
         register_address = len(self.registers[rf_channel]['amp']) - 1
         status = self.spinapi.pb_set_amp(amp_to_add, register_address)
         self.check_error(status)
         return
     
-    def reset_channel_names(self):
+    def clear_channel_names(self):
+        """
+        Clear channel name aliases
+        """
         self.channels = {}
         return
     
@@ -440,7 +474,6 @@ class Pulse_blaster_DDSII300(Instrument):
         ## Load results from self.preprocess() using spinapi.pb_inst_dds2 commands.
         for TTL_params, RF1_params, RF2_params in self.preprocess():
             flags, opcode, data_field, duration = TTL_params
-            
             status = self.spinapi.pb_inst_dds2(*RF1_params, \
                                                *RF2_params, \
                                                int(flags,2), opcode, data_field, duration*1e9)
@@ -498,10 +531,9 @@ class Pulse_blaster_DDSII300(Instrument):
         """
         Translate self.intructions list to a list of arguments ready for spinapi.pb_inst_dds2().
         Trigger latency can be adjusted with self.adjust_trig_latency option. In this case, a time buffer is needed before first instruction.
-        Will support opcodes, data fields and refs (see self.opcode() doc for more info).
-        Automatic LONG_DELAY when needed.
-        
-        TODO: Add frequencies
+        Supports opcodes, data fields and refs (see self.opcode() doc for more info).
+        Supports pulse instructions given by self.pulse()
+        Automatic LONG_DELAY when needed (not sure how it works if RF is enabled during a long delay - there might be phase issues?)
         """
         result = []
         
@@ -535,8 +567,8 @@ class Pulse_blaster_DDSII300(Instrument):
                 data_field = 0
                 opcode, data_field, duration = self.autolongdelay(opcode, data_field, duration) ## will add a LONG_DELAY opcode if needed.
                 TTL_params = (self.flags, opcode, data_field, duration)
-                RF1_params = (0,0,0,self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
-                RF2_params = (0,0,0,self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
+                RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
+                RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
                 result.append([TTL_params, RF1_params, RF2_params])
                 ref_dict["ZERO_TIME"] = 0 ## to loop/branch to the start, use ZERO_TIME ref.
         else:
@@ -544,8 +576,8 @@ class Pulse_blaster_DDSII300(Instrument):
                 raise PulseBlasterDDSII300Error("You need to add a time buffer at the start of sequence when adjusting for trigger latency.")
                 
         ## Go through all the instructions and condense them to spinapi.pb_inst_dds2() arguments.
-        RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
-        RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## at the start. will change when a pulse instruction is detected.
+        RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## just for the start. will change when a pulse instruction is detected.
+        RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## just for the start. will change when a pulse instruction is detected.
         i=0
         while i < len(instructions)-1:
             i_saved = i ## when multiple instructions are assigned during the same 5 clock cycles window, i_saved is needed to remember the time of the earliest instruction. 
@@ -570,24 +602,31 @@ class Pulse_blaster_DDSII300(Instrument):
                 ## Keep going meaning keep channels as they are. Useful to split a delay without using opcodes.
                 elif opcode_list[i]=="KEEP_GOING": 
                     pass
-                ## A rf-pulse is indicated with the opcode variable.
+                ## The start of a RF pulse
                 elif opcode_list[i]=="pulse":
+                    ## Load pulse instructions
                     rf_channel, phase, amp, freq = RF_params_list[i]    
+                    ## Get the registers on which pulse parameters are saved on the board.
                     freq_register = self.registers[rf_channel]['freq'].index(freq)
                     phase_register = self.registers[rf_channel]['phase'].index(phase)
                     amp_register = self.registers[rf_channel]['amp'].index(amp)
                     if rf_channel=='RF1':
+                        ## enable RF1 and leave RF2 untouched
                         RF1_enable = self.spinapi.TX_ENABLE
                         RF1_params = (freq_register, phase_register, amp_register, RF1_enable, self.spinapi.NO_PHASE_RESET)
                     elif rf_channel=='RF2':
+                        ## enable RF2 and leave RF1 untouched
                         RF2_enable = self.spinapi.TX_ENABLE
                         RF2_params = (freq_register, phase_register, amp_register, RF2_enable, self.spinapi.NO_PHASE_RESET)
+                ## The end of a RF pulse 
                 elif opcode_list[i]=="pulse-end":
                     rf_channel, _, _, _ = RF_params_list[i]    
                     if rf_channel=='RF1':
+                        ## disable RF1 and leave RF2 untouched
                         RF1_enable = self.spinapi.TX_DISABLE
                         RF1_params = (0, 0, 0, RF1_enable, self.spinapi.NO_PHASE_RESET)
                     elif rf_channel=='RF2':
+                        ## disable RF2 and leave RF1 untouched
                         RF2_enable = self.spinapi.TX_DISABLE
                         RF2_params = (0, 0, 0, RF2_enable, self.spinapi.NO_PHASE_RESET)
                     pass
@@ -647,15 +686,15 @@ class Pulse_blaster_DDSII300(Instrument):
     
     def plot_loaded_sequence(self, show_channel="all", ax=None):
         """
-        Show the sequence computed from the preprocess in a matplotlib figure. WARNING: opcodes are not implemented.
+        Show the sequence computed from the preprocess in a matplotlib figure. WARNING: pulses and opcodes are not implemented.
         
         
         - show_channel: A list of channels names to show.
                         If show_channel is "all", all channels in self.instructions will be used.
         - ax: Specify an ax on which to plot the loaded sequence. 
               If None, each channel will get its own new ax, on a new figure.
-              
-        TODO: Add frequencies
+
+        TODO: Add pulses.
         """
             
         ## Select channels to plot.
@@ -715,6 +754,17 @@ class Pulse_blaster_DDSII300(Instrument):
         return
     
     def pulse(self, rf_channel=None, length=None, phase=None, amp=None, freq=None, rewind=False, opcode_str="", data_field=0, ref=""):
+        """
+        Instruction to add a pulse.
+        
+        - length, phase, amp, freq: Parameters of the pulse. If not specified, defaults will be used.
+        - opcode_str: add an opcode to the instruction.
+        - data_field: The data field used by the opcode, if opcode_str was specified.
+        - ref: A reference string for eventual opcode (optional).
+        - rewind: After updating time_cursor, go back in time by 'rewind' seconds.
+                  If rewind is "start", go back to initial time cursor position. This will update self.total_duration but keep self.time_cursor the same.
+        """
+        ## Use default values if inputs were not specified
         rf_channel = self.rf_channel_format(rf_channel)
         if length==None:
             length = self.default_length[rf_channel]
@@ -724,10 +774,10 @@ class Pulse_blaster_DDSII300(Instrument):
             amp = self.default_amp[rf_channel]
         if freq==None:
             freq = self.default_freq[rf_channel]
-        
+
+        ## Add opcode instruction if needed
         if opcode_str!="":
             self.opcode(opcode_str, data_field)
-        
         
         ## Add specified freq, phase and amp to registers if they are not already there.
         if not freq in self.registers[rf_channel]['freq']:
@@ -735,9 +785,7 @@ class Pulse_blaster_DDSII300(Instrument):
         if not phase in self.registers[rf_channel]['phase']:
             self.add_phase_to_register(rf_channel, phase)            
         if not amp in self.registers[rf_channel]['amp']:
-            self.add_amp_to_register(rf_channel, amp)
-            
-        
+            self.add_amp_to_register(rf_channel, amp)        
         
         ## Update instructions
         RF_params = (rf_channel, phase, amp, freq)
@@ -751,6 +799,7 @@ class Pulse_blaster_DDSII300(Instrument):
         """
         Spit a continous wave function of specified frequency and amplitude.
         If arguments are omitted, defaults will be used.
+        If rf_channel=='BOTH', freq and amp should be lists with two items. First item for RF1, second item for RF2. Defaults will replace None values as usual.
         """
         ## Replace None values by default settings.
         if rf_channel=='BOTH':
@@ -800,15 +849,19 @@ class Pulse_blaster_DDSII300(Instrument):
 
 
         if rf_channel=='BOTH':
+            ## Get the registers on which pulse parameters are saved on the board.
             freq_register_RF1 = self.registers['RF1']['freq'].index(freq[0])
             amp_register_RF1 = self.registers['RF1']['amp'].index(amp[0])
             freq_register_RF2 = self.registers['RF2']['freq'].index(freq[1])
             amp_register_RF2 = self.registers['RF2']['amp'].index(amp[1])
+            ## Prepare arguments for pb_inst_dds2
             RF1_params = (freq_register_RF1, 0, amp_register_RF1, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
             RF2_params = (freq_register_RF2, 0, amp_register_RF2, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
         else:
+            ## Get the registers on which pulse parameters are saved on the board.
             freq_register = self.registers[rf_channel]['freq'].index(freq)
             amp_register = self.registers[rf_channel]['amp'].index(amp)
+            ## Prepare arguments for pb_inst_dds2
             if rf_channel=='RF1':
                 RF1_params = (freq_register, 0, amp_register, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
                 RF2_params = (0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
@@ -816,7 +869,7 @@ class Pulse_blaster_DDSII300(Instrument):
                 RF1_params = (0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
                 RF2_params = (freq_register, 0, amp_register, self.spinapi.TX_ENABLE, self.spinapi.NO_PHASE_RESET)
         
-        self.flags = "0"*12
+        self.flags = "0"*12 ## Deactivate TTL channels during a cw.
         start = self.spinapi.pb_inst_dds2(*RF1_params, \
                                            *RF2_params, \
                                            int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, 50e9)
@@ -866,7 +919,8 @@ class Pulse_blaster_DDSII300(Instrument):
     
     def read_status(self):
         """
-        comment section TODO
+        Reads status of the PulseBlaster. 
+        Buggy.
         """
         code = self.spinapi.pb_read_status()
         str_code = bin(code)[2:].zfill(4)
