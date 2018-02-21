@@ -853,7 +853,13 @@ def show_visa():
         print(name)
     return 
     
-    
+def yes_or_no(truth):
+    if truth:
+        result = 'Yes'
+    else:
+        result = 'No'
+    return result
+        
     
     
     

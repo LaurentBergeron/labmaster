@@ -37,8 +37,8 @@ def pre_scan(lab, params, fig, data, ID):
 
 def sequence(lab, params, fig, data, ID):
     lab.dds.set_default_pulse(delay=params.tau.v)
-    START = params.phase_cycle.v+params.phase_start.v+'/2,'
-    END = params.phase_start.v+'/2,'
+    START = params.phase_cycle.v+'X/2,'
+    END = 'X/2,'
      
     _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
