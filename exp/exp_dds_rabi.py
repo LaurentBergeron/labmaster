@@ -10,7 +10,7 @@ launch = exp.exp_dds_nmr.launch
 get_data = exp.exp_dds_nmr.get_data
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.dds.reset_channel_names()
+    lab.dds.clear_channel_names()
     lab.dds.add_channel('master_trig', 1)
     lab.dds.add_channel('Xshutter', 2)
     lab.dds.add_channel('binA', 10)

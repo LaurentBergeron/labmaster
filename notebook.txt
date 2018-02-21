@@ -63,3 +63,7 @@ dds_rabi.py;2018-02-20;ID;fitted pi_len;dds frequency;dds amplitude;pi len start
 
 dds_nmr.py;2018-02-20;ID;sequence;T2;A;dds freq;dds amp;pi len;tau start;tau end;tau step;loops start;loops end;loops step;phase cycling;laser current set;rf freq;ND filters;sensitivity;bin length;phase start;comment;
 ;;0025;HAHN;None;None;1000000.0;1.0;3.15e-05;0.0;20.01;0.01;1;10;1;Yes;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;X;
+
+dds_rabi.py;2018-02-20;ID;fitted pi_len;dds frequency;dds amplitude;pi len start;pi len end;pi len step;laser current set;rf freq;ND filters;sensitivity;bin length;comment;
+;;0025;None;1000000.0;1.0;0.0;0.001;1e-06;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;
+;;0026;4.164066954625458e+21;1000000.0;1.0;0.0;0.001;1e-06;0.146205;1000000.0;Red Open, Green 3;1e-07;0.15;

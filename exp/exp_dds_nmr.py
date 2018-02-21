@@ -10,7 +10,7 @@ import exp._sequences_ as _sequences_
 
 
 def pre_scan(lab, params, fig, data, ID):    
-
+    lab.dds.clear_channel_names()
     lab.dds.add_channel('master_trig', 1)
     lab.dds.add_channel('Xshutter', 2)
     lab.dds.add_channel('binA', 10)
