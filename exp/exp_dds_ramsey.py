@@ -4,7 +4,7 @@ import scipy.constants as cst
 import pdb
 
 ## Home modules
-from . import _shared_
+from . import _shared_functions_
 from mod.main import *
 from . import _NMR_sequences_
 import exp.exp_dds_nmr

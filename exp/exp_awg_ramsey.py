@@ -3,7 +3,7 @@ import numpy as np
 import scipy.constants as cst
 
 ## Home modules
-from . import _shared_
+from . import _shared_functions_
 from mod.main import *
 from . import _NMR_sequences_
 
