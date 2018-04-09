@@ -6,7 +6,7 @@ import pdb
 ## Home modules
 from . import _shared_
 from mod.main import *
-from . import _sequences_
+from . import _NMR_sequences_
 import exp.exp_dds_nmr
 
 sequence = exp.exp_dds_nmr.sequence

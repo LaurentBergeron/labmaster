@@ -330,7 +330,7 @@ def update_params(swept_params, i):
 
 def zeros(params, experiment):
     """ 
-    Initializes data to zeros. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
+    Initializes data to NaNs. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
     dim 1 is sweep_dim #1, dim 2 is sweep_dim #2 and so on.
     """
     ## dimension of the sweep
