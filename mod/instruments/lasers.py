@@ -32,7 +32,7 @@ class Laser_ITC4001(Default_visa):
         self.MIN_CURR = 0
         self.MAX_TEMP = 40 ## Celcius
         self.MIN_TEMP = 30 ## Celcius
-        print('connected ITC4001 laser.')
+        print('connected to ITC4001 laser.')
         return 
         
     def check_temperature(self, temp):

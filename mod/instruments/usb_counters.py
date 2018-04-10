@@ -45,7 +45,7 @@ class USB_counter_CTR04(Instrument):
         self.cbw32 = importlib.import_module("mod.instruments.wrappers.dll_cbw32")
         self.error_msg = ct.create_string_buffer(1000)
         self.board_num = board_num
-        for counter_num in (0,1):
+        for counter_num in (0,1,2):
             status = self.cbw32.cbCConfigScan(self.board_num, counter_num, 0x10, 16, 0, 0, 0, counter_num)
             self.check_status(status)
             self.clear(counter_num)
