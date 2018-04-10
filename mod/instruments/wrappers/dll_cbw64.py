@@ -1,22 +1,54 @@
 """
-Python wrapper for cbw32.dll
+Python wrapper for cbw64.dll
 Required to use MCC USB counter CTR04 drivers.
 You can find all the functions from the dll here, however the result/argument types were completed for needed functions only.
 Uncompleted functions are commented. Complete them as the need for them arise.
+Help file for the dll functions can be downloaded at https://www.mccdaq.com/daq-software/universal-library.aspx.
 """
 __author__ =  "Laurent Bergeron <laurent.bergeron4@gmail.com>"
 
 from ctypes import *
 import os
 
-## Load cbw32.dll
+## Load cbw64.dll
 ### IMPORTANT InstalCal must be run at least once for this to work.
 dll = WinDLL("C://Program Files (x86)/Measurement Computing/DAQ/cbw64.dll") 
 
 ARRAY = POINTER
+
+
+def cbDIn(*args):
+    """Reads a digital input port."""
+    return dll.cbDIn(*args)
+dll.cbDIn.restype = c_int #Error code
+dll.cbDIn.argtype = (c_int, #BoardNum
+                     c_int, #portType
+                     POINTER(c_int) #dataValue
+                     )
+
+def cbPulseOutStart(*args):
+    """
+    Starts a timer to generate digital pulses at a specified frequency and duty cycle. 
+    Use PulseOutStop() to stop the output. 
+    Use this method with counter boards that have a timer-type counter.
+    """
+    return dll.cbPulseOutStart(*args)
+dll.cbPulseOutStart.restype = c_int #Error code
+dll.cbPulseOutStart.argtype = (c_int, #boardNum
+                               c_int, #timerNum
+                               POINTER(c_double), #frequency
+                               POINTER(c_double), #duty cycle
+                               c_uint, #pulseCount
+                               POINTER(c_double), #initial delay
+                               c_int, #idleState (Low = 0, High=1)
+                               c_int #options (default = 0)
+                               )
     
 def cbCConfigScan(*args):
-    """Configures a counter channel. This function only works with counter boards that have counter scan capability."""
+    """
+    Configures a counter channel. 
+    This function only works with counter boards that have counter scan capability.
+    """
     return dll.cbCConfigScan(*args)
 dll.cbCConfigScan.restype = c_int # Error code
 dll.cbCConfigScan.argtype = (c_int, # BoardNum
@@ -31,8 +63,10 @@ dll.cbCConfigScan.argtype = (c_int, # BoardNum
 
                                      
 def cbCClear(*args):
-    """Clears a scan counter value (sets it to zero). This function only works with counter boards that have counter
-scan capability."""
+    """
+    Clears a scan counter value (sets it to zero). 
+    This function only works with counter boards that have counter scan capability.
+    """
     return dll.cbCClear(*args)
 dll.cbCClear.restype = c_int # Error code
 dll.cbCClear.argtype = (c_int, # BoardNum
@@ -52,9 +86,10 @@ dll.cbCIn32.argtype = (c_int, # BoardNum
                   
 def cbGetErrMsg(*args):
     """
-    Returns the error message associated with an error code. Each function returns an error code. An error code
-that is not equal to 0 indicates that an error occurred. Call this function to convert the returned error code to a
-descriptive error message.
+    Returns the error message associated with an error code. 
+    Each function returns an error code. 
+    An error code that is not equal to 0 indicates that an error occurred. 
+    Call this function to convert the returned error code to a descriptive error message.
     """
     return dll.cbGetErrMsg(*args)
 dll.cbGetErrMsg.restype = c_int

@@ -93,7 +93,7 @@ def auto_unit(value, unit, decimal=None):
 def create_todays_folder():
     """ Create those folders if they don't exist. """
     for saving_loc in saving_folders():
-        for section in ["data", "experiment","fig","script","params","sweep","custom"]:
+        for section in ["experiment","fig","script","params","sweep","custom"]:
             folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y-%m-%d")
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
@@ -330,7 +330,7 @@ def update_params(swept_params, i):
 
 def zeros(params, experiment):
     """ 
-    Initializes data to zeros. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
+    Initializes data to NaNs. Size of array will depend on dimension of sweep, lenght of parameter values, and size of get_data return. 
     dim 1 is sweep_dim #1, dim 2 is sweep_dim #2 and so on.
     """
     ## dimension of the sweep

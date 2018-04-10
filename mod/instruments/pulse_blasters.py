@@ -358,6 +358,31 @@ class Pulse_blaster_DDSII300(Instrument):
         self.channels[name] = channel
         return
 
+    def all_channels_on(self):
+        """Set all channels on."""
+        ## Stop generation (states of the channels will stay the same as when they stopped).
+        status = self.spinapi.pb_stop()
+        self.check_error(status)
+        ## Start a PULSE_PROGRAM (usual stuff).
+        status = self.spinapi.pb_start_programming(self.spinapi.PULSE_PROGRAM)
+        self.check_error(status)
+        ## Branch two instructions to loop zeros.
+        self.flags = "1"*12
+        start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
+                                          0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
+                                          int(self.flags,2), self.spinapi.Inst.CONTINUE, 0, self.spinapi.ms)
+        self.check_error(start)
+        start = self.spinapi.pb_inst_dds2(0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
+                                          0, 0, 0, self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET, \
+                                          int(self.flags,2), self.spinapi.Inst.BRANCH, start, self.spinapi.ms)
+        self.check_error(status)
+        ## Stop programming.
+        status = self.spinapi.pb_stop_programming()
+        self.check_error(status)
+        ## Start generation.
+        self.start()
+        return
+        
     def all_channels_off(self):
         """Set all channels to 0V."""
         ## Stop generation (states of the channels will stay the same as when they stopped).
@@ -440,7 +465,7 @@ class Pulse_blaster_DDSII300(Instrument):
         Useful to split delays.
         Useful to insert refs.
         """
-        self.instructions.append([self.lab.time_cursor, None, "KEEP_GOING", None, ref, ()])            
+        self.instructions.append([self.lab.time_cursor, None, "KEEP_GOING", None, ref])            
     
     def get_ref_freq(self):
         """
@@ -539,7 +564,7 @@ class Pulse_blaster_DDSII300(Instrument):
         
         ## Unzip instructions
         instructions = [tuple(x) for x in (sorted(self.instructions, key=lambda x: x[0]))] + [(self.lab.total_duration, "", "", "", "", ())]
-        time_list, channel_list, opcode_list, data_field_list, ref_list, RF_params_list = list(zip(*instructions)) 
+        time_list, channel_list, opcode_list, data_field_list, ref_list = list(zip(*instructions)) 
         
         ## Make sure each ref is unique.
         for ref in ref_list:
@@ -570,11 +595,12 @@ class Pulse_blaster_DDSII300(Instrument):
                 RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
                 RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET)
                 result.append([TTL_params, RF1_params, RF2_params])
-                ref_dict["ZERO_TIME"] = 0 ## to loop/branch to the start, use ZERO_TIME ref.
         else:
             if self.adjust_trig_latency:
                 raise PulseBlasterDDSII300Error("You need to add a time buffer at the start of sequence when adjusting for trigger latency.")
                 
+        ref_dict["ZERO_TIME"] = 0 ## to loop/branch to the start, use ZERO_TIME ref.
+        
         ## Go through all the instructions and condense them to spinapi.pb_inst_dds2() arguments.
         RF1_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## just for the start. will change when a pulse instruction is detected.
         RF2_params = (0,0,0,self.spinapi.TX_DISABLE, self.spinapi.NO_PHASE_RESET) ## just for the start. will change when a pulse instruction is detected.
@@ -605,7 +631,7 @@ class Pulse_blaster_DDSII300(Instrument):
                 ## The start of a RF pulse
                 elif opcode_list[i]=="pulse":
                     ## Load pulse instructions
-                    rf_channel, phase, amp, freq = RF_params_list[i]    
+                    rf_channel, phase, amp, freq = data_field_list[i]    
                     ## Get the registers on which pulse parameters are saved on the board.
                     freq_register = self.registers[rf_channel]['freq'].index(freq)
                     phase_register = self.registers[rf_channel]['phase'].index(phase)
@@ -620,7 +646,7 @@ class Pulse_blaster_DDSII300(Instrument):
                         RF2_params = (freq_register, phase_register, amp_register, RF2_enable, self.spinapi.NO_PHASE_RESET)
                 ## The end of a RF pulse 
                 elif opcode_list[i]=="pulse-end":
-                    rf_channel, _, _, _ = RF_params_list[i]    
+                    rf_channel, _, _, _ = data_field_list[i]    
                     if rf_channel=='RF1':
                         ## disable RF1 and leave RF2 untouched
                         RF1_enable = self.spinapi.TX_DISABLE
@@ -774,7 +800,9 @@ class Pulse_blaster_DDSII300(Instrument):
             amp = self.default_amp[rf_channel]
         if freq==None:
             freq = self.default_freq[rf_channel]
-
+        
+        # phase = (phase + self.lab.time_cursor*freq)%360
+        
         ## Add opcode instruction if needed
         if opcode_str!="":
             self.opcode(opcode_str, data_field)
@@ -789,8 +817,8 @@ class Pulse_blaster_DDSII300(Instrument):
         
         ## Update instructions
         RF_params = (rf_channel, phase, amp, freq)
-        self.instructions.append([self.lab.time_cursor, None, "pulse", RF_params, ref, RF_params])
-        self.instructions.append([self.lab.time_cursor + length, None, "pulse-end", RF_params, "", RF_params])
+        self.instructions.append([self.lab.time_cursor, None, "pulse", RF_params, ref])
+        self.instructions.append([self.lab.time_cursor + length, None, "pulse-end", RF_params, ""])
         self.lab.update_time_cursor(length, rewind)
         return
     
@@ -911,7 +939,7 @@ class Pulse_blaster_DDSII300(Instrument):
         if opcode_str not in self.available_opcodes():
             raise PulseBlasterDDSII300Error("Wrong opcode. \n"+textwrap.dedent(Pulse_blaster_DDSII300.opcode.__doc__))
         self.keep_going()
-        self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref, ()])
+        self.instructions.append([self.lab.time_cursor, None, opcode_str, data_field, ref])
         if duration > 0:
             self.lab.update_time_cursor(duration, None)
             self.keep_going()
@@ -970,11 +998,11 @@ class Pulse_blaster_DDSII300(Instrument):
         if opcode_str!="":
             self.opcode(opcode_str, data_field)
         if duration==None:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref, ()])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref])
             self.lab.update_time_cursor(0., rewind)
         else:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref, ()])
-            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 0, "", ()])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 1, ref])
+            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 0, ""])
             self.lab.update_time_cursor(duration, rewind)
         return
         
@@ -993,11 +1021,11 @@ class Pulse_blaster_DDSII300(Instrument):
         if opcode_str!="":
             self.opcode(opcode_str, ref)
         if duration==None:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref, ()])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref])
             self.lab.update_time_cursor(0., rewind)
         else:
-            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref, ()])
-            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 1, "", ()])
+            self.instructions.append([self.lab.time_cursor, channel, self.spinapi.Inst.CONTINUE, 0, ref])
+            self.instructions.append([self.lab.time_cursor+duration, channel, self.spinapi.Inst.CONTINUE, 1, ""])
             self.lab.update_time_cursor(duration, rewind)
         return
         

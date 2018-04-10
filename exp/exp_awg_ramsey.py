@@ -3,9 +3,9 @@ import numpy as np
 import scipy.constants as cst
 
 ## Home modules
-from . import _shared_
+from . import _shared_functions_
 from mod.main import *
-from . import _sequences_
+from . import _NMR_sequences_
 
 from exp.exp_nmr import sequence, launch, get_data, create_plot
 

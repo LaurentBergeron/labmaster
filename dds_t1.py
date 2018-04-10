@@ -6,7 +6,7 @@ experiment.PHASE_CYCLING = True
 experiment.DELAY_BEFORE_PULSE = False
 
 params = Params('tau;s', 'phase_cycle', 'time_axis;s', 'bin_length;s',
-                'dds_amp;V', 'dds_freq;Hz', 'pi_len;s')
+                'dds_amp', 'dds_freq;Hz', 'pi_len;s')
 
 params.dds_amp.value = 1.0
 params.dds_freq.value = _defaults_.dds_freq

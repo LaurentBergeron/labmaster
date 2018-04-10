@@ -2,12 +2,13 @@
 import numpy as np 
 
 ## Home modules
-from . import _shared_ 
+from . import _shared_functions_ 
 from mod.main import *
 
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.dds.add_channel('scope_trig', 4)
+    lab.dds.clear_channel_names()
+    lab.dds.add_channel('scope_trig', 1)
     
     lab.dds.default_rf_channel = 'RF1'
     lab.dds.set_default_pulse('RF1', amp=params.amp.value, freq=params.freq.value)
