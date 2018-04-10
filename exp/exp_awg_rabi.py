@@ -2,7 +2,7 @@
 import numpy as np 
 
 ## Home modules
-from . import _shared_ 
+from . import _shared_functions_ 
 from mod.main import *
 
 from .exp_nmr import launch, get_data
@@ -23,13 +23,13 @@ def pre_scan(lab, params, fig, data, ID):
 
 
 def sequence(lab, params, fig, data, ID):
-    _shared_.pb_master_trigger(lab)
-    _shared_.prepare(lab, params)
+    _shared_functions_.pb_master_trigger(lab)
+    _shared_functions_.prepare(lab, params)
     lab.pb.turn_on('scope_trig', duration=us, rewind=True)
 
     lab.awg.pulse(length=params.pi_len.v)
         
-    _shared_.readout(lab, params)
+    _shared_functions_.readout(lab, params)
     
     return     
     

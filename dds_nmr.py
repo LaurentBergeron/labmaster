@@ -1,6 +1,6 @@
 import exp.exp_dds_nmr as experiment
 import exp._defaults_ as _defaults_
-import exp._sequences_ as _sequences_
+import exp._NMR_sequences_ as _NMR_sequences_
 
 
 experiment.PHASE_CYCLING = False

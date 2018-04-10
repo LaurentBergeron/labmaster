@@ -34,11 +34,16 @@ from . import available_instruments
 
 ## Import useful objects to user from other modules
 from .classes import Lab, Params
-from .not_for_user import LabMasterError, today, lastID, auto_unit, saving_folders, remove_nan
+from .not_for_user import LabMasterError, today, lastID, auto_unit, saving_folders
 from .units import *
 from pydoc import help
 
-
+def show_dates():
+    
+    for x in os.listdir(saving_folders()[0]+'sweep/'):
+        if os.path.isdir(saving_folders()[0]+'sweep/'+x):
+            print(x)
+    return 
     
 def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     """

@@ -2,7 +2,7 @@
 import numpy as np 
 
 ## Home modules
-from . import _shared_ 
+from . import _shared_functions_ 
 from mod.main import *
 
 

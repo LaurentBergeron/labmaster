@@ -4,7 +4,7 @@ import scipy.constants as cst
 
 
 ## Home modules
-from . import _shared_
+from . import _shared_functions_
 from mod.main import *
 from ._sequences_ import *
 import exp.exp_dds_nmr
@@ -42,8 +42,8 @@ def sequence(lab, params, fig, data, ID):
     START = params.phase_cycle.v+'X/2,'
     END = 'X/2,'
      
-    _shared_.pb_master_trigger(lab)
-    _shared_.prepare(lab, params)
+    _shared_functions_.pb_master_trigger(lab)
+    _shared_functions_.prepare(lab, params)
     
     lab.free_evolution_time = 0
     
@@ -57,7 +57,7 @@ def sequence(lab, params, fig, data, ID):
     params.time_axis.value[params.tau.i] = lab.free_evolution_time
     
     lab.dds.turn_on('scope_trig', duration=ms, rewind=True)
-    _shared_.readout(lab, params)
+    _shared_functions_.readout(lab, params)
     return 
 
 
