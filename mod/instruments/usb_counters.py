@@ -42,11 +42,14 @@ class USB_counter_CTR04(Instrument):
         self.verbose = False
         ##-------------------------------------------------------------------------------------------------------##
         Instrument.__init__(self, name, parent)
-        self.cbw32 = importlib.import_module("mod.instruments.wrappers.dll_cbw32")
+        self.cbw64 = importlib.import_module("mod.instruments.wrappers.dll_cbw64")
         self.error_msg = ct.create_string_buffer(1000)
         self.board_num = board_num
-        for counter_num in (0,1):
-            status = self.cbw32.cbCConfigScan(self.board_num, counter_num, 0x10, 16, 0, 0, 0, counter_num)
+        for counter_num in (0,1,2):
+            ## counter 0 is bin A
+            ## counter 1 is bin B
+            ## counter 2 is Count - to use with the timer
+            status = self.cbw64.cbCConfigScan(self.board_num, counter_num, 0x10, 16, 0, 0, 0, counter_num)
             self.check_status(status)
             self.clear(counter_num)
         print('connected to USB counter CTR04.')
@@ -61,13 +64,13 @@ class USB_counter_CTR04(Instrument):
         if self.verbose:
             print("USB_counter:", status)
         if status > 0:
-            self.cbw32.cbGetErrMsg(status, self.error_msg)
+            self.cbw64.cbGetErrMsg(status, self.error_msg)
             raise USBCounterError(self.error_msg.value)
         return
     
     def clear(self, counter_num):
         """Clear count from specified counter."""
-        status = self.cbw32.cbCClear(self.board_num, counter_num)
+        status = self.cbw64.cbCClear(self.board_num, counter_num)
         self.check_status(status)
         return
         
@@ -78,9 +81,29 @@ class USB_counter_CTR04(Instrument):
     def read(self, counter_num):
         """Read number of counts from specified counter."""
         value = ct.c_ulong()
-        status = self.cbw32.cbCIn32(self.board_num, counter_num, ct.byref(value))
+        status = self.cbw64.cbCIn32(self.board_num, counter_num, ct.byref(value))
         self.check_status(status)
         return value.value
+    
+    def initiate_timer(self, freq):
+        timer_num = 0
+        duty_cycle = 0.5
+        pulse_count = 1
+        initial_delay = 0.
+        status = self.cbw64.cbPulseOutStart(self.board_num, timer_num, ct.byref(ct.c_double(freq)), ct.byref(ct.c_double(duty_cycle)), pulse_count, ct.byref(ct.c_double(initial_delay)), 0, 0)
+        self.check_status(status)
+        return
+    
+    def timer_is_stopped(self):
+        value = ct.c_ulong()
+        port = 1 # AuxPort is 1
+        status = self.cbw64.cbDIn(self.board_num, port, ct.byref(value))
+        self.check_status(status)
+        if value.value==0:
+            result = True
+        else:
+            result = False
+        return result
 
 class USBCounterError(nfu.LabMasterError):
     """Errors raised by the CTR04 USB counter."""
