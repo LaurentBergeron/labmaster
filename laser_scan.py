@@ -24,7 +24,7 @@ finally:
         peak_min, at_curr = experiment.out(None, params, None, last_data(), None)
     except:
         print("Couldn't calculate current at peak minimum.")
-        peak_min, at_freq = None, None
+        peak_min, at_curr = None, None
     notebook('current at min;'+str(at_curr),
              'current start;'+str(params.current.get_start()),
              'current end;'+str(params.current.get_end()),

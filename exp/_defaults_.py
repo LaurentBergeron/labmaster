@@ -11,7 +11,7 @@ awg_sample_rate = 976*MHz
 awg_freq = 50*MHz
 awg_amp = 200*mV
 
-pi_len = 31.5*us
+pi_len = 31.5*us/2
 bin_len = 150*ms
 amp_sensitivity = 1e-7
 ND_filters = 'Red Open, Green 3'

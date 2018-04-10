@@ -93,7 +93,7 @@ def auto_unit(value, unit, decimal=None):
 def create_todays_folder():
     """ Create those folders if they don't exist. """
     for saving_loc in saving_folders():
-        for section in ["data", "experiment","fig","script","params","sweep","custom"]:
+        for section in ["experiment","fig","script","params","sweep","custom"]:
             folder_name = saving_loc+"/"+section+"/"+datetime.date.today().strftime("%Y-%m-%d")
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)

@@ -11,11 +11,12 @@ get_data = exp.exp_dds_nmr.get_data
 
 def pre_scan(lab, params, fig, data, ID):
     lab.dds.clear_channel_names()
-    lab.dds.add_channel('master_trig', 1)
-    lab.dds.add_channel('Xshutter', 2)
-    lab.dds.add_channel('binA', 10)
-    lab.dds.add_channel('binB', 11)
-    lab.dds.add_channel('scope_trig', 12)
+    lab.dds.add_channel('Xshutter', 10)
+    lab.dds.add_channel('Yshutter', 11)
+    lab.dds.add_channel('1047shutter', 12)
+    lab.dds.add_channel('binA', 7)
+    lab.dds.add_channel('binB', 8)
+    lab.dds.add_channel('scope_trig', 1)
     
     lab.dds.default_channel = 'RF1'
     lab.dds.set_default_pulse('RF1', amp=params.dds_amp.value, freq=params.dds_freq.value)
@@ -24,7 +25,7 @@ def pre_scan(lab, params, fig, data, ID):
 
 
 def sequence(lab, params, fig, data, ID):
-    _shared_.pb_master_trigger(lab)
+    # _shared_.pb_master_trigger(lab)
     _shared_.prepare(lab, params)
     lab.dds.turn_on('scope_trig', duration=us, rewind=True)
 

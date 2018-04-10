@@ -38,7 +38,7 @@ from .not_for_user import LabMasterError, today, lastID, auto_unit, saving_folde
 from .units import *
 from pydoc import help
 
-        
+
     
 def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     """
@@ -435,7 +435,7 @@ def last_out(experiment_name=None):
 
 def load_data(date, ID):
     """
-    Load data from a .npy file in data/ folder. 
+    Load data from a .npy file in sweep/ folder. 
     
     - date: Date from file name. Has to follow this datetime format: %Y-%m-%d
             %Y is year in four characters.

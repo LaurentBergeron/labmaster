@@ -9,7 +9,7 @@ __author__ =  "Adam DeAbreu <adeabreu@sfu.ca>, Laurent Bergeron <laurent.bergero
 
 ## Base modules
 import numpy as np
-import visa as vi
+import pyvisa as vi
 
 ## Homemade modules
 from .default_visa import Default_visa

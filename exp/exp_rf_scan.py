@@ -14,7 +14,6 @@ def launch(lab, params, fig, data, ID):
 
 
 def get_data(lab, params, fig, data, ID):  
-    print('getdata')
     return lab.lockin.get_X()
 
     

@@ -13,6 +13,7 @@ params.freq_estimate_max.value = 50*MHz
 fig_ref = plt.figure()
 # fig_ref = None
 
+laser_current_read = 0#lab.laser.get_current()
 
 try:
     scan(lab, params, experiment, fig=fig_ref)
@@ -30,7 +31,7 @@ finally:
              'freq step;'+str(params.freq.get_step()),
              'delay;'+str(params.delay.value),
              'laser current set;'+str(_defaults_.laser_current),
-             # 'laser current read;'+str(lab.laser.get_current()),
+             'laser current read;'+str(laser_current_read),
              'ND filters;'+_defaults_.ND_filters,
              'sensitivity;'+str(_defaults_.amp_sensitivity), 
              )

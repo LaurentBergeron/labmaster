@@ -17,11 +17,12 @@ create_plot = exp.exp_dds_nmr.create_plot
 
 def pre_scan(lab, params, fig, data, ID):
     lab.dds.clear_channel_names()
-    lab.dds.add_channel('master_trig', 1)
-    lab.dds.add_channel('Xshutter', 2)
-    lab.dds.add_channel('binA', 10)
-    lab.dds.add_channel('binB', 11)
-    lab.dds.add_channel('scope_trig', 12)
+    lab.dds.add_channel('Xshutter', 10)
+    lab.dds.add_channel('Yshutter', 11)
+    lab.dds.add_channel('1047shutter', 12)
+    lab.dds.add_channel('binA', 7)
+    lab.dds.add_channel('binB', 8)
+    lab.dds.add_channel('scope_trig', 1)
 
     lab.dds.default_channel = 'RF1'
     lab.dds.set_default_pulse('RF1', length=params.pi_len.v, amp=params.dds_amp.v, freq=params.dds_freq.v)
@@ -63,10 +64,9 @@ def update_plot(lab, params, fig, data, ID):
         if popt is not None:
             xdata = params.time_axis.value[1:][np.isfinite(data[1:])]
             ydata = fit_sin(params.time_axis.value[1:], *popt)[np.isfinite(data[1:])]
-            print(xdata)
-            print(ydata)
             plotting.updatefig_XY(fig, xdata, ydata, line_index=1)
             fig.suptitle('$T$ = '+auto_unit(popt[1], 's', decimal=3)+'\n $A$ = %3.0f'%popt[0])
+
     return
 
     
