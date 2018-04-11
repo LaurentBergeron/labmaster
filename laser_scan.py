@@ -8,7 +8,7 @@ experiment.USE_FIT = False
 params = Params('temp_meas;C', 'current;A', 'current_meas;A', 'curr_estimate_min;A', 'curr_estimate_max;A', 'wavelength;m', 'delay;s')
 
 params.delay.value = 500*ms
-params.current.value = orange(0.0875,0.09,16e-6)
+params.current.value = np.linspace(0.0875,0.09,11)
 
 ## Min and max current for finding min. (when USE_FIT is True)
 params.curr_estimate_min.value = 0.0875

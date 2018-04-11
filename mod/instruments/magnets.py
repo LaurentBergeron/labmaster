@@ -45,7 +45,7 @@ class PowerSupplyCS410V(Default_visa):
 
     def get_current(self):
         """Read current (A)."""
-        retval = self.device_handle.query("source:current:fix?")
+        retval = self.device_handle.query("")
         return float(retval)
 
 
@@ -53,7 +53,7 @@ class PowerSupplyCS410V(Default_visa):
     def set_current(self, current):
         """Set current (A)."""
         self.check_current(current)
-        self.device_handle.write("source:current:fix "+str(current)+"A")
+        self.device_handle.write("")
         return
 
 
