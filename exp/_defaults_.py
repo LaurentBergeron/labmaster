@@ -19,3 +19,5 @@ ND_filters_1047 = '2.04'
 
 laser_current = 0.146205
 sig_gen_freq = 1.61042*GHz
+
+mag_field = 0

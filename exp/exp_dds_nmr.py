@@ -55,16 +55,16 @@ def sequence(lab, params, fig, data, ID):
 
     
 def launch(lab, params, fig, data, ID):
-    lab.usb_counter.clear(0)
-    lab.usb_counter.clear(1)
+    lab.counter.clear(0)
+    lab.counter.clear(1)
     lab.dds.start()
     input()
     return
 
 
 def get_data(lab, params, fig, data, ID):     
-    A = lab.usb_counter.read(0) 
-    B = lab.usb_counter.read(1)
+    A = lab.counter.read(0) 
+    B = lab.counter.read(1)
     return B-A
     
 

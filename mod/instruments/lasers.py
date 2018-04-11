@@ -19,7 +19,7 @@ from .. import not_for_user
 nfu = not_for_user
 
 class Laser_LDC500(Default_visa):
-    """Class allowing to control an ITC4001 infrared laser."""
+    """Class allowing to control an LDC500 laser controller."""
     def __init__(self, name, parent, visa_ID):
         """
         Inherit from Default_visa and open a VISA device handle.
@@ -29,10 +29,10 @@ class Laser_LDC500(Default_visa):
         """
         Default_visa.__init__(self, name, parent, visa_ID) 
         
-        self.MAX_CURR = 200*mA
+        self.MAX_CURR = 1e9
         self.MIN_CURR = 0
-        self.MAX_TEMP = 40 ## Celcius
-        self.MIN_TEMP = 30 ## Celcius
+        self.MAX_TEMP = 1e9
+        self.MIN_TEMP = 0
         print('connected LDC500 laser controller.')
         return 
         
@@ -40,57 +40,51 @@ class Laser_LDC500(Default_visa):
         """Check if input temperature satisfies minimum and maximum values."""
         if temp > self.MAX_TEMP:
             self.beep()
-            raise LaserITC4001Error("Can't set temperature higher than "+str(self.MAX_TEMP)+" Celcius.")
+            raise LaserLDC500Error("Can't set temperature higher than "+str(self.MAX_TEMP)+" Celcius.")
         elif temp < self.MIN_TEMP:
             self.beep()
-            raise LaserITC4001Error("Can't set temperature lower than "+str(self.MIN_TEMP)+" Celcius.")
+            raise LaserLDC500Error("Can't set temperature lower than "+str(self.MIN_TEMP)+" Celcius.")
         return
         
     def check_current(self, curr):
         """Check if input current satisfies minimum and maximum values."""
         if curr > self.MAX_CURR:
-            self.beep()
-            raise LaserITC4001Error("Can't set current higher than "+str(self.MAX_CURR*1e3)+" mA.")
+            raise LaserLDC500Error("Can't set current higher than "+str(self.MAX_CURR*1e3)+" mA.")
         elif curr < self.MIN_CURR:
-            self.beep()
-            raise LaserITC4001Error("Can't set current lower than "+str(self.MIN_CURR*1e3)+" mA.")
+            raise LaserLDC500Error("Can't set current lower than "+str(self.MIN_CURR*1e3)+" mA.")
         return
     
     def get_temp(self):
         """Read temperature Celcius)."""
-        return float(self.device_handle.query("meas:temp?"))
+        return float(self.device_handle.query("TEMP?"))
     
     def get_current(self):
         """Read current (A)."""
-        return float(self.device_handle.query("meas:curr?"))
+        return float(self.device_handle.query("SILD?"))
     
         
     def set_temp(self, temp):
         """Set temperature (Celcius)."""
         self.check_temperature(temp)
-        self.device_handle.write("source2:temp "+str(temp)) ## the suffix 2 is required for ITC4001 instruments.
+        self.device_handle.write("TEMP "+str(temp))
         return
         
     def set_current(self, curr):
         """Set current (A)."""
         self.check_current(curr)
-        self.device_handle.write("source:curr "+str(curr))
+        self.device_handle.write("SILD "+str(curr))
         return
         
-    def beep(self):
-        """Self-explanatory."""
-        retval = self.device_handle.write("SYST:BEEP:IMM")
-        return "BEEP!"
 
 
-class LaserITC4001Error(nfu.LabMasterError):
-    """Errors raised by the ITC4001 laser."""
+class LaserLDC500Error(nfu.LabMasterError):
+    """Errors raised by the LDC500 laser controller."""
     pass
     
 ####################################################################################################################################################
 
 class Laser_ITC4001(Default_visa):
-    """Class allowing to control an ITC4001 infrared laser."""
+    """Class allowing to control an ITC4001 laser controller."""
     def __init__(self, name, parent, visa_ID):
         """
         Inherit from Default_visa and open a VISA device handle.
@@ -139,7 +133,7 @@ class Laser_ITC4001(Default_visa):
     def set_temp(self, temp):
         """Set temperature (Celcius)."""
         self.check_temperature(temp)
-        self.device_handle.write("source2:temp "+str(temp)) ## the suffix 2 is required for ITC4001 instruments.
+        self.device_handle.write("source2:temp "+str(temp))
         return
         
     def set_current(self, curr):
@@ -155,6 +149,6 @@ class Laser_ITC4001(Default_visa):
 
 
 class LaserITC4001Error(nfu.LabMasterError):
-    """Errors raised by the ITC4001 laser."""
+    """Errors raised by the ITC4001 laser controller."""
     pass
     

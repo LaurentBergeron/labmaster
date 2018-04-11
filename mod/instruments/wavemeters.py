@@ -15,8 +15,8 @@ import importlib
 ## Homemade modules
 from ..classes import Instrument
 from ..units import *
-from .. import not_for_user     
-nfu = not_for_user 
+from .. import not_for_user
+nfu = not_for_user
 
 class Wavemeter_Bristol621(Instrument):
     """Class allowing to control a Bristol 621 wavemeter."""

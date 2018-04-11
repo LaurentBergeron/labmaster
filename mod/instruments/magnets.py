@@ -37,9 +37,9 @@ class PowerSupplyCS410V(Default_visa):
     def check_current(self, current):
         """Check if input current satisfies minimum and maximum values."""
         if current > self.MAX_CURRENT:
-            raise SigGenE8257DError("Can't set current higher than "+nfu.auto_unit(self.MAX_CURRENT, "A")+".")
+            raise PowerSupplyCS410VError("Can't set current higher than "+nfu.auto_unit(self.MAX_CURRENT, "A")+".")
         elif current < self.MIN_CURRENT:
-            raise SigGenE8257DError("Can't set current lower than "+nfu.auto_unit(self.MIN_CURRENT, "A")+".")
+            raise PowerSupplyCS410VError("Can't set current lower than "+nfu.auto_unit(self.MIN_CURRENT, "A")+".")
         return
         
 

@@ -4,20 +4,20 @@ Laser scan.
 from mod.main import *
 
 def pre_scan(lab, params, fig, data, ID):
-    lab.laser.set_current(params.current.value[0])
+    lab.laserITC.set_current(params.current.value[0])
     time.sleep(200*ms)
     
     params.current_meas.value = np.zeros(params.current.get_size())
-    params.temp_meas.value = np.zeros_like(params.current_meas.value)
-    params.wavelength.value = np.zeros_like(params.current_meas.value)
+    params.temp_meas.value = np.zeros(params.current.get_size())
+    params.wavelength.value = np.zeros(params.current.get_size())
     return
     
     
 def launch(lab, params, fig, data, ID):
-    lab.laser.set_current(params.current.v)
-    time.sleep(params.delay.v)    
+    lab.laserITC.set_current(params.current.v)
+    time.sleep(params.delay.v)
     if DETECTOR=='COUNTER':
-        lab.usb_counter.clear(2)
+        lab.counter.clear(2)
     return
     
     
@@ -26,14 +26,17 @@ def get_data(lab, params, fig, data, ID):
         wavelength = lab.wavemeter.measure()
     else:
         wavelength = 0
-    params.current_meas.set_ith_value(lab.laser.get_current())  
-    params.temp_meas.set_ith_value(lab.laser.get_temp())  
+    params.current_meas.set_ith_value(lab.laserITC.get_current())  
+    params.temp_meas.set_ith_value(lab.laserITC.get_temp())  
     params.wavelength.set_ith_value(wavelength)
     
     if DETECTOR=='LOCKIN':
         result = lab.lockin.get_X()
     elif DETECTOR=='COUNTER':
-        result = lab.usb_counter.read(2)
+        lab.counter.initiate_timer(params.delay.value)
+        while not lab.counter.timer_is_stopped():   
+            pass
+        result = lab.counter.read(2)
     return result
 
 
@@ -46,7 +49,7 @@ def update_plot(lab, params, fig, data, ID):
     if USE_WAVEMETER:
         wavelength = data[params.current.i,1]
         ax.text(0.5,0.1,'$\lambda$ = %0.3f nm'%wavelength, transform = ax.transAxes, fontsize=15)
-    plotting.updatefig_XY(fig, params.current.value, data)
+    plotting.updatefig_XY(fig, params.current_meas.value, data)
     peak_min, at_curr = out(lab, params, fig, data, ID)
     if peak_min != None:
         title = 'peak min = %0.0f'%peak_min

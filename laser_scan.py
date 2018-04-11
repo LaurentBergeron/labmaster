@@ -2,17 +2,18 @@ import exp.exp_laser_scan as experiment
 import exp._defaults_ as _defaults_
 
 experiment.USE_WAVEMETER = False ## USE_WAVEMETER=True not tested on LabMaster v.2 release.
-experiment.DETECTOR = 'COUNTER' ## 'LOCKIN' or 'COUNTER'
+experiment.DETECTOR = 'LOCKIN' ## 'LOCKIN' or 'COUNTER'
 experiment.USE_FIT = False
 
 params = Params('temp_meas;C', 'current;A', 'current_meas;A', 'curr_estimate_min;A', 'curr_estimate_max;A', 'wavelength;m', 'delay;s')
 
-params.delay.value = 1000*ms
+params.delay.value = 500*ms
 params.current.value = orange(0.0875,0.09,16e-6)
 
-## Min and max current for finding min.
+## Min and max current for finding min. (when USE_FIT is True)
 params.curr_estimate_min.value = 0.0875
 params.curr_estimate_max.value = 0.09
+
 
 fig_ref = plt.figure()
 # fig_ref = None
@@ -36,5 +37,6 @@ finally:
              'delay;'+str(params.delay.value),
              'ND filters 1047;'+_defaults_.ND_filters_1047, 
              'ND filters;'+_defaults_.ND_filters, 
-             'sensitivity;'+str(_defaults_.amp_sensitivity)
+             'sensitivity;'+str(_defaults_.amp_sensitivity),
+             'magnetic field;'+str(_defaults_.mag_field)
              )
