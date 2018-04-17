@@ -8,8 +8,8 @@ def pre_scan(lab, params, fig, data, ID):
     lab.laser.set_current(params.current.value[0])
     time.sleep(200*ms)
     
-    params.current_meas.value = np.zeros(params.current.get_size())
-    # params.wavelength.value = np.zeros(params.current.get_size())
+    if USE_WAVEMETER:
+        params.wavelength.value = np.zeros(params.current.get_size())
     return
     
     
@@ -24,16 +24,15 @@ def launch(lab, params, fig, data, ID):
 def get_data(lab, params, fig, data, ID):
     if USE_WAVEMETER:
         wavelength = lab.wavemeter.measure()
+        params.wavelength.set_ith_value(wavelength)
     else:
         wavelength = 0
-    params.current_meas.set_ith_value(lab.laser.get_current())  
-    # params.wavelength.set_ith_value(wavelength)
     
     if DETECTOR=='LOCKIN':
         result = lab.lockin.get_Y()
     elif DETECTOR=='COUNTER':
         lab.counter.initiate_timer(params.delay.value)
-        while not lab.counter.timer_is_stopped():   
+        while not lab.counter.timer_is_stopped():
             pass
         result = lab.counter.read(2)
     return result
@@ -57,7 +56,7 @@ def update_plot(lab, params, fig, data, ID):
         fig.axes[0].text(0.5,0.1,'$\lambda$ = %0.3f nm'%wavelength, transform = ax.transAxes, fontsize=15)
         title+='\n$\lambda$ = %0.3f nm'%wavelength
         
-    plotting.updatefig_XY(fig, params.current_meas.value, data)
+    plotting.updatefig_XY(fig, params.current.value, data)
     
     fig.suptitle(title, fontsize=15-3*USE_WAVEMETER)
     

@@ -5,7 +5,7 @@ experiment.USE_WAVEMETER = False ## USE_WAVEMETER=True not tested on LabMaster v
 experiment.DETECTOR = 'LOCKIN' ## 'LOCKIN' or 'COUNTER'
 experiment.USE_FIT = False
 
-params = Params('current;A', 'current_meas;A', 'delay;s')
+params = Params('current;A', 'delay;s')
 
 params.delay.value = 500*ms
 params.current.value = orange(0.0875,0.09,1e-6)
