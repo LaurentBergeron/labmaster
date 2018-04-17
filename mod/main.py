@@ -38,12 +38,6 @@ from .not_for_user import LabMasterError, today, lastID, auto_unit, saving_folde
 from .units import *
 from pydoc import help
 
-def show_dates():
-    
-    for x in os.listdir(saving_folders()[0]+'sweep/'):
-        if os.path.isdir(saving_folders()[0]+'sweep/'+x):
-            print(x)
-    return 
     
 def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     """
@@ -95,9 +89,7 @@ def scan(lab, params, experiment, fig=None, quiet=False, update_plot=True):
     else:
         if input("Is this correct? [Y/n]") not in nfu.positive_answer_Y():
             raise KeyboardInterrupt
-            
 
-        
     ## Up to this point, results will be saved whatever happens.
     try:
         ## Save what we know about the experiment so far in experiment/ folder. 
@@ -247,6 +239,7 @@ def error_manager(as_string=False, all=False):
         message = error_type.__name__+": "+ str(error_value)
     elif error_type is KeyboardInterrupt:
         message = "Experiment aborted."
+        time.sleep(.5)
     else:
         if all:
             message = error_type.__name__+": "+str(error_value)
@@ -848,6 +841,24 @@ def send_email(recipient, add_subject="", add_msg=""):
         print("send_email() failed. ", sys.exc_info()[0].__name__+":",  sys.exc_info()[1])
     return
 
+    
+    
+def show_IDs(N, date=None):
+    """Show the N last files saved. If date=None, today() will be selected."""
+    if date==None:
+        date=today()
+    files = os.listdir(saving_folders()[0]+'experiment/'+date)
+    for file in sorted(files)[::-1][:N]:
+        print(file)
+    
+    return
+
+def show_dates(N):
+    """Show the N last dates where data was saved. """
+    dates = [x for x in os.listdir(saving_folders()[0]+'experiment/') if os.path.isdir(saving_folders()[0]+'sweep/'+x)]
+    for date in sorted(dates)[::-1][:N]:
+        print(date)
+    return 
 
 def show_visa():
     """

@@ -29,11 +29,11 @@ class Laser_LDC500(Default_visa):
         """
         Default_visa.__init__(self, name, parent, visa_ID) 
         
-        self.MAX_CURR = 1e9
+        self.MAX_CURR = 100*mA
         self.MIN_CURR = 0
-        self.MAX_TEMP = 1e9
+        self.MAX_TEMP = 50
         self.MIN_TEMP = 0
-        print('connected LDC500 laser controller.')
+        print('connected to LDC500 laser controller.')
         return 
         
     def check_temperature(self, temp):
@@ -56,11 +56,12 @@ class Laser_LDC500(Default_visa):
     
     def get_temp(self):
         """Read temperature Celcius)."""
-        return float(self.device_handle.query("TEMP?"))
+        return float(self.device_handle.query("TCUR?"))
     
     def get_current(self):
         """Read current (A)."""
-        return float(self.device_handle.query("SILD?"))
+        result = 1e-3*float(self.device_handle.query("RILD?"))
+        return result
     
         
     def set_temp(self, temp):
@@ -71,6 +72,8 @@ class Laser_LDC500(Default_visa):
         
     def set_current(self, curr):
         """Set current (A)."""
+        # curr *= 1e3    
+        curr = round(curr*1e3, 6)
         self.check_current(curr)
         self.device_handle.write("SILD "+str(curr))
         return
@@ -98,9 +101,9 @@ class Laser_ITC4001(Default_visa):
         self.MIN_CURR = 0
         self.MAX_TEMP = 40 ## Celcius
         self.MIN_TEMP = 30 ## Celcius
-        print('connected ITC4001 laser controller.')
+        print('connected to ITC4001 laser controller.')
         return 
-        
+    
     def check_temperature(self, temp):
         """Check if input temperature satisfies minimum and maximum values."""
         if temp > self.MAX_TEMP:
